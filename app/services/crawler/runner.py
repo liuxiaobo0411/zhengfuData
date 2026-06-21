@@ -41,7 +41,7 @@ def crawl_section(
 
     now = datetime.now()
     run = CrawlRun(
-        run_no=f"manual-{now.strftime('%Y%m%d%H%M%S')}-{section.id}",
+        run_no=f"manual-{now.strftime('%Y%m%d%H%M%S%f')}-{section.id}",
         run_type="manual",
         status="running",
         started_at=now,
@@ -61,17 +61,26 @@ def crawl_section(
             records = parse_listing_records(page, section)
         run.discovered_items = len(records)
         new_items = 0
+        content_changed_items = 0
+        attachment_added = 0
+        attachment_changed = 0
         attachment_success = 0
         attachment_failed = 0
         for record in records:
             result = save_record(db, site, section, run, record, storage.root, settings)
             new_items += int(result["is_new"])
+            content_changed_items += int(result["content_changed"])
+            attachment_added += result["attachment_added"]
+            attachment_changed += result["attachment_changed"]
             attachment_success += result["attachment_success"]
             attachment_failed += result["attachment_failed"]
 
         run.status = "success"
         run.success_sections = 1
         run.new_items = new_items
+        run.content_changed_items = content_changed_items
+        run.attachment_added_count = attachment_added
+        run.attachment_changed_count = attachment_changed
         run.attachment_success_count = attachment_success
         run.attachment_failed_count = attachment_failed
         run.finished_at = datetime.now()
@@ -166,6 +175,8 @@ def save_record(
         )
     )
     is_new = announcement is None
+    old_content_hash = announcement.content_hash if announcement else None
+    old_attachments_hash = announcement.attachments_hash if announcement else None
     now = datetime.now()
     if announcement is None:
         announcement = Announcement(
@@ -209,12 +220,44 @@ def save_record(
                 source_url=announcement.source_url,
             )
         )
+    elif old_content_hash and old_content_hash != content_hash:
+        db.add(
+            ChangeLog(
+                announcement_id=announcement.id,
+                site_id=site.id,
+                section_id=section.id,
+                run_id=run.id,
+                change_type="content_changed",
+                title=announcement.title,
+                summary="正文内容 hash 发生变化",
+                old_hash=old_content_hash,
+                new_hash=content_hash,
+                source_url=announcement.source_url,
+            )
+        )
+    if not is_new and old_attachments_hash and old_attachments_hash != attachment_hash:
+        db.add(
+            ChangeLog(
+                announcement_id=announcement.id,
+                site_id=site.id,
+                section_id=section.id,
+                run_id=run.id,
+                change_type="attachment_list_changed",
+                title=announcement.title,
+                summary="附件列表 hash 发生变化",
+                old_hash=old_attachments_hash,
+                new_hash=attachment_hash,
+                source_url=announcement.source_url,
+            )
+        )
 
+    attachment_added = 0
+    attachment_changed = 0
     attachment_success = 0
     attachment_failed = 0
     if section.download_attachments:
         for parsed_attachment in attachments:
-            if save_attachment(
+            attachment_result = save_attachment(
                 db,
                 site,
                 announcement,
@@ -222,12 +265,20 @@ def save_record(
                 parsed_attachment,
                 section,
                 storage_root,
-            ):
+            )
+            attachment_added += int(attachment_result["is_new"])
+            attachment_changed += int(attachment_result["changed"])
+            if attachment_result["success"]:
                 attachment_success += 1
             else:
                 attachment_failed += 1
     return {
         "is_new": is_new,
+        "content_changed": bool(
+            (not is_new) and old_content_hash and old_content_hash != content_hash
+        ),
+        "attachment_added": attachment_added,
+        "attachment_changed": attachment_changed,
         "attachment_success": attachment_success,
         "attachment_failed": attachment_failed,
     }
@@ -241,7 +292,7 @@ def save_attachment(
     parsed_attachment: ParsedAttachment,
     section: SiteSection,
     storage_root: Path,
-) -> bool:
+) -> dict[str, bool]:
     key = identity_for(parsed_attachment.url)
     attachment = db.scalar(
         select(Attachment).where(
@@ -250,6 +301,7 @@ def save_attachment(
         )
     )
     now = datetime.now()
+    is_new = attachment is None
     if attachment is None:
         attachment = Attachment(
             announcement_id=announcement.id,
@@ -282,23 +334,57 @@ def save_attachment(
     try:
         page = fetch_url(parsed_attachment.url, section, timeout=max(60, section.request_timeout))
         filename = attachment_filename(parsed_attachment, page)
-        target = attachment_target(storage_root, site, announcement, filename)
-        target.write_bytes(page.body)
+        new_hash = sha256_bytes(page.body)
+        old_hash = attachment.file_hash
+        changed = bool(old_hash and old_hash != new_hash)
+        target = existing_attachment_target(storage_root, attachment)
+        if target is None or changed:
+            target = attachment_target(storage_root, site, announcement, filename)
+            target.write_bytes(page.body)
         attachment.safe_name = target.name
         attachment.final_url = page.final_url
         attachment.local_path = str(target.relative_to(storage_root))
         attachment.file_size = len(page.body)
-        attachment.file_hash = sha256_bytes(page.body)
+        attachment.file_hash = new_hash
         attachment.file_ext = target.suffix.lower()
         attachment.mime_type = page.content_type
         attachment.downloaded_at = now
         attachment.download_status = "success"
         attachment.failure_reason = None
-        return True
+        if changed:
+            db.add(
+                ChangeLog(
+                    announcement_id=announcement.id,
+                    attachment_id=attachment.id,
+                    site_id=site.id,
+                    section_id=announcement.section_id,
+                    run_id=run.id,
+                    change_type="attachment_changed",
+                    title=parsed_attachment.name,
+                    summary="附件文件 hash 发生变化",
+                    old_hash=old_hash,
+                    new_hash=new_hash,
+                    source_url=parsed_attachment.url,
+                )
+            )
+        return {"success": True, "is_new": is_new, "changed": changed}
     except Exception as exc:
         attachment.download_status = "failed"
         attachment.failure_reason = f"{type(exc).__name__}: {exc}"
-        return False
+        db.add(
+            ChangeLog(
+                announcement_id=announcement.id,
+                attachment_id=attachment.id,
+                site_id=site.id,
+                section_id=announcement.section_id,
+                run_id=run.id,
+                change_type="attachment_failed",
+                title=parsed_attachment.name,
+                summary=attachment.failure_reason,
+                source_url=parsed_attachment.url,
+            )
+        )
+        return {"success": False, "is_new": is_new, "changed": False}
 
 
 def save_snapshot(storage_root: Path, site: Site, section: SiteSection, page: FetchedPage) -> Path:
@@ -335,6 +421,13 @@ def attachment_target(
         suffix = datetime.now().strftime("%H%M%S")
         target = attachment_dir / f"{target.stem}_{suffix}{target.suffix}"
     return target
+
+
+def existing_attachment_target(storage_root: Path, attachment: Attachment) -> Path | None:
+    if not attachment.local_path:
+        return None
+    target = storage_root / attachment.local_path
+    return target if target.exists() else None
 
 
 def attachment_filename(parsed_attachment: ParsedAttachment, page: FetchedPage) -> str:

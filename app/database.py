@@ -27,7 +27,13 @@ def build_engine(database_url: str | None = None):
 
 
 engine = build_engine()
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
+SessionLocal = sessionmaker(
+    bind=engine,
+    autoflush=False,
+    autocommit=False,
+    expire_on_commit=False,
+    future=True,
+)
 
 
 def configure_database(database_url: str | None = None):

@@ -11,6 +11,18 @@ from app.services.crawler.runner import crawl_section
 from app.services.crawler.types import FetchedPage
 
 
+def fetched(url: str, body: bytes | str, content_type: str = "text/html") -> FetchedPage:
+    text = body.decode() if isinstance(body, bytes) else body
+    raw_body = body if isinstance(body, bytes) else body.encode()
+    return FetchedPage(
+        url=url,
+        final_url=url,
+        body=raw_body,
+        text=text,
+        content_type=content_type,
+    )
+
+
 def setup_db(tmp_path: Path):
     engine = configure_database(f"sqlite:///{tmp_path / 'crawler.db'}")
     Base.metadata.create_all(engine)
@@ -96,6 +108,101 @@ def test_crawl_section_saves_html_announcement_snapshot_and_attachment(tmp_path,
             "new_announcement",
             "attachment_added",
         }
+
+
+def test_repeated_crawl_does_not_duplicate_records(tmp_path, monkeypatch):
+    setup_db(tmp_path)
+    section_id = create_site_and_section()
+
+    def fake_fetch(url: str, section: SiteSection, timeout: int | None = None):
+        if url.endswith("list.html"):
+            html = "<html><li><a href='detail.html'>资质核准公告</a>2026-06-21</li></html>"
+            return fetched(url, html)
+        if url.endswith("detail.html"):
+            html = (
+                "<html><body><main>公告正文</main><a href='files/a.pdf'>附件下载</a></body></html>"
+            )
+            return fetched(url, html)
+        return fetched(url, b"same-pdf", "application/pdf")
+
+    monkeypatch.setattr("app.services.crawler.runner.fetch_url", fake_fetch)
+    settings = Settings(APP_STORAGE_ROOT=tmp_path / "storage")
+    with SessionLocal() as db:
+        first_run = crawl_section(db, section_id, triggered_by="tester", settings=settings)
+        second_run = crawl_section(db, section_id, triggered_by="tester", settings=settings)
+
+    assert first_run.new_items == 1
+    assert second_run.new_items == 0
+    assert second_run.content_changed_items == 0
+    assert second_run.attachment_added_count == 0
+    assert second_run.attachment_changed_count == 0
+    with SessionLocal() as db:
+        assert db.query(Announcement).count() == 1
+        assert db.query(Attachment).count() == 1
+        assert db.query(ChangeLog).count() == 2
+
+
+def test_content_change_writes_change_log(tmp_path, monkeypatch):
+    setup_db(tmp_path)
+    section_id = create_site_and_section()
+    state = {"version": "v1"}
+
+    with SessionLocal() as db:
+        section = db.get(SiteSection, section_id)
+        section.download_attachments = False
+        db.commit()
+
+    def fake_fetch(url: str, section: SiteSection, timeout: int | None = None):
+        if url.endswith("list.html"):
+            html = "<html><li><a href='detail.html'>资质核准公告</a>2026-06-21</li></html>"
+        else:
+            html = f"<html><body><main>公告正文 {state['version']}</main></body></html>"
+        return fetched(url, html)
+
+    monkeypatch.setattr("app.services.crawler.runner.fetch_url", fake_fetch)
+    settings = Settings(APP_STORAGE_ROOT=tmp_path / "storage")
+    with SessionLocal() as db:
+        crawl_section(db, section_id, triggered_by="tester", settings=settings)
+        state["version"] = "v2"
+        second_run = crawl_section(db, section_id, triggered_by="tester", settings=settings)
+
+    assert second_run.new_items == 0
+    assert second_run.content_changed_items == 1
+    with SessionLocal() as db:
+        assert db.query(Announcement).count() == 1
+        assert db.query(ChangeLog).filter_by(change_type="content_changed").count() == 1
+
+
+def test_attachment_content_change_writes_change_log(tmp_path, monkeypatch):
+    setup_db(tmp_path)
+    section_id = create_site_and_section()
+    state = {"body": b"pdf-v1"}
+
+    def fake_fetch(url: str, section: SiteSection, timeout: int | None = None):
+        if url.endswith("list.html"):
+            html = "<html><li><a href='detail.html'>资质核准公告</a>2026-06-21</li></html>"
+            return fetched(url, html)
+        if url.endswith("detail.html"):
+            html = (
+                "<html><body><main>公告正文</main><a href='files/a.pdf'>附件下载</a></body></html>"
+            )
+            return fetched(url, html)
+        return fetched(url, state["body"], "application/pdf")
+
+    monkeypatch.setattr("app.services.crawler.runner.fetch_url", fake_fetch)
+    settings = Settings(APP_STORAGE_ROOT=tmp_path / "storage")
+    with SessionLocal() as db:
+        crawl_section(db, section_id, triggered_by="tester", settings=settings)
+        state["body"] = b"pdf-v2"
+        second_run = crawl_section(db, section_id, triggered_by="tester", settings=settings)
+
+    assert second_run.new_items == 0
+    assert second_run.attachment_added_count == 0
+    assert second_run.attachment_changed_count == 1
+    with SessionLocal() as db:
+        assert db.query(Announcement).count() == 1
+        assert db.query(Attachment).count() == 1
+        assert db.query(ChangeLog).filter_by(change_type="attachment_changed").count() == 1
 
 
 def test_crawl_section_saves_json_api_rows(tmp_path, monkeypatch):
