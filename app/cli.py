@@ -11,6 +11,7 @@ from app.services.notifier import send_daily_report
 from app.services.scheduler import run_daily_crawl
 from app.services.site_importer import import_sites_from_yaml
 from app.services.source_validator import validate_enabled_sources
+from app.services.system_doctor import format_doctor_report, run_system_doctor
 
 
 def main() -> None:
@@ -36,6 +37,7 @@ def main() -> None:
     report_parser = subparsers.add_parser("export-acceptance-report")
     report_parser.add_argument("--output", default="")
 
+    subparsers.add_parser("doctor")
     subparsers.add_parser("send-daily-report")
 
     args = parser.parse_args()
@@ -51,6 +53,8 @@ def main() -> None:
         validate_sources(args.limit)
     elif args.command == "export-acceptance-report":
         export_report(Path(args.output) if args.output else None)
+    elif args.command == "doctor":
+        doctor()
     elif args.command == "send-daily-report":
         send_report()
 
@@ -132,6 +136,14 @@ def export_report(output_path: Path | None) -> None:
     with SessionLocal() as db:
         report = export_acceptance_report(db, settings=get_settings(), output_path=target)
     print(f"acceptance_report={report.path}")
+
+
+def doctor() -> None:
+    with SessionLocal() as db:
+        report = run_system_doctor(db, settings=get_settings())
+    print(format_doctor_report(report))
+    if report.failed_count:
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

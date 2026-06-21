@@ -54,6 +54,14 @@ OPENCLAW_WEBHOOK_URL=OpenClaw 提供的通知地址
 OPENCLAW_NOTIFY_RETRY_TIMES=2
 ```
 
+## 运行部署自检
+
+```powershell
+scripts\windows\doctor.ps1
+```
+
+自检会检查数据库连接、storage 写入、站点配置文件、已导入来源、OpenClaw 配置和 Windows 脚本完整性。`WARN` 表示可继续运行但需要关注，`FAIL` 表示需要先修复。
+
 ## 验证来源配置
 
 先验证前 2 个启用栏目：
@@ -169,6 +177,7 @@ storage\snapshots
 在 Windows 机器上至少完成：
 
 - `scripts\windows\setup.ps1` 成功。
+- `scripts\windows\doctor.ps1` 无 `FAIL`。
 - `scripts\windows\validate-sources.ps1 -Limit 2` 成功。
 - 后台可以登录。
 - `scripts\windows\run-daily-crawl.ps1 -Limit 2` 成功。

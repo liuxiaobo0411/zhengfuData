@@ -328,6 +328,7 @@ scripts/windows/run-server.ps1
 scripts/windows/run-daily-crawl.ps1
 scripts/windows/validate-sources.ps1
 scripts/windows/export-acceptance-report.ps1
+scripts/windows/doctor.ps1
 scripts/windows/install-daily-task.ps1
 docs/Windows本地部署说明.md
 ```
@@ -340,6 +341,7 @@ docs/Windows本地部署说明.md
 - `run-daily-crawl.ps1` 负责执行每日抓取。
 - `validate-sources.ps1` 负责验证启用栏目列表页可访问且可解析。
 - `export-acceptance-report.ps1` 负责导出自动验收报告。
+- `doctor.ps1` 负责检查数据库、storage、来源配置、OpenClaw 和 Windows 脚本状态。
 - `install-daily-task.ps1` 负责注册 Windows 任务计划。
 
 ## 后台手动抓取入口
@@ -444,6 +446,6 @@ pytest                       48 passed, 1 warning
 
 ## 后续验收事项
 
-- 在 Windows 电脑按 `docs/Windows本地部署说明.md` 完成安装、启动、导入、抓取和附件下载验证。
+- 在 Windows 电脑按 `docs/Windows本地部署说明.md` 完成安装、自检、启动、导入、抓取和附件下载验证。
 - 配置真实 `OPENCLAW_WEBHOOK_URL` 后，验证企微群日报发送。
 - 针对资质增项公告查询页面补 Playwright 或接口适配器。
