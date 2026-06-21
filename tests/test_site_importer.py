@@ -43,6 +43,52 @@ sites:
         assert db.query(SiteSection).one().crawler_strategy == "http_static"
 
 
+def test_import_sites_from_yaml_updates_section_when_url_changes(tmp_path: Path):
+    engine = configure_database(f"sqlite:///{tmp_path / 'sites.db'}")
+    Base.metadata.create_all(engine)
+    config = tmp_path / "sites.yaml"
+    config.write_text(
+        """
+sites:
+  - name: 测试站点
+    slug: test-site
+    homepage_url: https://example.gov.cn/
+    sections:
+      - name: 资质查询
+        url: https://example.gov.cn/qualification
+        crawler_strategy: browser_rendered
+        enabled: false
+""",
+        encoding="utf-8",
+    )
+
+    with SessionLocal() as db:
+        import_sites_from_yaml(db, config)
+    config.write_text(
+        """
+sites:
+  - name: 测试站点
+    slug: test-site
+    homepage_url: https://example.gov.cn/
+    sections:
+      - name: 资质查询
+        url: https://example.gov.cn/api/qualification
+        crawler_strategy: json_api
+        enabled: true
+""",
+        encoding="utf-8",
+    )
+
+    with SessionLocal() as db:
+        import_sites_from_yaml(db, config)
+
+    with SessionLocal() as db:
+        section = db.query(SiteSection).one()
+        assert section.url == "https://example.gov.cn/api/qualification"
+        assert section.crawler_strategy == "json_api"
+        assert section.enabled is True
+
+
 def test_repository_sites_config_imports_v1_seed_sections(tmp_path: Path):
     engine = configure_database(f"sqlite:///{tmp_path / 'sites.db'}")
     Base.metadata.create_all(engine)

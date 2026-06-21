@@ -255,11 +255,11 @@ sites:
         max_items_per_run: 20
         crawl_date_window_days: 1
       - name: 陕西资质查询
-        url: https://qiye.sxxzsp.cn:29086/qualification
+        url: https://qiye.sxxzsp.cn:29086/api/portal/announcement/integration?fsystemid=101&pageSize=20&pageNum=1
         item_type: qualification_query
-        crawler_strategy: browser_rendered
+        crawler_strategy: json_api
         schedule_cron: "0 9 * * *"
-        enabled: false
+        enabled: true
         download_attachments: false
         save_snapshot: true
         request_timeout: 30

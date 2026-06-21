@@ -53,6 +53,7 @@ def upsert_site(db: Session, data: dict[str, Any]) -> Site:
 
 def upsert_section(db: Session, site: Site, data: dict[str, Any]) -> SiteSection:
     url = required_text(data, "url")
+    name = required_text(data, "name")
     section = db.scalar(
         select(SiteSection).where(
             SiteSection.site_id == site.id,
@@ -60,9 +61,16 @@ def upsert_section(db: Session, site: Site, data: dict[str, Any]) -> SiteSection
         )
     )
     if section is None:
-        section = SiteSection(site_id=site.id, name=required_text(data, "name"), url=url)
+        section = db.scalar(
+            select(SiteSection).where(
+                SiteSection.site_id == site.id,
+                SiteSection.name == name,
+            )
+        )
+    if section is None:
+        section = SiteSection(site_id=site.id, name=name, url=url)
         db.add(section)
-    section.name = required_text(data, "name")
+    section.name = name
     section.url = url
     section.item_type = optional_text(data, "item_type") or "qualification_notice"
     section.crawl_method = optional_text(data, "crawl_method") or "http"

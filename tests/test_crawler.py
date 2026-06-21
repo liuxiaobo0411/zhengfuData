@@ -243,6 +243,31 @@ def test_crawl_section_saves_json_api_rows(tmp_path, monkeypatch):
         assert "测试企业" in announcement.content
 
 
+def test_crawl_section_saves_qualification_query_json_rows(tmp_path, monkeypatch):
+    setup_db(tmp_path)
+    section_id = create_site_and_section("json_api")
+
+    def fake_fetch(url: str, section: SiteSection, timeout: int | None = None):
+        text = (
+            '{"rows":[{"fid":"q1","fname":"陕西测试建筑工程有限公司",'
+            '"ftypename":"施工劳务（备案）不分等级","fcertino":"D361000001",'
+            '"fendtimelist":"2031-06-19"}]}'
+        )
+        return fetched(url, text, "application/json")
+
+    monkeypatch.setattr("app.services.crawler.runner.fetch_url", fake_fetch)
+    settings = Settings(APP_STORAGE_ROOT=tmp_path / "storage")
+    with SessionLocal() as db:
+        run = crawl_section(db, section_id, triggered_by="tester", settings=settings)
+
+    assert run.status == "success"
+    with SessionLocal() as db:
+        announcement = db.query(Announcement).one()
+        assert announcement.title == "陕西测试建筑工程有限公司"
+        assert announcement.raw_published_at == "2031-06-19"
+        assert "D361000001" in announcement.content
+
+
 def test_unsupported_strategy_records_readable_failure(tmp_path):
     setup_db(tmp_path)
     section_id = create_site_and_section("browser_rendered")

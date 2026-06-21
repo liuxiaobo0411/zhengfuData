@@ -18,7 +18,7 @@
 
 - Windows 实机运行验收。
 - 全量附件下载压力测试。
-- Playwright 动态查询页面适配。
+- 资质增项公告查询页面动态适配。
 - 企微真实群日报发送。
 
 ## 首批来源配置
@@ -27,13 +27,16 @@
 
 - 3 个站点。
 - 14 个栏目。
-- 12 个启用栏目。
-- 2 个待适配动态查询页面，默认不启用。
+- 13 个启用栏目。
+- 1 个待适配动态查询页面，默认不启用。
 
 待适配页面：
 
-- 陕西资质查询：`https://qiye.sxxzsp.cn:29086/qualification`
 - 陕西资质增项公告查询页面：`https://qiye.sxxzsp.cn:29086/affiche`
+
+已通过 JSON 接口接入：
+
+- 陕西资质查询：`https://qiye.sxxzsp.cn:29086/api/portal/announcement/integration?fsystemid=101&pageSize=20&pageNum=1`
 
 ## 列表解析验证
 
@@ -52,7 +55,7 @@ imported sites=3 sections=14
 启用栏目列表探测结果：
 
 ```text
-enabled_sections 12
+enabled_sections 13
 OK 建设工程企业资质行政审批专栏-公告 records=10
 OK 陕西建筑施工公告 records=20
 OK 政策发布 records=10
@@ -65,6 +68,7 @@ OK 建设工程企业资质行政审批专栏-通报 records=10
 OK 工程建设项目审批制度改革工作-政策文件 records=10
 OK 公告公示 records=10
 OK 省厅文件 records=10
+OK 陕西资质查询 records=20
 ```
 
 ## 质量检查
@@ -80,7 +84,7 @@ pytest
 测试结果：
 
 ```text
-45 passed
+47 passed
 ```
 
 本机未安装 `pwsh`，PowerShell 脚本语法解析未在 macOS 开发机执行。已通过测试检查 Windows 脚本文件存在、使用项目相对路径，并在 `docs/Windows本地部署说明.md` 中列明 Windows 实机验收步骤。
@@ -108,7 +112,7 @@ summary total=2 success=2 failed=0
 - 不下载附件。
 - 可用于 Windows 部署后的来源连通性验收。
 
-## 12 个启用栏目完整来源验证
+## 13 个启用栏目完整来源验证
 
 执行命令：
 
@@ -119,7 +123,7 @@ zhengfudata validate-sources
 验证结果：
 
 ```text
-summary total=12 success=12 failed=0
+summary total=13 success=13 failed=0
 ```
 
 通过栏目：
@@ -137,6 +141,7 @@ summary total=12 success=12 failed=0
 工程建设项目审批制度改革工作-政策文件 records=10
 公告公示 records=10
 省厅文件 records=10
+陕西资质查询 records=20
 ```
 
 ## 小批量完整闭环验证
@@ -193,7 +198,7 @@ latest run: scheduled-20260621215135385692-1 scheduled cli_daily success
 - `cli_daily` 和应用内置定时触发会写入 `run_type=scheduled`。
 - 普通后台或 CLI 单栏目抓取仍属于手动任务。
 
-## 12 个启用栏目完整每日任务验收
+## 13 个启用栏目完整每日任务验收
 
 执行命令：
 
@@ -204,23 +209,24 @@ zhengfudata run-daily-crawl --no-notify
 结果：
 
 ```text
-daily sections=12 success=12 failed=0
+daily sections=13 success=13 failed=0
 ```
 
 数据库验证：
 
 ```text
-run ids: 23-34
-sections 12 success 12 failed 0
-discovered 120
+run ids: 36-48
+sections 13 success 13 failed 0
+discovered 140
 new 0
-content_changed 0
+content_changed 8
 attachment_success 152
 attachment_failed 0
 attachment_added 0
 attachment_changed 0
-announcements 120
+announcements 140
 attachments 152
+section15 announcements 20
 local attachment files 152
 storage size 25M
 ```
@@ -228,24 +234,26 @@ storage size 25M
 逐栏目结果：
 
 ```text
-建设工程企业资质行政审批专栏-公告 success discovered=10 new=0 attachment_success=35 attachment_failed=0 duration=147s
+建设工程企业资质行政审批专栏-公告 success discovered=10 new=0 attachment_success=35 attachment_failed=0 duration=82s
 陕西建筑施工公告 success discovered=20 new=0 attachment_success=0 attachment_failed=0 duration=8s
-政策发布 success discovered=10 new=0 attachment_success=12 attachment_failed=0 duration=80s
-住房和城乡建设部行政规范性文件库 success discovered=10 new=0 attachment_success=29 attachment_failed=0 duration=88s
-建设工程企业资质行政审批专栏-部门规章 success discovered=3 new=0 attachment_success=6 attachment_failed=0 duration=22s
-建设工程企业资质行政审批专栏-资质标准 success discovered=7 new=0 attachment_success=9 attachment_failed=0 duration=37s
-建设工程企业资质行政审批专栏-政策文件 success discovered=10 new=0 attachment_success=1 attachment_failed=0 duration=22s
-建设工程企业资质行政审批专栏-审查意见公示 success discovered=10 new=0 attachment_success=29 attachment_failed=0 duration=70s
-建设工程企业资质行政审批专栏-通报 success discovered=10 new=0 attachment_success=0 attachment_failed=0 duration=23s
-工程建设项目审批制度改革工作-政策文件 success discovered=10 new=0 attachment_success=11 attachment_failed=0 duration=41s
-公告公示 success discovered=10 new=0 attachment_success=7 attachment_failed=0 duration=27s
+政策发布 success discovered=10 new=0 attachment_success=12 attachment_failed=0 duration=38s
+住房和城乡建设部行政规范性文件库 success discovered=10 new=0 attachment_success=29 attachment_failed=0 duration=72s
+建设工程企业资质行政审批专栏-部门规章 success discovered=3 new=0 attachment_success=6 attachment_failed=0 duration=24s
+建设工程企业资质行政审批专栏-资质标准 success discovered=7 new=0 attachment_success=9 attachment_failed=0 duration=53s
+建设工程企业资质行政审批专栏-政策文件 success discovered=10 new=0 attachment_success=1 attachment_failed=0 duration=23s
+建设工程企业资质行政审批专栏-审查意见公示 success discovered=10 new=0 attachment_success=29 attachment_failed=0 duration=79s
+建设工程企业资质行政审批专栏-通报 success discovered=10 new=0 attachment_success=0 attachment_failed=0 duration=26s
+工程建设项目审批制度改革工作-政策文件 success discovered=10 new=0 attachment_success=11 attachment_failed=0 duration=43s
+公告公示 success discovered=10 new=0 attachment_success=7 attachment_failed=0 duration=29s
 省厅文件 success discovered=10 new=0 attachment_success=13 attachment_failed=0 duration=36s
+陕西资质查询 success discovered=20 new=0 attachment_success=0 attachment_failed=0 duration=15s
 ```
 
 说明：
 
-- 12 个启用栏目已完成一次完整每日任务实测。
+- 13 个启用栏目已完成一次完整每日任务实测。
 - 每个栏目任务状态均为 `success`，说明列表抓取、正文解析、入库流程完整跑通。
+- 陕西资质查询已通过公开 JSON 接口接入，并归档 20 条企业资质记录。
 - 附件记录共 152 条，152 个文件均已下载到 `storage/attachments`。
 - 曾失败的住建部行政规范性文件库附件已修复，根因是下载 URL 中中文 `fileName` 参数需要在请求前做百分号编码。
 - 本次使用 `--no-notify`，不触发 OpenClaw；真实企微群日报仍需配置 webhook 后单独验收。
@@ -335,4 +343,4 @@ docs/Windows本地部署说明.md
 
 - 在 Windows 电脑按 `docs/Windows本地部署说明.md` 完成安装、启动、导入、抓取和附件下载验证。
 - 配置真实 `OPENCLAW_WEBHOOK_URL` 后，验证企微群日报发送。
-- 针对待适配动态查询页面补 Playwright 或接口适配器。
+- 针对资质增项公告查询页面补 Playwright 或接口适配器。

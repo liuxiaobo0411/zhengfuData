@@ -74,7 +74,7 @@ def parse_json_page(text: str, base_url: str, section: SiteSection) -> list[Pars
             continue
         title = first_json_value(
             row,
-            ["title", "name", "fappContent", "fentName", "content", "noticeTitle"],
+            ["title", "name", "fappContent", "fentName", "fname", "content", "noticeTitle"],
         )
         if not title:
             continue
@@ -82,7 +82,16 @@ def parse_json_page(text: str, base_url: str, section: SiteSection) -> list[Pars
         row_id = first_json_value(row, ["id", "fid", "uuid", "code"]) or str(index)
         date_text = first_json_value(
             row,
-            ["published_at", "publishDate", "date", "ftime", "created_at"],
+            [
+                "published_at",
+                "publishDate",
+                "date",
+                "ftime",
+                "fapptime",
+                "fendtimelist",
+                "fendtime",
+                "created_at",
+            ],
         )
         if source_url:
             source_url_value = urljoin(base_url, source_url)
