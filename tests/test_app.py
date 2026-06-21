@@ -1,3 +1,6 @@
+from io import BytesIO
+from zipfile import ZipFile
+
 from fastapi.testclient import TestClient
 
 import app.models  # noqa: F401
@@ -267,6 +270,7 @@ def test_archive_pages_and_attachment_download(tmp_path, monkeypatch):
     assert "失败附件" in attachments.text
     assert "timeout" in attachments.text
     assert "/attachments/2/retry" in attachments.text
+    assert "打包下载" in attachments.text
 
     failed_attachments = client.get("/attachments?download_status=failed")
     assert failed_attachments.status_code == 200
@@ -280,6 +284,12 @@ def test_archive_pages_and_attachment_download(tmp_path, monkeypatch):
     download = client.get("/attachments/1/download")
     assert download.status_code == 200
     assert download.content == b"pdf-content"
+
+    download_all = client.get("/attachments/download-all")
+    assert download_all.status_code == 200
+    with ZipFile(BytesIO(download_all.content)) as archive:
+        assert archive.namelist() == ["1_a.pdf"]
+        assert archive.read("1_a.pdf") == b"pdf-content"
 
     runs = client.get("/crawl-runs")
     assert runs.status_code == 200

@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
+from urllib.parse import urlencode
+from zipfile import ZIP_DEFLATED, ZipFile
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
@@ -23,6 +26,7 @@ from app.routers.web.security import require_user
 from app.services.crawler import retry_attachment_download
 from app.services.notifier import retry_notification
 from app.services.scheduler import run_daily_crawl
+from app.services.storage import prepare_storage
 
 router = APIRouter(tags=["archive"])
 templates = Jinja2Templates(directory=str(BASE_DIR / "app" / "templates"))
@@ -202,28 +206,7 @@ def attachment_list(request: Request):
         "local_file": request.query_params.get("local_file", "").strip(),
     }
     with SessionLocal() as db:
-        query = (
-            select(
-                Attachment,
-                Announcement.title.label("announcement_title"),
-                Site.name.label("site_name"),
-            )
-            .join(Announcement, Attachment.announcement_id == Announcement.id)
-            .join(Site, Attachment.site_id == Site.id)
-            .order_by(Attachment.created_at.desc(), Attachment.id.desc())
-        )
-        if filters["q"]:
-            query = query.where(
-                Attachment.name.contains(filters["q"]) | Announcement.title.contains(filters["q"])
-            )
-        if filters["download_status"]:
-            query = query.where(Attachment.download_status == filters["download_status"])
-        if filters["site_id"].isdigit():
-            query = query.where(Attachment.site_id == int(filters["site_id"]))
-        if filters["local_file"] == "yes":
-            query = query.where(Attachment.local_path.is_not(None))
-        if filters["local_file"] == "no":
-            query = query.where(Attachment.local_path.is_(None))
+        query = attachment_list_query(filters)
         rows = db.execute(query.limit(300)).all()
         sites = db.scalars(select(Site).order_by(Site.name)).all()
         download_statuses = list(
@@ -242,7 +225,50 @@ def attachment_list(request: Request):
             "sites": sites,
             "download_statuses": download_statuses,
             "filters": filters,
+            "download_all_url": download_all_url(filters),
         },
+    )
+
+
+@router.get("/attachments/download-all")
+def download_all_attachments(request: Request):
+    user = require_user(request)
+    if isinstance(user, RedirectResponse):
+        return user
+
+    filters = {
+        "q": request.query_params.get("q", "").strip(),
+        "download_status": request.query_params.get("download_status", "").strip(),
+        "site_id": request.query_params.get("site_id", "").strip(),
+        "local_file": "yes",
+    }
+    settings = get_settings()
+    storage = prepare_storage(settings)
+    storage_root = storage.root.resolve()
+    with SessionLocal() as db:
+        rows = db.execute(attachment_list_query(filters).limit(1000)).all()
+
+    files: list[tuple[Attachment, Path]] = []
+    for attachment, _announcement_title, _site_name in rows:
+        if not attachment.local_path:
+            continue
+        file_path = (storage_root / attachment.local_path).resolve()
+        if is_relative_to(file_path, storage_root) and file_path.exists():
+            files.append((attachment, file_path))
+    if not files:
+        raise HTTPException(status_code=404, detail="no local attachments to download")
+
+    archive_name = f"attachments_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
+    archive_path = storage.exports / archive_name
+    used_names: set[str] = set()
+    with ZipFile(archive_path, "w", compression=ZIP_DEFLATED) as archive:
+        for attachment, file_path in files:
+            archive.write(file_path, arcname=zip_entry_name(attachment, used_names))
+
+    return FileResponse(
+        archive_path,
+        media_type="application/zip",
+        filename=archive_name,
     )
 
 
@@ -266,6 +292,57 @@ def download_attachment(request: Request, attachment_id: int):
             media_type=attachment.mime_type or "application/octet-stream",
             filename=attachment.safe_name,
         )
+
+
+def attachment_list_query(filters: dict[str, str]):
+    query = (
+        select(
+            Attachment,
+            Announcement.title.label("announcement_title"),
+            Site.name.label("site_name"),
+        )
+        .join(Announcement, Attachment.announcement_id == Announcement.id)
+        .join(Site, Attachment.site_id == Site.id)
+        .order_by(Attachment.created_at.desc(), Attachment.id.desc())
+    )
+    if filters["q"]:
+        query = query.where(
+            Attachment.name.contains(filters["q"]) | Announcement.title.contains(filters["q"])
+        )
+    if filters["download_status"]:
+        query = query.where(Attachment.download_status == filters["download_status"])
+    if filters["site_id"].isdigit():
+        query = query.where(Attachment.site_id == int(filters["site_id"]))
+    if filters["local_file"] == "yes":
+        query = query.where(Attachment.local_path.is_not(None))
+    if filters["local_file"] == "no":
+        query = query.where(Attachment.local_path.is_(None))
+    return query
+
+
+def download_all_url(filters: dict[str, str]) -> str:
+    query = {
+        key: value
+        for key, value in filters.items()
+        if value and key in {"q", "download_status", "site_id"}
+    }
+    suffix = f"?{urlencode(query)}" if query else ""
+    return f"/attachments/download-all{suffix}"
+
+
+def zip_entry_name(attachment: Attachment, used_names: set[str]) -> str:
+    candidate = f"{attachment.id}_{attachment.safe_name}"
+    if candidate not in used_names:
+        used_names.add(candidate)
+        return candidate
+    stem = Path(candidate).stem
+    suffix = Path(candidate).suffix
+    index = 2
+    while f"{stem}_{index}{suffix}" in used_names:
+        index += 1
+    value = f"{stem}_{index}{suffix}"
+    used_names.add(value)
+    return value
 
 
 @router.post("/attachments/{attachment_id}/retry")
