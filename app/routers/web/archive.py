@@ -20,6 +20,7 @@ from app.models import (
     SiteSection,
 )
 from app.routers.web.security import require_user
+from app.services.notifier import retry_notification
 from app.services.scheduler import run_daily_crawl
 
 router = APIRouter(tags=["archive"])
@@ -345,6 +346,17 @@ def notification_list(request: Request):
         "archive/notifications.html",
         {"active_nav": "notifications", "user": user, "notifications": rows},
     )
+
+
+@router.post("/notifications/{notification_id}/retry")
+def retry_notification_from_web(request: Request, notification_id: int):
+    user = require_user(request)
+    if isinstance(user, RedirectResponse):
+        return user
+
+    with SessionLocal() as db:
+        retry_notification(db, notification_id)
+    return RedirectResponse("/notifications", status_code=303)
 
 
 def is_relative_to(path: Path, parent: Path) -> bool:

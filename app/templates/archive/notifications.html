@@ -23,6 +23,7 @@
         <span>目标</span>
         <span>响应</span>
         <span>失败原因</span>
+        <span>操作</span>
       </div>
       {% for item in notifications %}
       <div class="table-row">
@@ -34,6 +35,9 @@
         <span>{{ item.target_type or "-" }} · {{ item.target_id or "-" }}</span>
         <span>{{ item.response_status_code or "-" }}</span>
         <span>{{ item.failure_reason or "-" }}</span>
+        <form class="inline-action-form" method="post" action="/notifications/{{ item.id }}/retry">
+          <button class="quiet-button" type="submit">重试</button>
+        </form>
       </div>
       {% endfor %}
     </div>

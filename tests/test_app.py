@@ -287,6 +287,7 @@ def test_archive_pages_and_attachment_download(tmp_path, monkeypatch):
     notifications = client.get("/notifications")
     assert notifications.status_code == 200
     assert "OPENCLAW_WEBHOOK_URL 未配置" in notifications.text
+    assert "重试" in notifications.text
 
 
 def test_web_daily_crawl_action_requires_login_and_passes_notify(tmp_path, monkeypatch):
@@ -318,3 +319,25 @@ def test_web_daily_crawl_action_requires_login_and_passes_notify(tmp_path, monke
     assert response.status_code == 303
     assert response.headers["location"] == "/crawl-runs"
     assert calls == [{"notify": True, "triggered_by": "admin"}]
+
+
+def test_web_notification_retry_action_requires_login(tmp_path, monkeypatch):
+    client = make_client(tmp_path)
+    calls = []
+
+    def fake_retry_notification(db, notification_id):
+        calls.append(notification_id)
+
+    monkeypatch.setattr(archive_router, "retry_notification", fake_retry_notification)
+
+    anonymous_response = client.post("/notifications/7/retry", follow_redirects=False)
+    assert anonymous_response.status_code == 303
+    assert anonymous_response.headers["location"] == "/login"
+    assert calls == []
+
+    login(client)
+    response = client.post("/notifications/7/retry", follow_redirects=False)
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/notifications"
+    assert calls == [7]

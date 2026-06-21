@@ -64,6 +64,7 @@ M5 已进入第一轮实现：
 - 可通过 `OPENCLAW_WEBHOOK_URL` POST 到 OpenClaw。
 - 通知成功、失败和未配置原因会写入 `notification_logs`。
 - 后台可查看通知日志。
+- 通知发送失败会按 `OPENCLAW_NOTIFY_RETRY_TIMES` 自动重试，后台也可手动重试通知。
 
 M6 已开始推进：
 
@@ -176,6 +177,7 @@ ADMIN_PASSWORD=change-me
 OPENCLAW_DASHBOARD_URL=http://127.0.0.1:18789/
 OPENCLAW_WEBHOOK_URL=
 OPENCLAW_GATEWAY_URL=ws://127.0.0.1:18789
+OPENCLAW_NOTIFY_RETRY_TIMES=2
 WECOM_NOTIFY_TARGET_TYPE=direct
 WECOM_NOTIFY_TARGET_ID=
 ```

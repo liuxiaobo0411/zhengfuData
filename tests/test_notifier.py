@@ -6,7 +6,7 @@ import app.models  # noqa: F401
 from app.config import Settings
 from app.database import Base, SessionLocal, configure_database
 from app.models import ChangeLog, CrawlRun, NotificationLog
-from app.services.notifier import build_daily_report_payload, send_daily_report
+from app.services.notifier import build_daily_report_payload, retry_notification, send_daily_report
 
 
 def setup_db(tmp_path):
@@ -109,3 +109,90 @@ def test_send_daily_report_posts_to_openclaw(tmp_path, monkeypatch):
     assert log.status == "success"
     assert sent["url"] == "http://openclaw.local/webhook"
     assert sent["json"]["event_type"] == "daily_crawl_report"
+
+
+def test_send_daily_report_retries_openclaw_failures(tmp_path, monkeypatch):
+    setup_db(tmp_path)
+    seed_run()
+    attempts = []
+
+    class FailingResponse:
+        status_code = 500
+        text = "server error"
+
+        def raise_for_status(self):
+            raise RuntimeError("server error")
+
+    class SuccessResponse:
+        status_code = 200
+        text = "ok"
+
+        def raise_for_status(self):
+            return None
+
+    def fake_post(url, json, timeout):
+        attempts.append(url)
+        if len(attempts) == 1:
+            return FailingResponse()
+        return SuccessResponse()
+
+    monkeypatch.setattr("app.services.notifier.httpx.post", fake_post)
+    with SessionLocal() as db:
+        log = send_daily_report(
+            db,
+            settings=Settings(
+                OPENCLAW_WEBHOOK_URL="http://openclaw.local/webhook",
+                OPENCLAW_NOTIFY_RETRY_TIMES=2,
+            ),
+            now=datetime(2026, 6, 21, 12, 0),
+        )
+
+    assert log.status == "success"
+    assert len(attempts) == 2
+
+
+def test_retry_notification_creates_new_log_from_original_payload(tmp_path, monkeypatch):
+    setup_db(tmp_path)
+    seed_run()
+    sent = {}
+
+    class FakeResponse:
+        status_code = 200
+        text = "ok"
+
+        def raise_for_status(self):
+            return None
+
+    def fake_post(url, json, timeout):
+        sent["url"] = url
+        sent["json"] = json
+        return FakeResponse()
+
+    monkeypatch.setattr("app.services.notifier.httpx.post", fake_post)
+    with SessionLocal() as db:
+        original = NotificationLog(
+            run_id=1,
+            provider="openclaw",
+            event_type="daily_crawl_report",
+            target_type="group",
+            target_id="chatid",
+            status="failed",
+            request_url="http://old.example/webhook",
+            request_payload='{"text": "hello"}',
+            failure_reason="timeout",
+        )
+        db.add(original)
+        db.commit()
+
+        retry_log = retry_notification(
+            db,
+            original.id,
+            settings=Settings(OPENCLAW_WEBHOOK_URL=""),
+        )
+
+        assert retry_log is not None
+        assert retry_log.id != original.id
+        assert retry_log.status == "success"
+        assert sent["url"] == "http://old.example/webhook"
+        assert sent["json"] == {"text": "hello"}
+        assert db.query(NotificationLog).count() == 2

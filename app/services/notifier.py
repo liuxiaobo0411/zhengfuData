@@ -134,23 +134,79 @@ def send_daily_report(
     )
     db.add(log)
     db.flush()
-    if not settings.openclaw_webhook_url:
+    return dispatch_openclaw_notification(db, log, payload, settings=settings)
+
+
+def retry_notification(
+    db: Session,
+    notification_id: int,
+    settings: Settings | None = None,
+) -> NotificationLog | None:
+    settings = settings or get_settings()
+    original = db.get(NotificationLog, notification_id)
+    if original is None:
+        return None
+
+    payload = parse_payload(original.request_payload)
+    retry_log = NotificationLog(
+        run_id=original.run_id,
+        provider=original.provider,
+        event_type=original.event_type,
+        target_type=original.target_type or settings.wecom_notify_target_type,
+        target_id=original.target_id or settings.wecom_notify_target_id,
+        status="pending",
+        request_url=settings.openclaw_webhook_url or original.request_url,
+        request_payload=json.dumps(payload, ensure_ascii=False),
+    )
+    db.add(retry_log)
+    db.flush()
+    return dispatch_openclaw_notification(db, retry_log, payload, settings=settings)
+
+
+def parse_payload(value: str | None) -> dict[str, Any]:
+    if not value:
+        return {}
+    try:
+        payload = json.loads(value)
+    except json.JSONDecodeError:
+        return {"text": value}
+    return payload if isinstance(payload, dict) else {"text": payload}
+
+
+def dispatch_openclaw_notification(
+    db: Session,
+    log: NotificationLog,
+    payload: dict[str, Any],
+    settings: Settings,
+) -> NotificationLog:
+    request_url = settings.openclaw_webhook_url or log.request_url
+    if not request_url:
         log.status = "failed"
         log.failure_reason = "OPENCLAW_WEBHOOK_URL 未配置"
         db.commit()
         db.refresh(log)
         return log
 
-    try:
-        response = httpx.post(settings.openclaw_webhook_url, json=payload, timeout=20)
-        log.response_status_code = response.status_code
-        log.response_body = response.text[:4000]
-        response.raise_for_status()
-        log.status = "success"
-        log.sent_at = datetime.now()
-    except Exception as exc:
-        log.status = "failed"
-        log.failure_reason = f"{type(exc).__name__}: {exc}"
+    log.request_url = request_url
+    total_attempts = max(1, settings.openclaw_notify_retry_times + 1)
+    last_error = ""
+    for _attempt in range(1, total_attempts + 1):
+        try:
+            response = httpx.post(request_url, json=payload, timeout=20)
+            log.response_status_code = response.status_code
+            log.response_body = response.text[:4000]
+            response.raise_for_status()
+            log.status = "success"
+            log.sent_at = datetime.now()
+            log.failure_reason = None
+            db.commit()
+            db.refresh(log)
+            return log
+        except Exception as exc:
+            last_error = f"{type(exc).__name__}: {exc}"
+
+    log.status = "failed"
+    log.failure_reason = f"发送失败，已尝试 {total_attempts} 次；最后错误：{last_error}"
     db.commit()
     db.refresh(log)
     return log
