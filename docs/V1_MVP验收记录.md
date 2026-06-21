@@ -196,6 +196,29 @@ latest run: scheduled-20260621215135385692-1 scheduled cli_daily success
 - 不在页面明文展示 `ADMIN_PASSWORD`。
 - 不在页面明文展示 `OPENCLAW_WEBHOOK_URL`。
 
+## 自动验收报告导出
+
+已新增命令：
+
+```bash
+zhengfudata export-acceptance-report
+```
+
+验证结果：
+
+```text
+acceptance_report=storage/exports/v1_acceptance_report_20260621_222916.md
+```
+
+报告包含：
+
+- 环境和 storage 路径。
+- 站点、栏目、公告、附件、任务和通知统计。
+- 附件下载状态。
+- 最近抓取任务。
+- 最近通知日志。
+- V1 验收关注项和后续待验收项。
+
 ## Windows 部署交付物
 
 已补充：
@@ -205,6 +228,7 @@ scripts/windows/setup.ps1
 scripts/windows/run-server.ps1
 scripts/windows/run-daily-crawl.ps1
 scripts/windows/validate-sources.ps1
+scripts/windows/export-acceptance-report.ps1
 scripts/windows/install-daily-task.ps1
 docs/Windows本地部署说明.md
 ```
@@ -216,6 +240,7 @@ docs/Windows本地部署说明.md
 - `run-server.ps1` 负责启动后台。
 - `run-daily-crawl.ps1` 负责执行每日抓取。
 - `validate-sources.ps1` 负责验证启用栏目列表页可访问且可解析。
+- `export-acceptance-report.ps1` 负责导出自动验收报告。
 - `install-daily-task.ps1` 负责注册 Windows 任务计划。
 
 ## 后续验收事项

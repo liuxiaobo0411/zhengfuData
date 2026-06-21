@@ -5,6 +5,7 @@ from pathlib import Path
 
 from app.config import get_settings, resolve_project_path
 from app.database import SessionLocal
+from app.services.acceptance_report import export_acceptance_report
 from app.services.crawler import crawl_section
 from app.services.notifier import send_daily_report
 from app.services.scheduler import run_daily_crawl
@@ -32,6 +33,9 @@ def main() -> None:
     validate_parser = subparsers.add_parser("validate-sources")
     validate_parser.add_argument("--limit", type=int, default=0)
 
+    report_parser = subparsers.add_parser("export-acceptance-report")
+    report_parser.add_argument("--output", default="")
+
     subparsers.add_parser("send-daily-report")
 
     args = parser.parse_args()
@@ -45,6 +49,8 @@ def main() -> None:
         run_daily(args.limit, notify=not args.no_notify)
     elif args.command == "validate-sources":
         validate_sources(args.limit)
+    elif args.command == "export-acceptance-report":
+        export_report(Path(args.output) if args.output else None)
     elif args.command == "send-daily-report":
         send_report()
 
@@ -119,6 +125,13 @@ def validate_sources(limit: int) -> None:
     )
     if summary.failed_count:
         raise SystemExit(1)
+
+
+def export_report(output_path: Path | None) -> None:
+    target = resolve_project_path(output_path) if output_path else None
+    with SessionLocal() as db:
+        report = export_acceptance_report(db, settings=get_settings(), output_path=target)
+    print(f"acceptance_report={report.path}")
 
 
 if __name__ == "__main__":

@@ -109,6 +109,18 @@ scripts\windows\run-daily-crawl.ps1
 scripts\windows\run-daily-crawl.ps1 -NoNotify
 ```
 
+## 导出验收报告
+
+```powershell
+scripts\windows\export-acceptance-report.ps1
+```
+
+报告默认输出到：
+
+```text
+storage\exports\
+```
+
 ## 每日定时运行
 
 方式一：应用内置调度。
@@ -159,6 +171,7 @@ storage\snapshots
 - `scripts\windows\validate-sources.ps1 -Limit 2` 成功。
 - 后台可以登录。
 - `scripts\windows\run-daily-crawl.ps1 -Limit 2` 成功。
+- `scripts\windows\export-acceptance-report.ps1` 成功。
 - 后台可以查看抓取任务、公告、附件和通知日志。
 - 附件可以从后台下载。
 - OpenClaw 配置后，企微群能收到日报。
@@ -187,6 +200,12 @@ scripts\windows\run-server.ps1 -Port 8010
 
 ```powershell
 .venv\Scripts\python.exe -m app.cli validate-sources
+```
+
+需要导出验收报告：
+
+```powershell
+.venv\Scripts\python.exe -m app.cli export-acceptance-report
 ```
 
 只想重跑数据库迁移：
