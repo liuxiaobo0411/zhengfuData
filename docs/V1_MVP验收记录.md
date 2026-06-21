@@ -80,7 +80,7 @@ pytest
 测试结果：
 
 ```text
-39 passed
+40 passed
 ```
 
 本机未安装 `pwsh`，PowerShell 脚本语法解析未在 macOS 开发机执行。已通过测试检查 Windows 脚本文件存在、使用项目相对路径，并在 `docs/Windows本地部署说明.md` 中列明 Windows 实机验收步骤。
@@ -173,6 +173,28 @@ latest run: scheduled-20260621215135385692-1 scheduled cli_daily success
 /attachments    附件管理
 /notifications  通知日志
 ```
+
+## 系统配置页验证
+
+已补充后台只读系统配置页：
+
+```text
+/settings 系统配置
+```
+
+页面可查看：
+
+- 运行环境和数据库配置。
+- storage 目录。
+- 每日调度状态。
+- OpenClaw 和企微通知配置状态。
+- Windows 本地部署脚本状态。
+
+安全约束：
+
+- 不在页面明文展示 `APP_SECRET_KEY`。
+- 不在页面明文展示 `ADMIN_PASSWORD`。
+- 不在页面明文展示 `OPENCLAW_WEBHOOK_URL`。
 
 ## Windows 部署交付物
 

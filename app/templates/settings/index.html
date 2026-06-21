@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}系统配置 - 建筑资质公开信息监测与归档系统{% endblock %}
+
+{% block content %}
+<header class="topbar">
+  <div>
+    <h1>系统配置</h1>
+    <p>查看运行环境、存储目录、调度和通知配置状态。</p>
+  </div>
+  <div class="topbar-actions">
+    <span class="status-pill {{ 'success' if app_secret_state == '已配置' else 'warning' }}">密钥{{ app_secret_state }}</span>
+    <span class="status-pill {{ 'success' if openclaw_webhook_state == '已配置' else 'warning' }}">OpenClaw {{ openclaw_webhook_state }}</span>
+  </div>
+</header>
+
+<section class="content-stack">
+  <section class="metrics-grid config-metrics">
+    <article class="metric-card">
+      <span>政府网站</span>
+      <strong>{{ site_count }}</strong>
+      <em>已导入</em>
+    </article>
+    <article class="metric-card">
+      <span>启用栏目</span>
+      <strong>{{ enabled_section_count }}</strong>
+      <em>每日抓取</em>
+    </article>
+    <article class="metric-card">
+      <span>调度状态</span>
+      <strong>{{ 'ON' if scheduler.running else 'OFF' }}</strong>
+      <em>{{ scheduler.daily_time }}</em>
+    </article>
+    <article class="metric-card">
+      <span>通知配置</span>
+      <strong>{{ 'OK' if openclaw_webhook_state == '已配置' else '-' }}</strong>
+      <em>{{ openclaw_webhook_state }}</em>
+    </article>
+  </section>
+
+  <section class="dashboard-grid settings-grid">
+    <article class="panel">
+      <div class="panel-title">
+        <h2>运行配置</h2>
+        <span>.env</span>
+      </div>
+      <dl class="kv-list">
+        <dt>APP_ENV</dt>
+        <dd>{{ settings.app_env }}</dd>
+        <dt>APP_PUBLIC_BASE_URL</dt>
+        <dd>{{ settings.app_public_base_url }}</dd>
+        <dt>APP_DATABASE_URL</dt>
+        <dd>{{ settings.app_database_url }}</dd>
+        <dt>APP_CONFIG_FILE</dt>
+        <dd>{{ settings.config_file }}</dd>
+        <dt>APP_SECRET_KEY</dt>
+        <dd>{{ app_secret_state }}</dd>
+        <dt>ADMIN_USERNAME</dt>
+        <dd>{{ settings.admin_username }}</dd>
+        <dt>ADMIN_PASSWORD</dt>
+        <dd>{{ admin_password_state }}</dd>
+      </dl>
+    </article>
+
+    <article class="panel">
+      <div class="panel-title">
+        <h2>存储目录</h2>
+        <span>{{ '存在' if storage_info.exists else '缺失' }}</span>
+      </div>
+      <dl class="kv-list">
+        <dt>root</dt>
+        <dd>{{ storage_info.root }}</dd>
+        <dt>attachments</dt>
+        <dd>{{ storage_info.attachments }}</dd>
+        <dt>snapshots</dt>
+        <dd>{{ storage_info.snapshots }}</dd>
+        <dt>exports</dt>
+        <dd>{{ storage_info.exports }}</dd>
+        <dt>logs</dt>
+        <dd>{{ storage_info.logs }}</dd>
+      </dl>
+    </article>
+
+    <article class="panel">
+      <div class="panel-title">
+        <h2>每日调度</h2>
+        <span>{{ scheduler.timezone }}</span>
+      </div>
+      <dl class="kv-list">
+        <dt>enabled</dt>
+        <dd>{{ scheduler.enabled }}</dd>
+        <dt>running</dt>
+        <dd>{{ scheduler.running }}</dd>
+        <dt>daily time</dt>
+        <dd>{{ scheduler.daily_time }}</dd>
+        <dt>next run</dt>
+        <dd>{{ scheduler.next_run_at or '-' }}</dd>
+      </dl>
+    </article>
+
+    <article class="panel">
+      <div class="panel-title">
+        <h2>OpenClaw</h2>
+        <span>企微通知</span>
+      </div>
+      <dl class="kv-list">
+        <dt>OPENCLAW_WEBHOOK_URL</dt>
+        <dd>{{ openclaw_webhook_state }}</dd>
+        <dt>OPENCLAW_DASHBOARD_URL</dt>
+        <dd>{{ settings.openclaw_dashboard_url }}</dd>
+        <dt>OPENCLAW_GATEWAY_URL</dt>
+        <dd>{{ settings.openclaw_gateway_url }}</dd>
+        <dt>WECOM_NOTIFY_TARGET_TYPE</dt>
+        <dd>{{ settings.wecom_notify_target_type }}</dd>
+        <dt>WECOM_NOTIFY_TARGET_ID</dt>
+        <dd>{{ '已配置' if settings.wecom_notify_target_id else '未配置' }}</dd>
+      </dl>
+    </article>
+
+    <article class="panel large">
+      <div class="panel-title">
+        <h2>Windows 脚本</h2>
+        <span>本地部署</span>
+      </div>
+      <div class="script-list">
+        {% for script in scripts %}
+        <div class="script-row">
+          <strong>{{ script.name }}</strong>
+          <span class="state {{ 'on' if script.exists else 'off' }}">{{ '存在' if script.exists else '缺失' }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </article>
+  </section>
+</section>
+{% endblock %}

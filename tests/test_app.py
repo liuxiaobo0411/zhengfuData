@@ -62,6 +62,24 @@ def test_login_and_dashboard_page_loads(tmp_path):
     assert "工作台" in dashboard_response.text
 
 
+def test_settings_page_requires_login_and_masks_secrets(tmp_path, monkeypatch):
+    client = make_client(tmp_path, monkeypatch)
+
+    response = client.get("/settings", follow_redirects=False)
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/login"
+
+    login(client)
+    settings_response = client.get("/settings")
+
+    assert settings_response.status_code == 200
+    assert "系统配置" in settings_response.text
+    assert "APP_DATABASE_URL" in settings_response.text
+    assert "Windows 脚本" in settings_response.text
+    assert "change-me" not in settings_response.text
+
+
 def test_site_and_section_can_be_created(tmp_path):
     client = make_client(tmp_path)
     login(client)

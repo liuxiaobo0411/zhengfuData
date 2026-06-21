@@ -71,6 +71,7 @@ M6 已开始推进：
 - `configs/sites.yaml` 已包含 12 个启用栏目和 2 个待适配查询页面。
 - 已补充 Windows 本地部署脚本和任务计划脚本。
 - 可通过 `zhengfudata validate-sources` 验证启用栏目列表页是否可访问和可解析。
+- 后台已提供只读系统配置页，查看运行环境、storage、调度、OpenClaw 和 Windows 脚本状态。
 
 已有设计文档位于 `docs/` 目录：
 

@@ -222,6 +222,14 @@ button,
   padding: 32px;
 }
 
+.settings-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.config-metrics {
+  padding-top: 28px;
+}
+
 .panel {
   padding: 22px;
 }
@@ -524,6 +532,24 @@ a {
 .section-row {
   grid-template-columns: minmax(160px, 0.7fr) minmax(0, 1fr) auto;
   padding: 10px 0;
+}
+
+.script-list {
+  display: grid;
+  gap: 10px;
+}
+
+.script-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.script-row:last-child {
+  border-bottom: 0;
 }
 
 .empty-state {
