@@ -18,6 +18,7 @@ from app.models import (
     SiteSection,
 )
 from app.services.storage import prepare_storage
+from app.services.system_doctor import run_system_doctor
 
 
 @dataclass(frozen=True)
@@ -105,6 +106,7 @@ def render_acceptance_report(
         .order_by(Attachment.download_status)
     ).all()
     full_daily_summary = latest_full_daily_summary(db, enabled_section_count)
+    doctor_report = run_system_doctor(db, settings=settings)
     lines = [
         "# V1 MVP 自动验收报告",
         "",
@@ -160,6 +162,14 @@ def render_acceptance_report(
             lines.append(f"- #{log.id} {log.provider} {log.event_type} {log.status}{reason}")
     else:
         lines.append("- 暂无通知日志")
+
+    lines.extend(["", "## 部署自检摘要", ""])
+    lines.append(
+        f"- 汇总：ok={doctor_report.ok_count} warn={doctor_report.warning_count} "
+        f"fail={doctor_report.failed_count}"
+    )
+    for check in doctor_report.checks:
+        lines.append(f"- {check.status.upper()} {check.name}：{check.message}")
 
     lines.extend(["", "## 后台页面验收入口", ""])
     for label, path in backend_checkpoints():

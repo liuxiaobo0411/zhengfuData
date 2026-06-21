@@ -315,6 +315,7 @@ acceptance_report=storage/exports/v1_acceptance_report_20260621_222916.md
 - 最近抓取任务。
 - 最近通知日志。
 - 后台页面验收入口。
+- 部署自检摘要。
 - 失败任务、失败附件、失败通知和处理建议。
 - V1 验收关注项和后续待验收项。
 

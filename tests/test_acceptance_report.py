@@ -135,6 +135,8 @@ def test_render_acceptance_report_summarizes_database(tmp_path):
             db,
             settings=Settings(
                 APP_STORAGE_ROOT=tmp_path / "storage",
+                APP_SECRET_KEY="test-secret-key",
+                ADMIN_PASSWORD="test-password",
                 OPENCLAW_WEBHOOK_URL="http://openclaw.local/webhook",
             ),
             now=datetime(2026, 6, 21, 12, 0),
@@ -151,6 +153,9 @@ def test_render_acceptance_report_summarizes_database(tmp_path):
     assert "partial=0" in report
     assert "1 个启用栏目的完整每日任务验收。" not in report
     assert "后台页面验收入口" in report
+    assert "部署自检摘要" in report
+    assert "OK database_schema" in report
+    assert "OK security" in report
     assert "公告列表：`http://127.0.0.1:8000/announcements`" in report
     assert "失败来源与处理建议" in report
     assert "失败附件" in report
