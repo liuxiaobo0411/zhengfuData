@@ -286,6 +286,9 @@ def test_archive_pages_and_attachment_download(tmp_path, monkeypatch):
     run_detail = client.get("/crawl-runs/1")
     assert run_detail.status_code == 200
     assert "new_announcement" in run_detail.text
+    assert "通知状态" in run_detail.text
+    assert "OPENCLAW_WEBHOOK_URL 未配置" in run_detail.text
+    assert "/notifications/1/retry" in run_detail.text
 
     notifications = client.get("/notifications")
     assert notifications.status_code == 200

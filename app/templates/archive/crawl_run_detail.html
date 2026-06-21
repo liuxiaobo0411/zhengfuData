@@ -49,5 +49,41 @@
     <div class="empty-state">暂无变化或失败记录</div>
     {% endif %}
   </section>
+
+  <section class="panel table-panel">
+    <div class="panel-title">
+      <h2>通知状态</h2>
+      <span>{{ notifications|length }} 条</span>
+    </div>
+    {% if notifications %}
+    <div class="data-table notification-table">
+      <div class="table-head">
+        <span>事件</span>
+        <span>状态</span>
+        <span>目标</span>
+        <span>响应</span>
+        <span>失败原因</span>
+        <span>操作</span>
+      </div>
+      {% for item in notifications %}
+      <div class="table-row">
+        <div>
+          <strong>{{ item.event_type }}</strong>
+          <span>{{ item.created_at }}</span>
+        </div>
+        <span>{{ item.status }}</span>
+        <span>{{ item.target_type or "-" }} · {{ item.target_id or "-" }}</span>
+        <span>{{ item.response_status_code or "-" }}</span>
+        <span>{{ item.failure_reason or "-" }}</span>
+        <form class="inline-action-form" method="post" action="/notifications/{{ item.id }}/retry">
+          <button class="quiet-button" type="submit">重试</button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">暂无通知日志</div>
+    {% endif %}
+  </section>
 </section>
 {% endblock %}

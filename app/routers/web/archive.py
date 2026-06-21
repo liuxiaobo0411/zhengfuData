@@ -332,11 +332,22 @@ def crawl_run_detail(request: Request, run_id: int):
             .where(ChangeLog.run_id == run_id)
             .order_by(ChangeLog.created_at.desc(), ChangeLog.id.desc())
         ).all()
+        notifications = db.scalars(
+            select(NotificationLog)
+            .where(NotificationLog.run_id == run_id)
+            .order_by(NotificationLog.created_at.desc(), NotificationLog.id.desc())
+        ).all()
 
     return templates.TemplateResponse(
         request,
         "archive/crawl_run_detail.html",
-        {"active_nav": "crawl_runs", "user": user, "run": run, "changes": changes},
+        {
+            "active_nav": "crawl_runs",
+            "user": user,
+            "run": run,
+            "changes": changes,
+            "notifications": notifications,
+        },
     )
 
 
