@@ -1,0 +1,278 @@
+:root {
+  --bg: #f5f7fa;
+  --panel: #ffffff;
+  --ink: #18212f;
+  --muted: #64748b;
+  --line: #d9e1ea;
+  --blue: #2563eb;
+  --green: #0f9f6e;
+  --orange: #d97706;
+  --red: #dc2626;
+  --purple: #7c3aed;
+  --cyan: #0891b2;
+  --sidebar: #101827;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  background: var(--bg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+}
+
+.sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: 248px;
+  padding: 22px 16px;
+  background: var(--sidebar);
+  color: #c7d2e3;
+}
+
+.brand {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 42px;
+}
+
+.brand-mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, transparent 42%, #6ea8ff 43% 55%, transparent 56%),
+    linear-gradient(45deg, transparent 42%, #22c8b8 43% 55%, transparent 56%),
+    #23304a;
+}
+
+.brand-title {
+  color: #fff;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.brand-subtitle {
+  margin-top: 2px;
+  color: #7f8fa8;
+  font-size: 12px;
+}
+
+.nav {
+  display: grid;
+  gap: 8px;
+}
+
+.nav-item {
+  display: block;
+  padding: 12px 16px;
+  border-radius: 8px;
+  color: #c7d2e3;
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.nav-item.active {
+  color: #fff;
+  background: #172033;
+  border-left: 4px solid var(--blue);
+}
+
+.shell {
+  min-height: 100vh;
+  margin-left: 248px;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 78px;
+  padding: 18px 32px;
+  background: #fff;
+  border-bottom: 1px solid #e8eef5;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+.topbar h1 {
+  font-size: 20px;
+  font-weight: 650;
+}
+
+.topbar p {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.topbar-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+button {
+  height: 36px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 8px;
+  color: #fff;
+  background: var(--blue);
+  font-weight: 600;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.status-pill.success {
+  color: var(--green);
+  background: #e7f8f0;
+}
+
+.status-pill.warning {
+  color: var(--orange);
+  background: #fff3df;
+}
+
+.section-heading {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 28px 32px 14px;
+}
+
+.section-heading h2 {
+  font-size: 15px;
+}
+
+.section-heading span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  padding: 0 32px;
+}
+
+.metric-card,
+.panel {
+  background: var(--panel);
+  border: 1px solid #e8eef5;
+  border-radius: 8px;
+}
+
+.metric-card {
+  min-height: 118px;
+  padding: 18px;
+  border-left: 4px solid var(--blue);
+}
+
+.metric-card span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.metric-card strong {
+  display: block;
+  margin-top: 14px;
+  font-size: 30px;
+  font-weight: 650;
+}
+
+.metric-card em {
+  display: inline-flex;
+  margin-top: 8px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  color: var(--blue);
+  background: #f1f5f9;
+  font-size: 11px;
+  font-style: normal;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(340px, 0.65fr);
+  gap: 24px;
+  padding: 32px;
+}
+
+.panel {
+  padding: 22px;
+}
+
+.panel.large {
+  min-height: 340px;
+  border-left: 4px solid var(--purple);
+}
+
+.panel-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+
+.panel-title h2 {
+  font-size: 15px;
+}
+
+.panel-title span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.timeline {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+  padding-left: 22px;
+}
+
+.timeline li {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.timeline li.done {
+  color: var(--green);
+}
+
+.timeline li.pending {
+  color: var(--orange);
+}
+
+.kv-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+.kv-list dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.kv-list dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}

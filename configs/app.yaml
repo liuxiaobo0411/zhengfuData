@@ -1,0 +1,14 @@
+app:
+  name: 建筑资质公开信息监测与归档系统
+  daily_crawl_time: "09:00"
+
+storage:
+  root: storage
+  attachments_dir: attachments
+  snapshots_dir: snapshots
+  exports_dir: exports
+  logs_dir: logs
+
+notification:
+  provider: openclaw
+  max_items: 20

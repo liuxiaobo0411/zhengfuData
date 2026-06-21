@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}工作台 - 建筑资质公开信息监测与归档系统{% endblock %}
+
+{% block content %}
+  <header class="topbar">
+    <div>
+      <h1>工作台</h1>
+      <p>M0 项目底座已启动，等待接入真实抓取任务。</p>
+    </div>
+    <div class="topbar-actions">
+      <span class="status-pill success">OpenClaw 配置就绪</span>
+      <span class="status-pill warning">企微目标待配置</span>
+      <button type="button">手动抓取</button>
+    </div>
+  </header>
+
+  <section class="section-heading">
+    <h2>今日概览</h2>
+    <span>正式抓取模块接入后，这里展示每日新增、变化、附件和失败统计。</span>
+  </section>
+
+  <section class="metrics-grid">
+    {% for metric in metrics %}
+      <article class="metric-card">
+        <span>{{ metric.label }}</span>
+        <strong>{{ metric.value }}</strong>
+        <em>{{ metric.hint }}</em>
+      </article>
+    {% endfor %}
+  </section>
+
+  <section class="dashboard-grid">
+    <article class="panel large">
+      <div class="panel-title">
+        <h2>开发阶段</h2>
+        <span>M0 项目底座</span>
+      </div>
+      <ol class="timeline">
+        <li class="done">FastAPI 应用创建</li>
+        <li class="done">配置读取与 storage 目录准备</li>
+        <li class="done">健康检查 API</li>
+        <li class="pending">SQLAlchemy / Alembic 迁移建模</li>
+        <li class="pending">网站栏目后台管理</li>
+      </ol>
+    </article>
+
+    <article class="panel">
+      <div class="panel-title">
+        <h2>系统路径</h2>
+        <span>跨平台配置</span>
+      </div>
+      <dl class="kv-list">
+        <dt>storage</dt>
+        <dd>{{ storage.root }}</dd>
+        <dt>database</dt>
+        <dd>{{ settings.app_database_url }}</dd>
+        <dt>config</dt>
+        <dd>{{ settings.config_file }}</dd>
+      </dl>
+    </article>
+  </section>
+{% endblock %}

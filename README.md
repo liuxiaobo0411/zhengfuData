@@ -6,7 +6,14 @@
 
 ## 开发状态
 
-当前处于 M0 项目底座搭建前。此目录是空 git 仓库，后续正式应用代码从这里开始提交。
+当前已进入正式开发，M0 项目底座已具备：
+
+- FastAPI 应用入口、健康检查接口和基础后台工作台页面。
+- `.env` + `configs/app.yaml` 配置体系。
+- SQLite / SQLAlchemy / Alembic 基础配置。
+- 本地 `storage/` 目录初始化。
+- Windows 兼容的附件文件名清洗工具。
+- pytest 与 ruff 开发质量检查。
 
 已有设计文档位于 `docs/` 目录：
 
@@ -33,7 +40,7 @@
 - Playwright 按需启用
 - OpenClaw 企微通知
 
-## 目标项目结构
+## 项目结构
 
 ```text
 app/
@@ -56,7 +63,7 @@ app/
   templates/
   static/
 configs/
-  sites.yaml
+  app.yaml
 data/
   app.db
 storage/
@@ -102,26 +109,47 @@ WECOM_NOTIFY_TARGET_ID=
 
 ## 开发启动流程
 
-M0 完成后，本节应补充真实命令。目标形式如下：
+### macOS / Linux
 
 ```bash
-python -m venv .venv
+python3.11 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements-dev.txt
+python -m pip install -e ".[dev]"
 cp .env.example .env
 alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
-Windows 环境应提供等价命令：
+启动后访问：
+
+- 后台工作台：http://127.0.0.1:8000/
+- 健康检查：http://127.0.0.1:8000/api/health
+
+### Windows PowerShell
 
 ```powershell
 py -m venv .venv
-.venv\\Scripts\\Activate.ps1
-pip install -r requirements-dev.txt
-copy .env.example .env
+.venv\Scripts\Activate.ps1
+python -m pip install -e ".[dev]"
+Copy-Item .env.example .env
 alembic upgrade head
 uvicorn app.main:app --reload
+```
+
+如 Windows 当前 PowerShell 禁止执行虚拟环境脚本，可先在当前窗口执行：
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+```
+
+## 开发验证
+
+提交前至少运行：
+
+```bash
+ruff check .
+ruff format --check .
+pytest
 ```
 
 ## 开发顺序
