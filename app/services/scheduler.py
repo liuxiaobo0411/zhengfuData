@@ -27,6 +27,10 @@ class DailyCrawlResult:
         return sum(1 for run in self.runs if run.status == "success")
 
     @property
+    def partial_count(self) -> int:
+        return sum(1 for run in self.runs if run.status == "partial_success")
+
+    @property
     def failed_count(self) -> int:
         return sum(1 for run in self.runs if run.status == "failed")
 

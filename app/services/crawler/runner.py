@@ -76,7 +76,7 @@ def crawl_section(
             attachment_success += result["attachment_success"]
             attachment_failed += result["attachment_failed"]
 
-        run.status = "success"
+        run.status = "partial_success" if attachment_failed else "success"
         run.success_sections = 1
         run.new_items = new_items
         run.content_changed_items = content_changed_items
@@ -86,10 +86,10 @@ def crawl_section(
         run.attachment_failed_count = attachment_failed
         run.finished_at = datetime.now()
         run.duration_seconds = int((run.finished_at - run.started_at).total_seconds())
-        section.last_status = "success"
+        section.last_status = run.status
         section.last_crawled_at = run.finished_at
         section.last_error = None
-        site.last_status = "success"
+        site.last_status = run.status
         site.last_crawled_at = run.finished_at
     except Exception as exc:
         run.status = "failed"

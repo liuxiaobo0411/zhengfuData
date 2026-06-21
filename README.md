@@ -47,6 +47,7 @@ M3 已进入第一轮实现：
 - 正文 hash 变化会写入 `content_changed`。
 - 附件文件 hash 变化会写入 `attachment_changed`。
 - 附件下载失败会写入 `attachment_failed`。
+- 列表和正文抓取成功但附件失败时，抓取任务状态会标记为 `partial_success`。
 - 抓取批次会统计新增公告、正文变化、附件新增、附件变化、附件成功和附件失败数量。
 
 M4 已进入第一轮实现：

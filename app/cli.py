@@ -90,7 +90,7 @@ def run_daily(limit: int, notify: bool) -> None:
     )
     print(
         f"daily sections={len(result.section_ids)} success={result.success_count} "
-        f"failed={result.failed_count}"
+        f"partial={result.partial_count} failed={result.failed_count}"
     )
     if result.notification:
         print(

@@ -121,6 +121,7 @@ def test_render_acceptance_report_summarizes_database(tmp_path):
     assert "OpenClaw webhook：已配置" in report
     assert "scheduled-test-1" in report
     assert "1 个启用栏目的完整每日任务：已完成" in report
+    assert "partial=0" in report
     assert "1 个启用栏目的完整每日任务验收。" not in report
     assert "后台页面验收入口" in report
     assert "公告列表：`http://127.0.0.1:8000/announcements`" in report
@@ -186,7 +187,51 @@ def test_render_acceptance_report_keeps_failed_full_daily_in_pending(tmp_path):
         )
 
     assert "2 个启用栏目的完整每日任务：已执行但有失败" in report
+    assert "partial=0 failed=1" in report
     assert "2 个启用栏目的完整每日任务验收。" in report
+
+
+def test_render_acceptance_report_marks_partial_success_as_pending(tmp_path):
+    setup_db(tmp_path)
+    with SessionLocal() as db:
+        site = Site(
+            name="测试站点",
+            slug="test-site",
+            homepage_url="https://example.gov.cn",
+            enabled=True,
+        )
+        db.add(site)
+        db.flush()
+        db.add(
+            SiteSection(
+                site_id=site.id,
+                name="公告栏目",
+                url="https://example.gov.cn/list.html",
+                enabled=True,
+            )
+        )
+        db.add(
+            CrawlRun(
+                run_no="scheduled-test-1",
+                run_type="scheduled",
+                status="partial_success",
+                triggered_by="cli_daily",
+                discovered_items=1,
+                attachment_failed_count=1,
+            )
+        )
+        db.commit()
+
+    with SessionLocal() as db:
+        report = render_acceptance_report(
+            db,
+            settings=Settings(APP_STORAGE_ROOT=tmp_path / "storage"),
+            now=datetime(2026, 6, 21, 12, 0),
+        )
+
+    assert "1 个启用栏目的完整每日任务：已执行但有失败" in report
+    assert "partial=1 failed=0" in report
+    assert "1 个启用栏目的完整每日任务验收。" in report
 
 
 def test_export_acceptance_report_writes_markdown_file(tmp_path):

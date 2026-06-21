@@ -217,6 +217,38 @@ def test_attachment_content_change_writes_change_log(tmp_path, monkeypatch):
         assert db.query(ChangeLog).filter_by(change_type="attachment_changed").count() == 1
 
 
+def test_attachment_failure_marks_run_partial_success(tmp_path, monkeypatch):
+    setup_db(tmp_path)
+    section_id = create_site_and_section()
+
+    def fake_fetch(url: str, section: SiteSection, timeout: int | None = None):
+        if url.endswith("list.html"):
+            html = "<html><li><a href='detail.html'>资质核准公告</a>2026-06-21</li></html>"
+            return fetched(url, html)
+        if url.endswith("detail.html"):
+            html = (
+                "<html><body><main>公告正文</main><a href='files/a.pdf'>附件下载</a></body></html>"
+            )
+            return fetched(url, html)
+        raise TimeoutError("attachment timeout")
+
+    monkeypatch.setattr("app.services.crawler.runner.fetch_url", fake_fetch)
+    settings = Settings(APP_STORAGE_ROOT=tmp_path / "storage")
+    with SessionLocal() as db:
+        run = crawl_section(db, section_id, triggered_by="tester", settings=settings)
+
+    assert run.status == "partial_success"
+    assert run.success_sections == 1
+    assert run.failed_sections == 0
+    assert run.attachment_failed_count == 1
+    with SessionLocal() as db:
+        attachment = db.query(Attachment).one()
+        assert attachment.download_status == "failed"
+        assert "attachment timeout" in attachment.failure_reason
+        assert db.get(SiteSection, section_id).last_status == "partial_success"
+        assert db.query(ChangeLog).filter_by(change_type="attachment_failed").count() == 1
+
+
 def test_crawl_section_saves_json_api_rows(tmp_path, monkeypatch):
     setup_db(tmp_path)
     section_id = create_site_and_section("json_api")

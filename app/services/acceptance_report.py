@@ -22,6 +22,7 @@ class AcceptanceReport:
 class FullDailyCrawlSummary:
     total_sections: int
     success_sections: int
+    partial_sections: int
     failed_sections: int
     discovered_items: int
     new_items: int
@@ -243,6 +244,7 @@ def latest_full_daily_summary(
     return FullDailyCrawlSummary(
         total_sections=len(recent_daily_runs),
         success_sections=sum(run.status == "success" for run in recent_daily_runs),
+        partial_sections=sum(run.status == "partial_success" for run in recent_daily_runs),
         failed_sections=sum(run.status == "failed" for run in recent_daily_runs),
         discovered_items=sum(run.discovered_items for run in recent_daily_runs),
         new_items=sum(run.new_items for run in recent_daily_runs),
@@ -263,7 +265,8 @@ def format_full_daily_summary(summary: FullDailyCrawlSummary | None) -> str:
         return "待验收"
     state = "已完成" if full_daily_summary_passed(summary) else "已执行但有失败"
     return (
-        f"{state} success={summary.success_sections} failed={summary.failed_sections} "
+        f"{state} success={summary.success_sections} partial={summary.partial_sections} "
+        f"failed={summary.failed_sections} "
         f"discovered={summary.discovered_items} new={summary.new_items} "
         f"attachments={summary.attachment_success_count}/{summary.attachment_failed_count}"
     )
@@ -272,7 +275,11 @@ def format_full_daily_summary(summary: FullDailyCrawlSummary | None) -> str:
 def full_daily_summary_passed(summary: FullDailyCrawlSummary | None) -> bool:
     if summary is None:
         return False
-    return summary.success_sections == summary.total_sections and summary.failed_sections == 0
+    return (
+        summary.success_sections == summary.total_sections
+        and summary.partial_sections == 0
+        and summary.failed_sections == 0
+    )
 
 
 def backend_checkpoints() -> list[tuple[str, str]]:
