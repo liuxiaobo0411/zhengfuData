@@ -10,12 +10,14 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
 from app.models import Announcement, Attachment, ChangeLog, CrawlRun, Site, SiteSection
-from app.services.crawler.http import fetch_url
+from app.services.crawler.http import add_query_params, fetch_url
 from app.services.crawler.parser import (
+    extract_unitbuild_requests,
     parse_date_text,
     parse_detail_page,
     parse_json_page,
     parse_list_page,
+    parse_unitbuild_html,
 )
 from app.services.crawler.types import FetchedPage, ParsedAnnouncement, ParsedAttachment
 from app.services.path_utils import safe_filename
@@ -56,9 +58,7 @@ def crawl_section(
         if section.crawler_strategy == "json_api":
             records = parse_json_page(page.text, page.final_url, section)
         else:
-            records = parse_list_page(page.text, page.final_url, section)[
-                : section.max_items_per_run
-            ]
+            records = parse_listing_records(page, section)
         run.discovered_items = len(records)
         new_items = 0
         attachment_success = 0
@@ -106,6 +106,27 @@ def crawl_section(
     db.commit()
     db.refresh(run)
     return run
+
+
+def parse_listing_records(page: FetchedPage, section: SiteSection) -> list[ParsedAnnouncement]:
+    records = parse_list_page(page.text, page.final_url, section)
+    for endpoint, params in extract_unitbuild_requests(page.text, page.final_url):
+        params = {
+            **params,
+            "paramJson": f'{{"pageNo":1,"pageSize":{section.max_items_per_run}}}',
+        }
+        fragment_page = fetch_url(add_query_params(endpoint, params), section)
+        fragment_html = parse_unitbuild_html(fragment_page.text)
+        if fragment_html:
+            records.extend(parse_list_page(fragment_html, page.final_url, section))
+    return dedupe_by_source_url(records)[: section.max_items_per_run]
+
+
+def dedupe_by_source_url(records: list[ParsedAnnouncement]) -> list[ParsedAnnouncement]:
+    unique: dict[str, ParsedAnnouncement] = {}
+    for record in records:
+        unique[record.source_url] = record
+    return list(unique.values())
 
 
 def save_record(

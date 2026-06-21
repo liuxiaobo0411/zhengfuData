@@ -6,6 +6,7 @@ import app.models  # noqa: F401
 from app.config import Settings
 from app.database import Base, SessionLocal, configure_database
 from app.models import Announcement, Attachment, ChangeLog, CrawlRun, Site, SiteSection
+from app.services.crawler.parser import extract_unitbuild_requests
 from app.services.crawler.runner import crawl_section
 from app.services.crawler.types import FetchedPage
 
@@ -145,3 +146,20 @@ def test_unsupported_strategy_records_readable_failure(tmp_path):
     with SessionLocal() as db:
         assert db.query(CrawlRun).one().status == "failed"
         assert db.query(ChangeLog).one().change_type == "crawl_failed"
+
+
+def test_extract_unitbuild_requests_reads_mohurd_script():
+    html = """
+    <script
+      url="/api-gateway/jpaas-publish-server/front/page/build/unit"
+      queryData="{'parseType':'bulidstatic','pageId':'abc'}"></script>
+    """
+
+    requests = extract_unitbuild_requests(html, "https://www.mohurd.gov.cn/column/index.html")
+
+    assert requests == [
+        (
+            "https://www.mohurd.gov.cn/api-gateway/jpaas-publish-server/front/page/build/unit",
+            {"parseType": "bulidstatic", "pageId": "abc"},
+        )
+    ]

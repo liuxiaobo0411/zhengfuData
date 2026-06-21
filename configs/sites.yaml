@@ -1,0 +1,49 @@
+sites:
+  - name: 中华人民共和国住房和城乡建设部
+    slug: mohurd
+    homepage_url: https://www.mohurd.gov.cn/
+    organization: 住房和城乡建设部
+    region: 国家
+    enabled: true
+    sections:
+      - name: 建设工程企业资质行政审批专栏-公告
+        url: https://www.mohurd.gov.cn/ztbd/zyglgd/zyglgdspzlgg/index.html
+        item_type: qualification_notice
+        crawler_strategy: http_static
+        schedule_cron: "0 9 * * *"
+        enabled: true
+        download_attachments: true
+        save_snapshot: true
+        request_timeout: 25
+        retry_times: 1
+        request_interval_seconds: 3
+        max_pages: 1
+        max_items_per_run: 10
+        crawl_date_window_days: 1
+        list_selector: li.date
+        title_selector: a
+        date_selector: .date-info
+        detail_url_selector: a
+        content_selector: .article-content, .TRS_Editor, body
+        attachment_selector: a
+  - name: 陕西省工程建设企业资质公告接口
+    slug: shaanxi-qualification-api
+    homepage_url: https://qiye.sxxzsp.cn:29086/
+    organization: 陕西省住房和城乡建设厅
+    region: 陕西
+    enabled: true
+    sections:
+      - name: 陕西建筑施工公告
+        url: https://qiye.sxxzsp.cn:29086/api/portal/announcement/publicityList?pageSize=20&pageNum=1&fupdeptid=61&fsystemid=101&fentName=
+        item_type: administrative_license
+        crawler_strategy: json_api
+        schedule_cron: "0 9 * * *"
+        enabled: true
+        download_attachments: false
+        save_snapshot: true
+        request_timeout: 30
+        retry_times: 1
+        request_interval_seconds: 3
+        max_pages: 1
+        max_items_per_run: 20
+        crawl_date_window_days: 1

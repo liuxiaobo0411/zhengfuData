@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+from ast import literal_eval
 from datetime import datetime
 from urllib.parse import urljoin, urlparse
 
@@ -32,6 +33,36 @@ def parse_list_page(html: str, base_url: str, section: SiteSection) -> list[Pars
     if section.list_selector:
         return parse_configured_list(soup, base_url, section)
     return parse_fallback_list(soup, base_url)
+
+
+def extract_unitbuild_requests(html: str, base_url: str) -> list[tuple[str, dict[str, str]]]:
+    soup = BeautifulSoup(html, "html.parser")
+    requests: list[tuple[str, dict[str, str]]] = []
+    for script in soup.select("script[querydata][url]"):
+        endpoint = urljoin(base_url, str(script.get("url") or ""))
+        query_data = str(script.get("querydata") or "").strip()
+        if not endpoint or not query_data:
+            continue
+        params = parse_query_data(query_data)
+        requests.append((endpoint, params))
+    return requests
+
+
+def parse_unitbuild_html(text: str) -> str | None:
+    payload = json.loads(text)
+    if not isinstance(payload, dict):
+        return None
+    data = payload.get("data")
+    if isinstance(data, dict) and isinstance(data.get("html"), str):
+        return data["html"]
+    return None
+
+
+def parse_query_data(value: str) -> dict[str, str]:
+    parsed = literal_eval(value)
+    if not isinstance(parsed, dict):
+        raise ValueError("queryData must be a mapping")
+    return {str(key): str(item) for key, item in parsed.items()}
 
 
 def parse_json_page(text: str, base_url: str, section: SiteSection) -> list[ParsedAnnouncement]:

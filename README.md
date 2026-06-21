@@ -34,6 +34,11 @@ M2 已进入第一轮实现：
 
 M2 后续还需要继续补真实站点配置和端到端验收。
 
+当前已配置首批真实栏目：
+
+- 住房和城乡建设部：建设工程企业资质行政审批专栏-公告。
+- 陕西省工程建设企业资质公告接口：陕西建筑施工公告。
+
 已有设计文档位于 `docs/` 目录：
 
 - [V1 MVP 详细设计](./docs/建筑资质公开信息监测与归档系统_V1_MVP详细设计.md)
@@ -177,6 +182,32 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 ruff check .
 ruff format --check .
 pytest
+```
+
+## 首批站点导入与抓取
+
+导入 `configs/sites.yaml` 中的首批真实站点：
+
+```bash
+zhengfudata import-sites --file configs/sites.yaml
+```
+
+手动抓取全部启用栏目：
+
+```bash
+zhengfudata crawl-enabled
+```
+
+只抓取前 2 个启用栏目用于快速验证：
+
+```bash
+zhengfudata crawl-enabled --limit 2
+```
+
+抓取单个栏目：
+
+```bash
+zhengfudata crawl-section 1
 ```
 
 ## 开发顺序
