@@ -741,6 +741,21 @@ a {
   font-size: 12px;
 }
 
+.version-list {
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px;
+  background: #f8fafc;
+  border: 1px solid #edf2f7;
+  border-radius: 8px;
+}
+
+.version-list span {
+  overflow-wrap: anywhere;
+  color: #475569;
+  line-height: 1.5;
+}
+
 .empty-state.compact {
   padding: 18px;
 }

@@ -16,6 +16,7 @@ from app.database import SessionLocal
 from app.models import (
     Announcement,
     Attachment,
+    AttachmentVersion,
     ChangeLog,
     CrawlRun,
     NotificationLog,
@@ -117,6 +118,9 @@ def announcement_detail(request: Request, announcement_id: int):
             .where(Attachment.announcement_id == announcement_id)
             .order_by(Attachment.id)
         ).all()
+        attachment_versions = versions_for_attachments(
+            db, [attachment.id for attachment in attachments]
+        )
         changes = db.scalars(
             select(ChangeLog)
             .where(ChangeLog.announcement_id == announcement_id)
@@ -133,6 +137,7 @@ def announcement_detail(request: Request, announcement_id: int):
             "site": site,
             "section": section,
             "attachments": attachments,
+            "attachment_versions": attachment_versions,
             "changes": changes,
         },
     )
@@ -208,6 +213,7 @@ def attachment_list(request: Request):
     with SessionLocal() as db:
         query = attachment_list_query(filters)
         rows = db.execute(query.limit(300)).all()
+        version_counts = attachment_version_counts(db, [row[0].id for row in rows])
         sites = db.scalars(select(Site).order_by(Site.name)).all()
         download_statuses = list(
             db.scalars(
@@ -224,6 +230,7 @@ def attachment_list(request: Request):
             "rows": rows,
             "sites": sites,
             "download_statuses": download_statuses,
+            "version_counts": version_counts,
             "filters": filters,
             "download_all_url": download_all_url(filters),
         },
@@ -318,6 +325,43 @@ def attachment_list_query(filters: dict[str, str]):
     if filters["local_file"] == "no":
         query = query.where(Attachment.local_path.is_(None))
     return query
+
+
+def versions_for_attachments(
+    db,
+    attachment_ids: list[int],
+    limit_per_attachment: int = 3,
+) -> dict[int, list[AttachmentVersion]]:
+    if not attachment_ids:
+        return {}
+    versions = db.scalars(
+        select(AttachmentVersion)
+        .where(AttachmentVersion.attachment_id.in_(attachment_ids))
+        .order_by(
+            AttachmentVersion.attachment_id,
+            AttachmentVersion.version_no.desc(),
+            AttachmentVersion.id.desc(),
+        )
+    ).all()
+    grouped: dict[int, list[AttachmentVersion]] = {
+        attachment_id: [] for attachment_id in attachment_ids
+    }
+    for version in versions:
+        bucket = grouped.setdefault(version.attachment_id, [])
+        if len(bucket) < limit_per_attachment:
+            bucket.append(version)
+    return grouped
+
+
+def attachment_version_counts(db, attachment_ids: list[int]) -> dict[int, int]:
+    if not attachment_ids:
+        return {}
+    rows = db.execute(
+        select(AttachmentVersion.attachment_id, func.count(AttachmentVersion.id))
+        .where(AttachmentVersion.attachment_id.in_(attachment_ids))
+        .group_by(AttachmentVersion.attachment_id)
+    ).all()
+    return {attachment_id: count for attachment_id, count in rows}
 
 
 def download_all_url(filters: dict[str, str]) -> str:

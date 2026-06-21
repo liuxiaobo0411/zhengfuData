@@ -65,7 +65,7 @@
       <div class="table-row">
         <div>
           <strong>{{ attachment.name }}</strong>
-          <span>{{ attachment.file_ext or "-" }} · {{ attachment.file_size or 0 }} bytes</span>
+          <span>{{ attachment.file_ext or "-" }} · {{ attachment.file_size or 0 }} bytes · {{ version_counts.get(attachment.id, 0) }} 个版本</span>
         </div>
         <span>{{ announcement_title }}</span>
         <span>{{ site_name }}</span>

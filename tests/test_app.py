@@ -12,6 +12,7 @@ from app.main import create_app
 from app.models import (
     Announcement,
     Attachment,
+    AttachmentVersion,
     ChangeLog,
     CrawlRun,
     NotificationLog,
@@ -290,6 +291,23 @@ def test_archive_pages_and_attachment_download(tmp_path, monkeypatch):
             download_status="success",
         )
         db.add(attachment)
+        db.flush()
+        db.add(
+            AttachmentVersion(
+                attachment_id=attachment.id,
+                announcement_id=announcement.id,
+                site_id=site.id,
+                run_id=run.id,
+                version_no=1,
+                name="附件",
+                safe_name="a.pdf",
+                source_url="https://www.mohurd.gov.cn/a.pdf",
+                local_path="attachments/mohurd/1/a.pdf",
+                file_hash="file-hash",
+                download_status="success",
+                change_type="attachment_added",
+            )
+        )
         db.add(
             Attachment(
                 announcement_id=announcement.id,
@@ -348,6 +366,8 @@ def test_archive_pages_and_attachment_download(tmp_path, monkeypatch):
     assert "公告正文" in detail.text
     assert "snapshots/mohurd/1/a.html" in detail.text
     assert "/attachments/2/retry" in detail.text
+    assert "v1 · attachment_added · file-hash" in detail.text
+    assert "attachments/mohurd/1/a.pdf" in detail.text
     assert str(tmp_path) not in detail.text
 
     attachments = client.get("/attachments")
@@ -356,6 +376,7 @@ def test_archive_pages_and_attachment_download(tmp_path, monkeypatch):
     assert "失败附件" in attachments.text
     assert "timeout" in attachments.text
     assert "/attachments/2/retry" in attachments.text
+    assert "1 个版本" in attachments.text
     assert "打包下载" in attachments.text
 
     failed_attachments = client.get("/attachments?download_status=failed")

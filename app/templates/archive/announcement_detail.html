@@ -46,6 +46,14 @@
         <div class="compact-row">
           <strong>{{ attachment.name }}</strong>
           <span>{{ attachment.download_status }} · {{ attachment.file_ext or "-" }} · {{ attachment.file_size or 0 }} bytes{% if attachment.failure_reason %} · {{ attachment.failure_reason }}{% endif %}</span>
+          {% set versions = attachment_versions.get(attachment.id, []) %}
+          {% if versions %}
+          <div class="version-list">
+            {% for version in versions %}
+            <span>v{{ version.version_no }} · {{ version.change_type }} · {{ version.file_hash[:12] }} · {{ version.local_path }}</span>
+            {% endfor %}
+          </div>
+          {% endif %}
           <div class="row-actions">
             {% if attachment.local_path %}
             <a class="text-action" href="/attachments/{{ attachment.id }}/download">下载</a>
