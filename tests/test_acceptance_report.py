@@ -68,11 +68,33 @@ def seed_acceptance_data():
             )
         )
         db.add(
+            Attachment(
+                announcement_id=announcement.id,
+                site_id=site.id,
+                run_id=run.id,
+                attachment_key="failed-att",
+                name="失败附件",
+                safe_name="failed.pdf",
+                source_url="https://example.gov.cn/failed.pdf",
+                download_status="failed",
+                failure_reason="timeout",
+            )
+        )
+        db.add(
             NotificationLog(
                 run_id=run.id,
                 provider="openclaw",
                 event_type="daily_crawl_report",
                 status="success",
+            )
+        )
+        db.add(
+            NotificationLog(
+                run_id=run.id,
+                provider="openclaw",
+                event_type="daily_crawl_report",
+                status="failed",
+                failure_reason="OPENCLAW_WEBHOOK_URL 未配置",
             )
         )
         db.commit()
@@ -95,11 +117,17 @@ def test_render_acceptance_report_summarizes_database(tmp_path):
     assert "V1 MVP 自动验收报告" in report
     assert "政府网站：1" in report
     assert "归档公告：1" in report
-    assert "附件记录：1" in report
+    assert "附件记录：2" in report
     assert "OpenClaw webhook：已配置" in report
     assert "scheduled-test-1" in report
     assert "1 个启用栏目的完整每日任务：已完成" in report
     assert "1 个启用栏目的完整每日任务验收。" not in report
+    assert "后台页面验收入口" in report
+    assert "公告列表：`http://127.0.0.1:8000/announcements`" in report
+    assert "失败来源与处理建议" in report
+    assert "失败附件" in report
+    assert "附件管理页点击重试" in report
+    assert "OPENCLAW_WEBHOOK_URL 未配置" in report
 
 
 def test_render_acceptance_report_keeps_failed_full_daily_in_pending(tmp_path):

@@ -65,6 +65,30 @@ def render_acceptance_report(
     recent_notifications = list(
         db.scalars(select(NotificationLog).order_by(NotificationLog.id.desc()).limit(5)).all()
     )
+    failed_runs = list(
+        db.scalars(
+            select(CrawlRun)
+            .where(CrawlRun.status == "failed")
+            .order_by(CrawlRun.id.desc())
+            .limit(10)
+        ).all()
+    )
+    failed_attachments = list(
+        db.scalars(
+            select(Attachment)
+            .where(Attachment.download_status == "failed")
+            .order_by(Attachment.id.desc())
+            .limit(10)
+        ).all()
+    )
+    failed_notifications = list(
+        db.scalars(
+            select(NotificationLog)
+            .where(NotificationLog.status == "failed")
+            .order_by(NotificationLog.id.desc())
+            .limit(10)
+        ).all()
+    )
     attachment_status = db.execute(
         select(Attachment.download_status, func.count(Attachment.id))
         .group_by(Attachment.download_status)
@@ -125,6 +149,41 @@ def render_acceptance_report(
             lines.append(f"- #{log.id} {log.provider} {log.event_type} {log.status}{reason}")
     else:
         lines.append("- 暂无通知日志")
+
+    lines.extend(["", "## 后台页面验收入口", ""])
+    for label, path in backend_checkpoints():
+        lines.append(f"- {label}：`{settings.app_public_base_url.rstrip('/')}{path}`")
+
+    lines.extend(["", "## 失败来源与处理建议", ""])
+    if not failed_runs and not failed_attachments and not failed_notifications:
+        lines.append("- 当前没有失败任务、失败附件或失败通知。")
+    else:
+        if failed_runs:
+            lines.append("")
+            lines.append("### 失败抓取任务")
+            for run in failed_runs:
+                lines.append(
+                    f"- #{run.id} `{run.run_no}` {run.error_summary or '无失败摘要'} "
+                    "建议：查看任务详情和来源栏目，必要时调整请求头、重试次数或抓取策略。"
+                )
+        if failed_attachments:
+            lines.append("")
+            lines.append("### 失败附件")
+            for attachment in failed_attachments:
+                lines.append(
+                    f"- #{attachment.id} {attachment.name} url={attachment.source_url} "
+                    f"reason={attachment.failure_reason or '无失败原因'} "
+                    "建议：在附件管理页点击重试，或打开原始地址确认网站限制。"
+                )
+        if failed_notifications:
+            lines.append("")
+            lines.append("### 失败通知")
+            for log in failed_notifications:
+                lines.append(
+                    f"- #{log.id} {log.provider} {log.event_type} "
+                    f"reason={log.failure_reason or '无失败原因'} "
+                    "建议：检查 OPENCLAW_WEBHOOK_URL、企微目标配置和 OpenClaw 服务状态。"
+                )
 
     lines.extend(
         [
@@ -214,3 +273,16 @@ def full_daily_summary_passed(summary: FullDailyCrawlSummary | None) -> bool:
     if summary is None:
         return False
     return summary.success_sections == summary.total_sections and summary.failed_sections == 0
+
+
+def backend_checkpoints() -> list[tuple[str, str]]:
+    return [
+        ("工作台", "/"),
+        ("公告列表", "/announcements"),
+        ("变化记录", "/changes"),
+        ("附件管理", "/attachments"),
+        ("抓取任务", "/crawl-runs"),
+        ("通知日志", "/notifications"),
+        ("网站栏目", "/sites"),
+        ("系统配置", "/settings"),
+    ]
