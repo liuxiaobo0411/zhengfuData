@@ -108,6 +108,37 @@ summary total=2 success=2 failed=0
 - 不下载附件。
 - 可用于 Windows 部署后的来源连通性验收。
 
+## 12 个启用栏目完整来源验证
+
+执行命令：
+
+```bash
+zhengfudata validate-sources
+```
+
+验证结果：
+
+```text
+summary total=12 success=12 failed=0
+```
+
+通过栏目：
+
+```text
+建设工程企业资质行政审批专栏-公告 records=10
+陕西建筑施工公告 records=20
+政策发布 records=10
+住房和城乡建设部行政规范性文件库 records=10
+建设工程企业资质行政审批专栏-部门规章 records=3
+建设工程企业资质行政审批专栏-资质标准 records=7
+建设工程企业资质行政审批专栏-政策文件 records=10
+建设工程企业资质行政审批专栏-审查意见公示 records=10
+建设工程企业资质行政审批专栏-通报 records=10
+工程建设项目审批制度改革工作-政策文件 records=10
+公告公示 records=10
+省厅文件 records=10
+```
+
 ## 小批量完整闭环验证
 
 执行命令：
