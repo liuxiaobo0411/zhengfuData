@@ -80,7 +80,7 @@ pytest
 测试结果：
 
 ```text
-43 passed
+45 passed
 ```
 
 本机未安装 `pwsh`，PowerShell 脚本语法解析未在 macOS 开发机执行。已通过测试检查 Windows 脚本文件存在、使用项目相对路径，并在 `docs/Windows本地部署说明.md` 中列明 Windows 实机验收步骤。
@@ -210,44 +210,44 @@ daily sections=12 success=12 failed=0
 数据库验证：
 
 ```text
-run ids: 10-21
+run ids: 23-34
 sections 12 success 12 failed 0
 discovered 120
-new 90
+new 0
 content_changed 0
-attachment_success 132
-attachment_failed 20
-attachment_added 117
+attachment_success 152
+attachment_failed 0
+attachment_added 0
 attachment_changed 0
 announcements 120
 attachments 152
-local attachment files 132
-storage size 23M
+local attachment files 152
+storage size 25M
 ```
 
 逐栏目结果：
 
 ```text
-建设工程企业资质行政审批专栏-公告 success discovered=10 new=0 attachment_success=35 attachment_failed=0 duration=81s
+建设工程企业资质行政审批专栏-公告 success discovered=10 new=0 attachment_success=35 attachment_failed=0 duration=147s
 陕西建筑施工公告 success discovered=20 new=0 attachment_success=0 attachment_failed=0 duration=8s
-政策发布 success discovered=10 new=10 attachment_success=12 attachment_failed=0 duration=44s
-住房和城乡建设部行政规范性文件库 success discovered=10 new=10 attachment_success=9 attachment_failed=20 duration=65s
-建设工程企业资质行政审批专栏-部门规章 success discovered=3 new=3 attachment_success=6 attachment_failed=0 duration=17s
-建设工程企业资质行政审批专栏-资质标准 success discovered=7 new=7 attachment_success=9 attachment_failed=0 duration=34s
-建设工程企业资质行政审批专栏-政策文件 success discovered=10 new=10 attachment_success=1 attachment_failed=0 duration=20s
-建设工程企业资质行政审批专栏-审查意见公示 success discovered=10 new=10 attachment_success=29 attachment_failed=0 duration=69s
-建设工程企业资质行政审批专栏-通报 success discovered=10 new=10 attachment_success=0 attachment_failed=0 duration=19s
-工程建设项目审批制度改革工作-政策文件 success discovered=10 new=10 attachment_success=11 attachment_failed=0 duration=39s
-公告公示 success discovered=10 new=10 attachment_success=7 attachment_failed=0 duration=27s
-省厅文件 success discovered=10 new=10 attachment_success=13 attachment_failed=0 duration=43s
+政策发布 success discovered=10 new=0 attachment_success=12 attachment_failed=0 duration=80s
+住房和城乡建设部行政规范性文件库 success discovered=10 new=0 attachment_success=29 attachment_failed=0 duration=88s
+建设工程企业资质行政审批专栏-部门规章 success discovered=3 new=0 attachment_success=6 attachment_failed=0 duration=22s
+建设工程企业资质行政审批专栏-资质标准 success discovered=7 new=0 attachment_success=9 attachment_failed=0 duration=37s
+建设工程企业资质行政审批专栏-政策文件 success discovered=10 new=0 attachment_success=1 attachment_failed=0 duration=22s
+建设工程企业资质行政审批专栏-审查意见公示 success discovered=10 new=0 attachment_success=29 attachment_failed=0 duration=70s
+建设工程企业资质行政审批专栏-通报 success discovered=10 new=0 attachment_success=0 attachment_failed=0 duration=23s
+工程建设项目审批制度改革工作-政策文件 success discovered=10 new=0 attachment_success=11 attachment_failed=0 duration=41s
+公告公示 success discovered=10 new=0 attachment_success=7 attachment_failed=0 duration=27s
+省厅文件 success discovered=10 new=0 attachment_success=13 attachment_failed=0 duration=36s
 ```
 
 说明：
 
 - 12 个启用栏目已完成一次完整每日任务实测。
 - 每个栏目任务状态均为 `success`，说明列表抓取、正文解析、入库流程完整跑通。
-- 附件记录共 152 条，其中 132 个文件已下载到 `storage/attachments`。
-- 住房和城乡建设部行政规范性文件库有 20 个附件下载失败，失败会进入附件状态和变化日志，不影响栏目任务完成；后续可针对该栏目补充下载限速、重试或特殊附件地址适配。
+- 附件记录共 152 条，152 个文件均已下载到 `storage/attachments`。
+- 曾失败的住建部行政规范性文件库附件已修复，根因是下载 URL 中中文 `fileName` 参数需要在请求前做百分号编码。
 - 本次使用 `--no-notify`，不触发 OpenClaw；真实企微群日报仍需配置 webhook 后单独验收。
 
 ## 后台页面验证

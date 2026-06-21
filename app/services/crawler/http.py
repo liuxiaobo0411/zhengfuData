@@ -4,7 +4,7 @@ import json
 import subprocess
 import tempfile
 from pathlib import Path
-from urllib.parse import urlencode
+from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
 import httpx
 
@@ -31,13 +31,14 @@ def section_headers(section: SiteSection) -> dict[str, str]:
 
 
 def fetch_url(url: str, section: SiteSection, timeout: int | None = None) -> FetchedPage:
+    request_url = normalize_request_url(url)
     retries = max(0, section.retry_times if section.crawler_strategy == "http_with_retry" else 0)
     headers = section_headers(section)
     last_error: Exception | None = None
     for _ in range(retries + 1):
         try:
             response = httpx.get(
-                url,
+                request_url,
                 follow_redirects=True,
                 headers=headers,
                 timeout=timeout or section.request_timeout,
@@ -65,6 +66,7 @@ def add_query_params(url: str, params: dict[str, str]) -> str:
 
 def fetch_url_with_curl(url: str, section: SiteSection, timeout: int) -> FetchedPage:
     headers = section_headers(section)
+    request_url = normalize_request_url(url)
     with tempfile.NamedTemporaryFile(delete=False) as body_file:
         body_path = Path(body_file.name)
     try:
@@ -87,7 +89,7 @@ def fetch_url_with_curl(url: str, section: SiteSection, timeout: int) -> Fetched
                 command.extend(["-A", value])
             else:
                 command.extend(["-H", f"{key}: {value}"])
-        command.append(url)
+        command.append(request_url)
         result = subprocess.run(
             command,
             check=True,
@@ -119,3 +121,18 @@ def decode_body(body: bytes, content_type: str) -> str:
         except (LookupError, UnicodeDecodeError):
             continue
     return body.decode("utf-8", errors="replace")
+
+
+def normalize_request_url(url: str) -> str:
+    """Encode non-ASCII URL parts before handing them to httpx or curl."""
+    parts = urlsplit(url)
+    query = urlencode(parse_qsl(parts.query, keep_blank_values=True), doseq=True)
+    return urlunsplit(
+        (
+            parts.scheme,
+            parts.netloc,
+            quote(parts.path, safe="/%"),
+            query,
+            quote(parts.fragment, safe=""),
+        )
+    )
