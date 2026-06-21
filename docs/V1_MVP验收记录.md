@@ -267,7 +267,7 @@ storage size 25M
 /crawl-runs     抓取任务
 /crawl-runs/9   抓取任务详情，显示 scheduled
 /changes        变化记录，支持按变化类型、网站和栏目筛选
-/attachments    附件管理
+/attachments    附件管理，支持按关键词、状态、网站和本地文件筛选
 /notifications  通知日志
 ```
 

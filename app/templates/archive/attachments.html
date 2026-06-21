@@ -14,6 +14,42 @@
 </header>
 
 <section class="content-stack">
+  <form class="panel filter-panel" method="get" action="/attachments">
+    <div class="filter-grid">
+      <label>
+        <span>关键词</span>
+        <input name="q" value="{{ filters.q }}">
+      </label>
+      <label>
+        <span>状态</span>
+        <select name="download_status">
+          <option value="">全部</option>
+          {% for status in download_statuses %}
+          <option value="{{ status }}" {% if filters.download_status == status %}selected{% endif %}>{{ status }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        <span>网站</span>
+        <select name="site_id">
+          <option value="">全部</option>
+          {% for site in sites %}
+          <option value="{{ site.id }}" {% if filters.site_id == site.id|string %}selected{% endif %}>{{ site.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        <span>本地文件</span>
+        <select name="local_file">
+          <option value="">全部</option>
+          <option value="yes" {% if filters.local_file == "yes" %}selected{% endif %}>已保存</option>
+          <option value="no" {% if filters.local_file == "no" %}selected{% endif %}>未保存</option>
+        </select>
+      </label>
+    </div>
+    <button type="submit">筛选</button>
+  </form>
+
   <section class="panel table-panel">
     {% if rows %}
     <div class="data-table attachment-table">

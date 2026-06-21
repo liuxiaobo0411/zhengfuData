@@ -192,8 +192,14 @@ def attachment_list(request: Request):
     if isinstance(user, RedirectResponse):
         return user
 
+    filters = {
+        "q": request.query_params.get("q", "").strip(),
+        "download_status": request.query_params.get("download_status", "").strip(),
+        "site_id": request.query_params.get("site_id", "").strip(),
+        "local_file": request.query_params.get("local_file", "").strip(),
+    }
     with SessionLocal() as db:
-        rows = db.execute(
+        query = (
             select(
                 Attachment,
                 Announcement.title.label("announcement_title"),
@@ -202,13 +208,38 @@ def attachment_list(request: Request):
             .join(Announcement, Attachment.announcement_id == Announcement.id)
             .join(Site, Attachment.site_id == Site.id)
             .order_by(Attachment.created_at.desc(), Attachment.id.desc())
-            .limit(300)
-        ).all()
+        )
+        if filters["q"]:
+            query = query.where(
+                Attachment.name.contains(filters["q"]) | Announcement.title.contains(filters["q"])
+            )
+        if filters["download_status"]:
+            query = query.where(Attachment.download_status == filters["download_status"])
+        if filters["site_id"].isdigit():
+            query = query.where(Attachment.site_id == int(filters["site_id"]))
+        if filters["local_file"] == "yes":
+            query = query.where(Attachment.local_path.is_not(None))
+        if filters["local_file"] == "no":
+            query = query.where(Attachment.local_path.is_(None))
+        rows = db.execute(query.limit(300)).all()
+        sites = db.scalars(select(Site).order_by(Site.name)).all()
+        download_statuses = list(
+            db.scalars(
+                select(Attachment.download_status).distinct().order_by(Attachment.download_status)
+            )
+        )
 
     return templates.TemplateResponse(
         request,
         "archive/attachments.html",
-        {"active_nav": "attachments", "user": user, "rows": rows},
+        {
+            "active_nav": "attachments",
+            "user": user,
+            "rows": rows,
+            "sites": sites,
+            "download_statuses": download_statuses,
+            "filters": filters,
+        },
     )
 
 

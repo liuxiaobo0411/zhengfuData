@@ -196,6 +196,19 @@ def test_archive_pages_and_attachment_download(tmp_path, monkeypatch):
         )
         db.add(attachment)
         db.add(
+            Attachment(
+                announcement_id=announcement.id,
+                site_id=site.id,
+                run_id=run.id,
+                attachment_key="failed-att",
+                name="失败附件",
+                safe_name="failed.pdf",
+                source_url="https://www.mohurd.gov.cn/failed.pdf",
+                download_status="failed",
+                failure_reason="timeout",
+            )
+        )
+        db.add(
             ChangeLog(
                 announcement_id=announcement.id,
                 attachment_id=attachment.id,
@@ -244,6 +257,16 @@ def test_archive_pages_and_attachment_download(tmp_path, monkeypatch):
     attachments = client.get("/attachments")
     assert attachments.status_code == 200
     assert "附件" in attachments.text
+    assert "失败附件" in attachments.text
+
+    failed_attachments = client.get("/attachments?download_status=failed")
+    assert failed_attachments.status_code == 200
+    assert "失败附件" in failed_attachments.text
+    assert "a.pdf" not in failed_attachments.text
+
+    missing_file_attachments = client.get("/attachments?local_file=no")
+    assert missing_file_attachments.status_code == 200
+    assert "失败附件" in missing_file_attachments.text
 
     download = client.get("/attachments/1/download")
     assert download.status_code == 200
