@@ -7,7 +7,7 @@ from app.config import Settings
 from app.database import Base, SessionLocal, configure_database
 from app.models import Announcement, Attachment, ChangeLog, CrawlRun, Site, SiteSection
 from app.services.crawler.parser import extract_unitbuild_requests
-from app.services.crawler.runner import crawl_section
+from app.services.crawler.runner import crawl_section, run_type_for
 from app.services.crawler.types import FetchedPage
 
 
@@ -52,6 +52,13 @@ def create_site_and_section(crawler_strategy: str = "http_static") -> int:
         db.add(section)
         db.commit()
         return section.id
+
+
+def test_run_type_for_distinguishes_manual_and_scheduled_triggers():
+    assert run_type_for("scheduled") == "scheduled"
+    assert run_type_for("cli_daily") == "scheduled"
+    assert run_type_for("cli") == "manual"
+    assert run_type_for("admin") == "manual"
 
 
 def test_crawl_section_saves_html_announcement_snapshot_and_attachment(tmp_path, monkeypatch):

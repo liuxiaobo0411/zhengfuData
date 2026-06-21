@@ -80,7 +80,73 @@ pytest
 测试结果：
 
 ```text
-34 passed
+35 passed
+```
+
+## 小批量完整闭环验证
+
+执行命令：
+
+```bash
+zhengfudata run-daily-crawl --limit 2
+```
+
+结果：
+
+```text
+daily sections=2 success=2 failed=0
+notification=2 status=failed reason=OPENCLAW_WEBHOOK_URL 未配置
+```
+
+数据库验证：
+
+```text
+runs 8
+announcements 30
+attachments 35
+notifications 2
+recent runs:
+section 1 success discovered=10 new=0 attachment_success=35 attachment_failed=0
+section 2 success discovered=20 new=0 attachment_success=0 attachment_failed=0
+attachment status: success 35
+```
+
+说明：
+
+- 重复抓取未产生重复公告。
+- 附件下载状态保持成功。
+- OpenClaw 未配置时，通知失败原因可记录，不影响抓取任务成功入库。
+
+## 定时任务类型验证
+
+执行命令：
+
+```bash
+zhengfudata run-daily-crawl --limit 1 --no-notify
+```
+
+结果：
+
+```text
+daily sections=1 success=1 failed=0
+latest run: scheduled-20260621215135385692-1 scheduled cli_daily success
+```
+
+说明：
+
+- `cli_daily` 和应用内置定时触发会写入 `run_type=scheduled`。
+- 普通后台或 CLI 单栏目抓取仍属于手动任务。
+
+## 后台页面验证
+
+已启动本地服务并验证以下页面返回 200：
+
+```text
+/               工作台
+/crawl-runs     抓取任务
+/crawl-runs/9   抓取任务详情，显示 scheduled
+/attachments    附件管理
+/notifications  通知日志
 ```
 
 ## 后续验收事项
@@ -88,4 +154,4 @@ pytest
 - 在 Windows 电脑按 README 完成安装、启动、导入、抓取和附件下载验证。
 - 配置真实 `OPENCLAW_WEBHOOK_URL` 后，验证企微群日报发送。
 - 针对待适配动态查询页面补 Playwright 或接口适配器。
-- 跑一次 `zhengfudata run-daily-crawl --limit 2` 做小批量完整入库验证，再逐步扩大到 12 个启用栏目。
+- 逐步扩大到 12 个启用栏目，完成一次完整每日任务验收。

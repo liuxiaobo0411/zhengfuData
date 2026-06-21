@@ -40,9 +40,10 @@ def crawl_section(
         raise ValueError(f"site not found: {section.site_id}")
 
     now = datetime.now()
+    run_type = run_type_for(triggered_by)
     run = CrawlRun(
-        run_no=f"manual-{now.strftime('%Y%m%d%H%M%S%f')}-{section.id}",
-        run_type="manual",
+        run_no=f"{run_type}-{now.strftime('%Y%m%d%H%M%S%f')}-{section.id}",
+        run_type=run_type,
         status="running",
         started_at=now,
         total_sections=1,
@@ -115,6 +116,12 @@ def crawl_section(
     db.commit()
     db.refresh(run)
     return run
+
+
+def run_type_for(triggered_by: str) -> str:
+    if triggered_by in {"scheduled", "cli_daily"}:
+        return "scheduled"
+    return "manual"
 
 
 def parse_listing_records(page: FetchedPage, section: SiteSection) -> list[ParsedAnnouncement]:
