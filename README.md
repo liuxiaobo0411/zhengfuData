@@ -15,6 +15,14 @@
 - Windows 兼容的附件文件名清洗工具。
 - pytest 与 ruff 开发质量检查。
 
+M1 已完成第一版：
+
+- 核心业务表迁移：`users`、`sites`、`site_sections`、`crawl_runs`、`announcements`、`attachments`、`change_logs`。
+- 简单账号密码登录。
+- 政府网站新增、编辑、启用、停用。
+- 栏目新增、编辑、启用、停用。
+- 栏目抓取策略、请求参数、解析选择器等配置字段。
+
 已有设计文档位于 `docs/` 目录：
 
 - [V1 MVP 详细设计](./docs/建筑资质公开信息监测与归档系统_V1_MVP详细设计.md)
@@ -124,6 +132,14 @@ uvicorn app.main:app --reload
 
 - 后台工作台：http://127.0.0.1:8000/
 - 健康检查：http://127.0.0.1:8000/api/health
+
+默认登录账号来自 `.env`：
+
+```text
+admin / change-me
+```
+
+正式使用前必须修改 `ADMIN_PASSWORD` 和 `APP_SECRET_KEY`。
 
 ### Windows PowerShell
 

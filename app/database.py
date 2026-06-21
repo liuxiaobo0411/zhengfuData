@@ -30,6 +30,15 @@ engine = build_engine()
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
 
 
+def configure_database(database_url: str | None = None):
+    global engine
+
+    engine.dispose()
+    engine = build_engine(database_url)
+    SessionLocal.configure(bind=engine)
+    return engine
+
+
 def get_db():
     db = SessionLocal()
     try:

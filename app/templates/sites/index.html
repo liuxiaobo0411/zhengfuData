@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}网站栏目 - 建筑资质公开信息监测与归档系统{% endblock %}
+
+{% block content %}
+<header class="topbar">
+  <div>
+    <h1>网站栏目</h1>
+    <p>维护政府网站、栏目地址、抓取策略和基础解析配置。</p>
+  </div>
+  <div class="topbar-actions">
+    <span class="status-pill success">{{ sites|length }} 个网站</span>
+    <span class="status-pill warning">{{ section_count }} 个栏目</span>
+  </div>
+</header>
+
+<section class="content-grid">
+  <form class="panel form-panel" method="post" action="/sites">
+    <div class="panel-title">
+      <h2>新增网站</h2>
+      <span>政府公开源</span>
+    </div>
+    <div class="form-grid">
+      <label>
+        <span>网站名称</span>
+        <input name="name" required>
+      </label>
+      <label>
+        <span>唯一标识</span>
+        <input name="slug" required placeholder="mohurd">
+      </label>
+      <label class="wide">
+        <span>首页地址</span>
+        <input name="homepage_url" type="url" required>
+      </label>
+      <label>
+        <span>主管单位</span>
+        <input name="organization">
+      </label>
+      <label>
+        <span>地区</span>
+        <input name="region">
+      </label>
+      <label class="wide">
+        <span>备注</span>
+        <textarea name="remark" rows="3"></textarea>
+      </label>
+      <label class="check-line">
+        <input name="enabled" type="checkbox" checked>
+        <span>启用</span>
+      </label>
+    </div>
+    <button type="submit">保存网站</button>
+  </form>
+
+  <section class="panel table-panel">
+    <div class="panel-title">
+      <h2>已配置网站</h2>
+      <span>站点与栏目</span>
+    </div>
+    {% if sites %}
+    <div class="site-list">
+      {% for site in sites %}
+      <article class="site-row">
+        <div class="site-main">
+          <div>
+            <strong>{{ site.name }}</strong>
+            <span>{{ site.region or "未设置地区" }} · {{ site.organization or "未设置主管单位" }}</span>
+          </div>
+          <a href="{{ site.homepage_url }}" target="_blank" rel="noreferrer">{{ site.homepage_url }}</a>
+        </div>
+        <div class="row-actions">
+          <span class="state {{ 'on' if site.enabled else 'off' }}">{{ "启用" if site.enabled else "停用" }}</span>
+          <a class="text-action" href="/sites/{{ site.id }}/edit">编辑</a>
+          <a class="text-action" href="/sites/{{ site.id }}/sections/new">新增栏目</a>
+          <form method="post" action="/sites/{{ site.id }}/toggle">
+            <button class="quiet-button" type="submit">{{ "停用" if site.enabled else "启用" }}</button>
+          </form>
+        </div>
+        {% if site.sections %}
+        <div class="section-table">
+          {% for section in site.sections %}
+          <div class="section-row">
+            <div>
+              <strong>{{ section.name }}</strong>
+              <span>{{ section.item_type }} · {{ section.crawler_strategy }} · {{ section.schedule_cron }}</span>
+            </div>
+            <a href="{{ section.url }}" target="_blank" rel="noreferrer">{{ section.url }}</a>
+            <div class="row-actions">
+              <span class="state {{ 'on' if section.enabled else 'off' }}">{{ "启用" if section.enabled else "停用" }}</span>
+              <a class="text-action" href="/sections/{{ section.id }}/edit">编辑</a>
+              <form method="post" action="/sections/{{ section.id }}/toggle">
+                <button class="quiet-button" type="submit">{{ "停用" if section.enabled else "启用" }}</button>
+              </form>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">暂无网站配置</div>
+    {% endif %}
+  </section>
+</section>
+{% endblock %}

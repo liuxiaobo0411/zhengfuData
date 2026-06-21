@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}编辑网站 - 建筑资质公开信息监测与归档系统{% endblock %}
+
+{% block content %}
+<header class="topbar">
+  <div>
+    <h1>编辑网站</h1>
+    <p>{{ site.name }}</p>
+  </div>
+  <div class="topbar-actions">
+    <a class="text-action" href="/sites">返回网站栏目</a>
+  </div>
+</header>
+
+<section class="content-narrow">
+  <form class="panel form-panel" method="post" action="/sites/{{ site.id }}/edit">
+    <div class="form-grid">
+      <label>
+        <span>网站名称</span>
+        <input name="name" value="{{ site.name }}" required>
+      </label>
+      <label>
+        <span>唯一标识</span>
+        <input name="slug" value="{{ site.slug }}" required>
+      </label>
+      <label class="wide">
+        <span>首页地址</span>
+        <input name="homepage_url" type="url" value="{{ site.homepage_url }}" required>
+      </label>
+      <label>
+        <span>主管单位</span>
+        <input name="organization" value="{{ site.organization or '' }}">
+      </label>
+      <label>
+        <span>地区</span>
+        <input name="region" value="{{ site.region or '' }}">
+      </label>
+      <label class="wide">
+        <span>备注</span>
+        <textarea name="remark" rows="4">{{ site.remark or "" }}</textarea>
+      </label>
+      <label class="check-line">
+        <input name="enabled" type="checkbox" {% if site.enabled %}checked{% endif %}>
+        <span>启用</span>
+      </label>
+    </div>
+    <button type="submit">保存修改</button>
+  </form>
+</section>
+{% endblock %}
