@@ -131,6 +131,61 @@ def announcement_detail(request: Request, announcement_id: int):
     )
 
 
+@router.get("/changes", response_class=HTMLResponse)
+def change_list(request: Request):
+    user = require_user(request)
+    if isinstance(user, RedirectResponse):
+        return user
+
+    filters = {
+        "change_type": request.query_params.get("change_type", "").strip(),
+        "site_id": request.query_params.get("site_id", "").strip(),
+        "section_id": request.query_params.get("section_id", "").strip(),
+    }
+    with SessionLocal() as db:
+        AnnouncementAlias = aliased(Announcement)
+        SiteAlias = aliased(Site)
+        SectionAlias = aliased(SiteSection)
+        query = (
+            select(
+                ChangeLog,
+                AnnouncementAlias.id.label("announcement_id"),
+                SiteAlias.name.label("site_name"),
+                SectionAlias.name.label("section_name"),
+            )
+            .outerjoin(AnnouncementAlias, ChangeLog.announcement_id == AnnouncementAlias.id)
+            .outerjoin(SiteAlias, ChangeLog.site_id == SiteAlias.id)
+            .outerjoin(SectionAlias, ChangeLog.section_id == SectionAlias.id)
+            .order_by(ChangeLog.created_at.desc(), ChangeLog.id.desc())
+        )
+        if filters["change_type"]:
+            query = query.where(ChangeLog.change_type == filters["change_type"])
+        if filters["site_id"].isdigit():
+            query = query.where(ChangeLog.site_id == int(filters["site_id"]))
+        if filters["section_id"].isdigit():
+            query = query.where(ChangeLog.section_id == int(filters["section_id"]))
+        rows = db.execute(query.limit(300)).all()
+        sites = db.scalars(select(Site).order_by(Site.name)).all()
+        sections = db.scalars(select(SiteSection).order_by(SiteSection.name)).all()
+        change_types = list(
+            db.scalars(select(ChangeLog.change_type).distinct().order_by(ChangeLog.change_type))
+        )
+
+    return templates.TemplateResponse(
+        request,
+        "archive/changes.html",
+        {
+            "active_nav": "changes",
+            "user": user,
+            "rows": rows,
+            "sites": sites,
+            "sections": sections,
+            "change_types": change_types,
+            "filters": filters,
+        },
+    )
+
+
 @router.get("/attachments", response_class=HTMLResponse)
 def attachment_list(request: Request):
     user = require_user(request)

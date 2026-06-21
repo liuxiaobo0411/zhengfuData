@@ -222,7 +222,18 @@ def test_archive_pages_and_attachment_download(tmp_path, monkeypatch):
     announcement_list = client.get("/announcements")
     assert announcement_list.status_code == 200
     assert "资质核准公告" in announcement_list.text
+    assert "变化记录" in announcement_list.text
     assert str(tmp_path) not in announcement_list.text
+
+    changes = client.get("/changes")
+    assert changes.status_code == 200
+    assert "new_announcement" in changes.text
+    assert "首次抓取入库" in changes.text
+    assert str(tmp_path) not in changes.text
+
+    filtered_changes = client.get("/changes?change_type=content_changed")
+    assert filtered_changes.status_code == 200
+    assert "暂无变化记录" in filtered_changes.text
 
     detail = client.get("/announcements/1")
     assert detail.status_code == 200

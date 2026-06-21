@@ -609,6 +609,11 @@ a {
   grid-template-columns: minmax(180px, 0.8fr) 80px minmax(180px, 0.8fr) 80px minmax(260px, 1.2fr);
 }
 
+.change-table .table-head,
+.change-table .table-row {
+  grid-template-columns: 130px minmax(260px, 1.1fr) minmax(220px, 0.9fr) minmax(160px, 0.6fr) 110px;
+}
+
 .table-head {
   color: var(--muted);
   font-size: 12px;

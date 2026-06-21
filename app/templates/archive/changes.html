@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}变化记录 - 建筑资质公开信息监测与归档系统{% endblock %}
+
+{% block content %}
+<header class="topbar">
+  <div>
+    <h1>变化记录</h1>
+    <p>按时间查看新增公告、正文变化、附件变化和抓取失败。</p>
+  </div>
+  <div class="topbar-actions">
+    <span class="status-pill success">{{ rows|length }} 条变化</span>
+  </div>
+</header>
+
+<section class="content-stack">
+  <form class="panel filter-panel" method="get" action="/changes">
+    <div class="filter-grid">
+      <label>
+        <span>变化类型</span>
+        <select name="change_type">
+          <option value="">全部</option>
+          {% for change_type in change_types %}
+          <option value="{{ change_type }}" {% if filters.change_type == change_type %}selected{% endif %}>{{ change_type }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        <span>网站</span>
+        <select name="site_id">
+          <option value="">全部</option>
+          {% for site in sites %}
+          <option value="{{ site.id }}" {% if filters.site_id == site.id|string %}selected{% endif %}>{{ site.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        <span>栏目</span>
+        <select name="section_id">
+          <option value="">全部</option>
+          {% for section in sections %}
+          <option value="{{ section.id }}" {% if filters.section_id == section.id|string %}selected{% endif %}>{{ section.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+    </div>
+    <button type="submit">筛选</button>
+  </form>
+
+  <section class="panel table-panel">
+    {% if rows %}
+    <div class="data-table change-table">
+      <div class="table-head">
+        <span>类型</span>
+        <span>标题</span>
+        <span>来源</span>
+        <span>时间</span>
+        <span>操作</span>
+      </div>
+      {% for change, announcement_id, site_name, section_name in rows %}
+      <div class="table-row">
+        <span>{{ change.change_type }}</span>
+        <div>
+          <strong>{{ change.title or "-" }}</strong>
+          <span>{{ change.summary or "-" }}</span>
+        </div>
+        <span>{{ site_name or "-" }} · {{ section_name or "-" }}</span>
+        <span>{{ change.created_at or "-" }}</span>
+        <div class="row-actions">
+          {% if announcement_id %}
+          <a class="text-action" href="/announcements/{{ announcement_id }}">详情</a>
+          {% endif %}
+          {% if change.source_url %}
+          <a class="text-action" href="{{ change.source_url }}" target="_blank" rel="noreferrer">原始</a>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">暂无变化记录</div>
+    {% endif %}
+  </section>
+</section>
+{% endblock %}
