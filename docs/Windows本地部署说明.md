@@ -53,6 +53,22 @@ APP_PUBLIC_BASE_URL=http://127.0.0.1:8000
 OPENCLAW_WEBHOOK_URL=OpenClaw 提供的通知地址
 ```
 
+## 验证来源配置
+
+先验证前 2 个启用栏目：
+
+```powershell
+scripts\windows\validate-sources.ps1 -Limit 2
+```
+
+验证全部启用栏目：
+
+```powershell
+scripts\windows\validate-sources.ps1
+```
+
+这个命令只请求列表页并解析记录数，不会写入数据库，也不会下载附件。
+
 ## 启动后台
 
 ```powershell
@@ -140,6 +156,7 @@ storage\snapshots
 在 Windows 机器上至少完成：
 
 - `scripts\windows\setup.ps1` 成功。
+- `scripts\windows\validate-sources.ps1 -Limit 2` 成功。
 - 后台可以登录。
 - `scripts\windows\run-daily-crawl.ps1 -Limit 2` 成功。
 - 后台可以查看抓取任务、公告、附件和通知日志。
@@ -164,6 +181,12 @@ scripts\windows\run-server.ps1 -Port 8010
 
 ```powershell
 .venv\Scripts\python.exe -m app.cli import-sites --file configs/sites.yaml
+```
+
+需要重新验证来源：
+
+```powershell
+.venv\Scripts\python.exe -m app.cli validate-sources
 ```
 
 只想重跑数据库迁移：

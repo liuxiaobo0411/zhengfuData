@@ -9,6 +9,7 @@ from app.services.crawler import crawl_section
 from app.services.notifier import send_daily_report
 from app.services.scheduler import run_daily_crawl
 from app.services.site_importer import import_sites_from_yaml
+from app.services.source_validator import validate_enabled_sources
 
 
 def main() -> None:
@@ -28,6 +29,9 @@ def main() -> None:
     daily_parser.add_argument("--limit", type=int, default=0)
     daily_parser.add_argument("--no-notify", action="store_true")
 
+    validate_parser = subparsers.add_parser("validate-sources")
+    validate_parser.add_argument("--limit", type=int, default=0)
+
     subparsers.add_parser("send-daily-report")
 
     args = parser.parse_args()
@@ -39,6 +43,8 @@ def main() -> None:
         crawl_enabled(args.limit)
     elif args.command == "run-daily-crawl":
         run_daily(args.limit, notify=not args.no_notify)
+    elif args.command == "validate-sources":
+        validate_sources(args.limit)
     elif args.command == "send-daily-report":
         send_report()
 
@@ -91,6 +97,28 @@ def send_report() -> None:
     with SessionLocal() as db:
         log = send_daily_report(db, settings=get_settings())
     print(f"notification={log.id} status={log.status} reason={log.failure_reason or ''}")
+
+
+def validate_sources(limit: int) -> None:
+    summary = validate_enabled_sources(limit=limit)
+    for result in summary.results:
+        if result.status == "success":
+            print(
+                f"OK section={result.section_id} records={result.record_count} "
+                f"strategy={result.strategy} name={result.section_name} "
+                f"sample={result.sample_title[:60]}"
+            )
+        else:
+            print(
+                f"FAIL section={result.section_id} strategy={result.strategy} "
+                f"name={result.section_name} reason={result.failure_reason}"
+            )
+    print(
+        f"summary total={summary.total_count} success={summary.success_count} "
+        f"failed={summary.failed_count}"
+    )
+    if summary.failed_count:
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

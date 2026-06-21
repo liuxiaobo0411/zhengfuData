@@ -70,6 +70,7 @@ M6 已开始推进：
 - 每日任务会按启用网站和启用栏目抓取，并在结束后发送日报。
 - `configs/sites.yaml` 已包含 12 个启用栏目和 2 个待适配查询页面。
 - 已补充 Windows 本地部署脚本和任务计划脚本。
+- 可通过 `zhengfudata validate-sources` 验证启用栏目列表页是否可访问和可解析。
 
 已有设计文档位于 `docs/` 目录：
 
@@ -242,6 +243,18 @@ alembic upgrade head
 
 ```bash
 zhengfudata import-sites --file configs/sites.yaml
+```
+
+验证启用栏目是否可访问并解析到列表记录：
+
+```bash
+zhengfudata validate-sources
+```
+
+只验证前 2 个启用栏目：
+
+```bash
+zhengfudata validate-sources --limit 2
 ```
 
 手动抓取全部启用栏目：

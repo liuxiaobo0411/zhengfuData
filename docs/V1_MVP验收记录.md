@@ -80,10 +80,33 @@ pytest
 测试结果：
 
 ```text
-37 passed
+39 passed
 ```
 
 本机未安装 `pwsh`，PowerShell 脚本语法解析未在 macOS 开发机执行。已通过测试检查 Windows 脚本文件存在、使用项目相对路径，并在 `docs/Windows本地部署说明.md` 中列明 Windows 实机验收步骤。
+
+## 来源配置验证命令
+
+已新增轻量来源验证命令：
+
+```bash
+zhengfudata validate-sources --limit 2
+```
+
+验证结果：
+
+```text
+OK section=1 records=10 strategy=http_with_retry name=建设工程企业资质行政审批专栏-公告
+OK section=2 records=20 strategy=json_api name=陕西建筑施工公告
+summary total=2 success=2 failed=0
+```
+
+说明：
+
+- 该命令只请求列表页并验证是否能解析到记录。
+- 不写入数据库。
+- 不下载附件。
+- 可用于 Windows 部署后的来源连通性验收。
 
 ## 小批量完整闭环验证
 
@@ -159,6 +182,7 @@ latest run: scheduled-20260621215135385692-1 scheduled cli_daily success
 scripts/windows/setup.ps1
 scripts/windows/run-server.ps1
 scripts/windows/run-daily-crawl.ps1
+scripts/windows/validate-sources.ps1
 scripts/windows/install-daily-task.ps1
 docs/Windows本地部署说明.md
 ```
@@ -169,6 +193,7 @@ docs/Windows本地部署说明.md
 - `setup.ps1` 负责创建虚拟环境、安装依赖、初始化 `.env`、执行迁移和导入首批站点。
 - `run-server.ps1` 负责启动后台。
 - `run-daily-crawl.ps1` 负责执行每日抓取。
+- `validate-sources.ps1` 负责验证启用栏目列表页可访问且可解析。
 - `install-daily-task.ps1` 负责注册 Windows 任务计划。
 
 ## 后续验收事项
