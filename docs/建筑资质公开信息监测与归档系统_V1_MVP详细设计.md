@@ -878,8 +878,9 @@ updated_at
 ```text
 id
 attachment_id
-item_id
-task_id
+announcement_id
+site_id
+run_id
 version_no
 name
 safe_name
@@ -889,10 +890,14 @@ local_path
 file_size
 file_hash
 file_updated_at
+downloaded_at
 download_status
 change_type
 created_at
+updated_at
 ```
+
+V1 中仅在附件首次成功下载、失败后首次成功下载或文件 hash 变化时新增版本记录；重复抓取到相同文件 hash 不新增版本，避免无意义膨胀。
 
 ### 6.9 change_logs 变化记录表
 

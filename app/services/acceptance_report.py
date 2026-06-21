@@ -8,7 +8,15 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
-from app.models import Announcement, Attachment, CrawlRun, NotificationLog, Site, SiteSection
+from app.models import (
+    Announcement,
+    Attachment,
+    AttachmentVersion,
+    CrawlRun,
+    NotificationLog,
+    Site,
+    SiteSection,
+)
 from app.services.storage import prepare_storage
 
 
@@ -60,6 +68,7 @@ def render_acceptance_report(
     enabled_section_count = count_rows(db, SiteSection.id, SiteSection.enabled.is_(True))
     announcement_count = count_rows(db, Announcement.id)
     attachment_count = count_rows(db, Attachment.id)
+    attachment_version_count = count_rows(db, AttachmentVersion.id)
     run_count = count_rows(db, CrawlRun.id)
     notification_count = count_rows(db, NotificationLog.id)
     recent_runs = list(db.scalars(select(CrawlRun).order_by(CrawlRun.id.desc()).limit(5)).all())
@@ -122,6 +131,7 @@ def render_acceptance_report(
         f"- 抓取任务：{run_count}",
         f"- 归档公告：{announcement_count}",
         f"- 附件记录：{attachment_count}",
+        f"- 附件版本：{attachment_version_count}",
         f"- 通知日志：{notification_count}",
         "",
         "## 附件下载状态",

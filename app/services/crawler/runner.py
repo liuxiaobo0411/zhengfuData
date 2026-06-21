@@ -6,11 +6,19 @@ from email.utils import parsedate_to_datetime
 from pathlib import Path
 from urllib.parse import urlparse
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
-from app.models import Announcement, Attachment, ChangeLog, CrawlRun, Site, SiteSection
+from app.models import (
+    Announcement,
+    Attachment,
+    AttachmentVersion,
+    ChangeLog,
+    CrawlRun,
+    Site,
+    SiteSection,
+)
 from app.services.crawler.http import add_query_params, fetch_url
 from app.services.crawler.parser import (
     extract_unitbuild_requests,
@@ -421,6 +429,27 @@ def save_attachment(
         attachment.downloaded_at = now
         attachment.download_status = "success"
         attachment.failure_reason = None
+        if should_record_attachment_version(is_new, changed, old_hash):
+            db.add(
+                AttachmentVersion(
+                    attachment_id=attachment.id,
+                    announcement_id=announcement.id,
+                    site_id=site.id,
+                    run_id=run.id,
+                    version_no=next_attachment_version_no(db, attachment.id),
+                    name=attachment.name,
+                    safe_name=attachment.safe_name,
+                    source_url=attachment.source_url,
+                    final_url=attachment.final_url,
+                    local_path=attachment.local_path,
+                    file_size=attachment.file_size,
+                    file_hash=attachment.file_hash,
+                    file_updated_at=attachment.file_updated_at,
+                    downloaded_at=attachment.downloaded_at,
+                    download_status=attachment.download_status,
+                    change_type=attachment_version_change_type(is_new, old_hash),
+                )
+            )
         if changed:
             db.add(
                 ChangeLog(
@@ -521,6 +550,23 @@ def sha256_text(value: str) -> str:
 
 def sha256_bytes(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
+
+
+def should_record_attachment_version(is_new: bool, changed: bool, old_hash: str | None) -> bool:
+    return is_new or changed or old_hash is None
+
+
+def attachment_version_change_type(is_new: bool, old_hash: str | None) -> str:
+    return "attachment_added" if is_new or old_hash is None else "attachment_changed"
+
+
+def next_attachment_version_no(db: Session, attachment_id: int) -> int:
+    latest = db.scalar(
+        select(func.max(AttachmentVersion.version_no)).where(
+            AttachmentVersion.attachment_id == attachment_id
+        )
+    )
+    return int(latest or 0) + 1
 
 
 def parse_http_datetime(value: str | None) -> datetime | None:

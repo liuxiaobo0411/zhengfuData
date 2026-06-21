@@ -5,7 +5,15 @@ from datetime import datetime
 import app.models  # noqa: F401
 from app.config import Settings
 from app.database import Base, SessionLocal, configure_database
-from app.models import Announcement, Attachment, CrawlRun, NotificationLog, Site, SiteSection
+from app.models import (
+    Announcement,
+    Attachment,
+    AttachmentVersion,
+    CrawlRun,
+    NotificationLog,
+    Site,
+    SiteSection,
+)
 from app.services.acceptance_report import export_acceptance_report, render_acceptance_report
 
 
@@ -55,16 +63,34 @@ def seed_acceptance_data():
         )
         db.add(announcement)
         db.flush()
+        attachment = Attachment(
+            announcement_id=announcement.id,
+            site_id=site.id,
+            run_id=run.id,
+            attachment_key="att",
+            name="附件",
+            safe_name="a.pdf",
+            source_url="https://example.gov.cn/a.pdf",
+            local_path="attachments/test/a.pdf",
+            file_hash="hash-v1",
+            download_status="success",
+        )
+        db.add(attachment)
+        db.flush()
         db.add(
-            Attachment(
+            AttachmentVersion(
+                attachment_id=attachment.id,
                 announcement_id=announcement.id,
                 site_id=site.id,
                 run_id=run.id,
-                attachment_key="att",
+                version_no=1,
                 name="附件",
                 safe_name="a.pdf",
                 source_url="https://example.gov.cn/a.pdf",
+                local_path="attachments/test/a.pdf",
+                file_hash="hash-v1",
                 download_status="success",
+                change_type="attachment_added",
             )
         )
         db.add(
@@ -118,6 +144,7 @@ def test_render_acceptance_report_summarizes_database(tmp_path):
     assert "政府网站：1" in report
     assert "归档公告：1" in report
     assert "附件记录：2" in report
+    assert "附件版本：1" in report
     assert "OpenClaw webhook：已配置" in report
     assert "scheduled-test-1" in report
     assert "1 个启用栏目的完整每日任务：已完成" in report

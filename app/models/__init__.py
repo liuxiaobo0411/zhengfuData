@@ -1,6 +1,7 @@
 from app.models.core import (
     Announcement,
     Attachment,
+    AttachmentVersion,
     ChangeLog,
     CrawlRun,
     NotificationLog,
@@ -12,6 +13,7 @@ from app.models.core import (
 __all__ = [
     "Announcement",
     "Attachment",
+    "AttachmentVersion",
     "ChangeLog",
     "CrawlRun",
     "NotificationLog",

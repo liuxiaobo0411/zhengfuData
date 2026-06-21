@@ -5,7 +5,15 @@ from pathlib import Path
 import app.models  # noqa: F401
 from app.config import Settings
 from app.database import Base, SessionLocal, configure_database
-from app.models import Announcement, Attachment, ChangeLog, CrawlRun, Site, SiteSection
+from app.models import (
+    Announcement,
+    Attachment,
+    AttachmentVersion,
+    ChangeLog,
+    CrawlRun,
+    Site,
+    SiteSection,
+)
 from app.services.crawler.parser import extract_unitbuild_requests
 from app.services.crawler.runner import (
     crawl_section,
@@ -115,12 +123,17 @@ def test_crawl_section_saves_html_announcement_snapshot_and_attachment(tmp_path,
     with SessionLocal() as db:
         announcement = db.query(Announcement).one()
         attachment = db.query(Attachment).one()
+        version = db.query(AttachmentVersion).one()
         changes = db.query(ChangeLog).all()
         assert announcement.title == "资质核准公告"
         assert announcement.snapshot_path.endswith(".html")
         assert attachment.download_status == "success"
         assert attachment.local_path.endswith(".pdf")
         assert attachment.file_updated_at.isoformat() == "2026-06-21T08:30:00"
+        assert version.version_no == 1
+        assert version.local_path == attachment.local_path
+        assert version.file_hash == attachment.file_hash
+        assert version.change_type == "attachment_added"
         assert (settings.storage_root / attachment.local_path).exists()
         assert {change.change_type for change in changes} == {
             "new_announcement",
@@ -157,6 +170,7 @@ def test_repeated_crawl_does_not_duplicate_records(tmp_path, monkeypatch):
     with SessionLocal() as db:
         assert db.query(Announcement).count() == 1
         assert db.query(Attachment).count() == 1
+        assert db.query(AttachmentVersion).count() == 1
         assert db.query(ChangeLog).count() == 2
 
 
@@ -220,6 +234,13 @@ def test_attachment_content_change_writes_change_log(tmp_path, monkeypatch):
     with SessionLocal() as db:
         assert db.query(Announcement).count() == 1
         assert db.query(Attachment).count() == 1
+        versions = db.query(AttachmentVersion).order_by(AttachmentVersion.version_no).all()
+        assert [version.version_no for version in versions] == [1, 2]
+        assert [version.change_type for version in versions] == [
+            "attachment_added",
+            "attachment_changed",
+        ]
+        assert versions[0].file_hash != versions[1].file_hash
         assert db.query(ChangeLog).filter_by(change_type="attachment_changed").count() == 1
 
 

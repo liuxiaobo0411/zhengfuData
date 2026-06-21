@@ -185,6 +185,42 @@ class Attachment(TimestampMixin, Base):
     )
 
 
+class AttachmentVersion(TimestampMixin, Base):
+    __tablename__ = "attachment_versions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    attachment_id: Mapped[int] = mapped_column(
+        ForeignKey("attachments.id"), nullable=False, index=True
+    )
+    announcement_id: Mapped[int] = mapped_column(
+        ForeignKey("announcements.id"),
+        nullable=False,
+        index=True,
+    )
+    site_id: Mapped[int] = mapped_column(ForeignKey("sites.id"), nullable=False, index=True)
+    run_id: Mapped[int | None] = mapped_column(ForeignKey("crawl_runs.id"), index=True)
+    version_no: Mapped[int] = mapped_column(Integer, nullable=False)
+    name: Mapped[str] = mapped_column(String(500), nullable=False)
+    safe_name: Mapped[str] = mapped_column(String(500), nullable=False)
+    source_url: Mapped[str] = mapped_column(String(1000), nullable=False)
+    final_url: Mapped[str | None] = mapped_column(String(1000))
+    local_path: Mapped[str] = mapped_column(String(1000), nullable=False)
+    file_size: Mapped[int | None] = mapped_column(Integer)
+    file_hash: Mapped[str] = mapped_column(String(128), nullable=False)
+    file_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    downloaded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    download_status: Mapped[str] = mapped_column(String(32), default="success", nullable=False)
+    change_type: Mapped[str] = mapped_column(String(64), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "attachment_id",
+            "version_no",
+            name="uq_attachment_versions_attachment_version",
+        ),
+    )
+
+
 class ChangeLog(TimestampMixin, Base):
     __tablename__ = "change_logs"
 
