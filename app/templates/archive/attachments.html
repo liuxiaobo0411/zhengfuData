@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}附件管理 - 建筑资质公开信息监测与归档系统{% endblock %}
+
+{% block content %}
+<header class="topbar">
+  <div>
+    <h1>附件管理</h1>
+    <p>集中查看附件下载状态和所属公告。</p>
+  </div>
+  <div class="topbar-actions">
+    <span class="status-pill success">{{ rows|length }} 个附件</span>
+  </div>
+</header>
+
+<section class="content-stack">
+  <section class="panel table-panel">
+    {% if rows %}
+    <div class="data-table attachment-table">
+      <div class="table-head">
+        <span>附件</span>
+        <span>所属公告</span>
+        <span>来源网站</span>
+        <span>状态</span>
+        <span>操作</span>
+      </div>
+      {% for attachment, announcement_title, site_name in rows %}
+      <div class="table-row">
+        <div>
+          <strong>{{ attachment.name }}</strong>
+          <span>{{ attachment.file_ext or "-" }} · {{ attachment.file_size or 0 }} bytes</span>
+        </div>
+        <span>{{ announcement_title }}</span>
+        <span>{{ site_name }}</span>
+        <span>{{ attachment.download_status }}</span>
+        <div class="row-actions">
+          {% if attachment.local_path %}
+          <a class="text-action" href="/attachments/{{ attachment.id }}/download">下载</a>
+          {% endif %}
+          <a class="text-action" href="{{ attachment.source_url }}" target="_blank" rel="noreferrer">原始</a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">暂无附件</div>
+    {% endif %}
+  </section>
+</section>
+{% endblock %}

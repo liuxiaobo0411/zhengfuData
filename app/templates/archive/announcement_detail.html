@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}公告详情 - 建筑资质公开信息监测与归档系统{% endblock %}
+
+{% block content %}
+<header class="topbar">
+  <div>
+    <h1>公告详情</h1>
+    <p>{{ site.name }} · {{ section.name }}</p>
+  </div>
+  <div class="topbar-actions">
+    <a class="text-action" href="/announcements">返回列表</a>
+    <a class="text-action" href="{{ announcement.source_url }}" target="_blank" rel="noreferrer">打开原始地址</a>
+  </div>
+</header>
+
+<section class="detail-layout">
+  <article class="panel detail-main">
+    <div class="detail-title">
+      <h2>{{ announcement.title }}</h2>
+      <span>{{ announcement.item_type }} · {{ announcement.status }}</span>
+    </div>
+    <dl class="meta-grid">
+      <dt>发布时间</dt>
+      <dd>{{ announcement.published_at or announcement.raw_published_at or "-" }}</dd>
+      <dt>抓取时间</dt>
+      <dd>{{ announcement.fetched_at or "-" }}</dd>
+      <dt>最终地址</dt>
+      <dd><a href="{{ announcement.final_url or announcement.source_url }}" target="_blank" rel="noreferrer">{{ announcement.final_url or announcement.source_url }}</a></dd>
+      <dt>快照</dt>
+      <dd>{{ announcement.snapshot_path or "-" }}</dd>
+    </dl>
+    <div class="content-box">
+      {{ announcement.content or "暂无正文" }}
+    </div>
+  </article>
+
+  <aside class="detail-side">
+    <section class="panel">
+      <div class="panel-title">
+        <h2>附件</h2>
+        <span>{{ attachments|length }} 个</span>
+      </div>
+      <div class="compact-list">
+        {% for attachment in attachments %}
+        <div class="compact-row">
+          <strong>{{ attachment.name }}</strong>
+          <span>{{ attachment.download_status }} · {{ attachment.file_ext or "-" }} · {{ attachment.file_size or 0 }} bytes</span>
+          <div class="row-actions">
+            {% if attachment.local_path %}
+            <a class="text-action" href="/attachments/{{ attachment.id }}/download">下载</a>
+            {% endif %}
+            <a class="text-action" href="{{ attachment.source_url }}" target="_blank" rel="noreferrer">原始</a>
+          </div>
+        </div>
+        {% else %}
+        <div class="empty-state compact">暂无附件</div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-title">
+        <h2>变化记录</h2>
+        <span>{{ changes|length }} 条</span>
+      </div>
+      <div class="compact-list">
+        {% for change in changes %}
+        <div class="compact-row">
+          <strong>{{ change.change_type }}</strong>
+          <span>{{ change.summary or "-" }}</span>
+        </div>
+        {% else %}
+        <div class="empty-state compact">暂无变化记录</div>
+        {% endfor %}
+      </div>
+    </section>
+  </aside>
+</section>
+{% endblock %}

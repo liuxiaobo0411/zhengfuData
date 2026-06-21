@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}抓取信息 - 建筑资质公开信息监测与归档系统{% endblock %}
+
+{% block content %}
+<header class="topbar">
+  <div>
+    <h1>抓取信息</h1>
+    <p>查看已归档公告、来源栏目、附件数量和原始地址。</p>
+  </div>
+  <div class="topbar-actions">
+    <span class="status-pill success">{{ rows|length }} 条记录</span>
+  </div>
+</header>
+
+<section class="content-stack">
+  <form class="panel filter-panel" method="get" action="/announcements">
+    <div class="filter-grid">
+      <label>
+        <span>关键词</span>
+        <input name="q" value="{{ filters.q }}">
+      </label>
+      <label>
+        <span>网站</span>
+        <select name="site_id">
+          <option value="">全部</option>
+          {% for site in sites %}
+          <option value="{{ site.id }}" {% if filters.site_id == site.id|string %}selected{% endif %}>{{ site.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        <span>栏目</span>
+        <select name="section_id">
+          <option value="">全部</option>
+          {% for section in sections %}
+          <option value="{{ section.id }}" {% if filters.section_id == section.id|string %}selected{% endif %}>{{ section.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        <span>附件</span>
+        <select name="has_attachment">
+          <option value="">全部</option>
+          <option value="yes" {% if filters.has_attachment == "yes" %}selected{% endif %}>有附件</option>
+          <option value="no" {% if filters.has_attachment == "no" %}selected{% endif %}>无附件</option>
+        </select>
+      </label>
+    </div>
+    <button type="submit">筛选</button>
+  </form>
+
+  <section class="panel table-panel">
+    {% if rows %}
+    <div class="data-table">
+      <div class="table-head">
+        <span>标题</span>
+        <span>来源</span>
+        <span>发布时间</span>
+        <span>附件</span>
+        <span>操作</span>
+      </div>
+      {% for announcement, site_name, section_name, attachment_count in rows %}
+      <div class="table-row">
+        <div>
+          <strong>{{ announcement.title }}</strong>
+          <span>{{ announcement.item_type }} · {{ announcement.status }}</span>
+        </div>
+        <div>
+          <strong>{{ site_name }}</strong>
+          <span>{{ section_name }}</span>
+        </div>
+        <span>{{ announcement.published_at.date() if announcement.published_at else announcement.raw_published_at or "-" }}</span>
+        <span>{{ attachment_count }}</span>
+        <div class="row-actions">
+          <a class="text-action" href="/announcements/{{ announcement.id }}">详情</a>
+          <a class="text-action" href="{{ announcement.source_url }}" target="_blank" rel="noreferrer">原始</a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">暂无抓取信息</div>
+    {% endif %}
+  </section>
+</section>
+{% endblock %}

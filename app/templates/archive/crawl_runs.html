@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}抓取任务 - 建筑资质公开信息监测与归档系统{% endblock %}
+
+{% block content %}
+<header class="topbar">
+  <div>
+    <h1>抓取任务</h1>
+    <p>查看抓取批次状态、数量统计和失败原因。</p>
+  </div>
+</header>
+
+<section class="content-stack">
+  <section class="panel table-panel">
+    {% if runs %}
+    <div class="data-table run-table">
+      <div class="table-head">
+        <span>任务</span>
+        <span>状态</span>
+        <span>发现/新增</span>
+        <span>变化</span>
+        <span>附件</span>
+        <span>操作</span>
+      </div>
+      {% for run in runs %}
+      <div class="table-row">
+        <div>
+          <strong>{{ run.run_no }}</strong>
+          <span>{{ run.started_at or "-" }}</span>
+        </div>
+        <span>{{ run.status }}</span>
+        <span>{{ run.discovered_items }} / {{ run.new_items }}</span>
+        <span>{{ run.content_changed_items }} / {{ run.attachment_changed_count }}</span>
+        <span>{{ run.attachment_success_count }} / {{ run.attachment_failed_count }}</span>
+        <a class="text-action" href="/crawl-runs/{{ run.id }}">详情</a>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">暂无抓取任务</div>
+    {% endif %}
+  </section>
+</section>
+{% endblock %}

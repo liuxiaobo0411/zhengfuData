@@ -526,3 +526,157 @@ a {
   border: 1px dashed var(--line);
   border-radius: 8px;
 }
+
+.content-stack {
+  display: grid;
+  gap: 24px;
+  padding: 32px;
+}
+
+.filter-panel {
+  display: flex;
+  gap: 16px;
+  align-items: end;
+}
+
+.filter-grid {
+  display: grid;
+  flex: 1;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.data-table {
+  display: grid;
+  gap: 0;
+}
+
+.table-head,
+.table-row {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.3fr) minmax(180px, 0.8fr) minmax(120px, 0.5fr) minmax(70px, 0.3fr) minmax(110px, 0.4fr);
+  gap: 16px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.run-table .table-head,
+.run-table .table-row {
+  grid-template-columns: minmax(260px, 1fr) 90px 110px 110px 110px 80px;
+}
+
+.attachment-table .table-head,
+.attachment-table .table-row {
+  grid-template-columns: minmax(220px, 1fr) minmax(240px, 1fr) minmax(160px, 0.6fr) 90px 110px;
+}
+
+.table-head {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.table-row strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+
+.table-row span,
+.table-row a {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+}
+
+.detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 24px;
+  padding: 32px;
+}
+
+.detail-main {
+  min-height: 520px;
+}
+
+.detail-title {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 22px;
+}
+
+.detail-title h2 {
+  font-size: 20px;
+  line-height: 1.45;
+}
+
+.detail-title span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.detail-side {
+  display: grid;
+  gap: 24px;
+  height: fit-content;
+}
+
+.meta-grid {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 10px 16px;
+  margin: 0 0 24px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.meta-grid dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.meta-grid dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+
+.content-box {
+  overflow-wrap: anywhere;
+  color: #253044;
+  font-size: 14px;
+  line-height: 1.85;
+  white-space: pre-wrap;
+}
+
+.compact-list {
+  display: grid;
+  gap: 12px;
+}
+
+.compact-row {
+  display: grid;
+  gap: 6px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.compact-row strong {
+  font-size: 13px;
+}
+
+.compact-row span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.empty-state.compact {
+  padding: 18px;
+}
+
+.compact-metrics {
+  padding: 0;
+}

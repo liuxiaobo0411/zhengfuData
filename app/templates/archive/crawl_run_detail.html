@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}任务详情 - 建筑资质公开信息监测与归档系统{% endblock %}
+
+{% block content %}
+<header class="topbar">
+  <div>
+    <h1>任务详情</h1>
+    <p>{{ run.run_no }}</p>
+  </div>
+  <div class="topbar-actions">
+    <a class="text-action" href="/crawl-runs">返回任务列表</a>
+  </div>
+</header>
+
+<section class="content-stack">
+  <section class="metrics-grid compact-metrics">
+    <article class="metric-card"><span>状态</span><strong>{{ run.status }}</strong><em>{{ run.run_type }}</em></article>
+    <article class="metric-card"><span>发现/新增</span><strong>{{ run.discovered_items }}/{{ run.new_items }}</strong><em>公告</em></article>
+    <article class="metric-card"><span>正文/附件变化</span><strong>{{ run.content_changed_items }}/{{ run.attachment_changed_count }}</strong><em>变化</em></article>
+    <article class="metric-card"><span>附件成功/失败</span><strong>{{ run.attachment_success_count }}/{{ run.attachment_failed_count }}</strong><em>下载</em></article>
+  </section>
+
+  <section class="panel table-panel">
+    <div class="panel-title">
+      <h2>变化与失败</h2>
+      <span>{{ changes|length }} 条</span>
+    </div>
+    {% if changes %}
+    <div class="data-table">
+      <div class="table-head">
+        <span>类型</span>
+        <span>标题</span>
+        <span>来源</span>
+        <span>说明</span>
+        <span>原始地址</span>
+      </div>
+      {% for change, site_name, section_name in changes %}
+      <div class="table-row">
+        <span>{{ change.change_type }}</span>
+        <strong>{{ change.title or "-" }}</strong>
+        <span>{{ site_name or "-" }} · {{ section_name or "-" }}</span>
+        <span>{{ change.summary or "-" }}</span>
+        <a class="text-action" href="{{ change.source_url }}" target="_blank" rel="noreferrer">打开</a>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">暂无变化或失败记录</div>
+    {% endif %}
+  </section>
+</section>
+{% endblock %}

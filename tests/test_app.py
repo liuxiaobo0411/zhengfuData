@@ -1,14 +1,19 @@
 from fastapi.testclient import TestClient
 
 import app.models  # noqa: F401
+from app.config import get_settings
 from app.database import Base, SessionLocal, configure_database
 from app.main import create_app
-from app.models import Site, SiteSection
+from app.models import Announcement, Attachment, ChangeLog, CrawlRun, Site, SiteSection
 
 
-def make_client(tmp_path):
+def make_client(tmp_path, monkeypatch=None):
     engine = configure_database(f"sqlite:///{tmp_path / 'test.db'}")
     Base.metadata.create_all(engine)
+    get_settings.cache_clear()
+    if monkeypatch is not None:
+        monkeypatch.setenv("APP_STORAGE_ROOT", str(tmp_path / "storage"))
+        get_settings.cache_clear()
     return TestClient(create_app())
 
 
@@ -97,3 +102,111 @@ def test_site_and_section_can_be_created(tmp_path):
     with SessionLocal() as db:
         assert db.get(Site, 1).name == "住房和城乡建设部"
         assert db.get(SiteSection, 1).crawler_strategy == "http_static"
+
+
+def test_archive_pages_and_attachment_download(tmp_path, monkeypatch):
+    client = make_client(tmp_path, monkeypatch)
+    login(client)
+    storage_root = tmp_path / "storage"
+    attachment_file = storage_root / "attachments" / "mohurd" / "1" / "a.pdf"
+    attachment_file.parent.mkdir(parents=True)
+    attachment_file.write_bytes(b"pdf-content")
+
+    with SessionLocal() as db:
+        site = Site(
+            name="住房和城乡建设部",
+            slug="mohurd",
+            homepage_url="https://www.mohurd.gov.cn/",
+            enabled=True,
+        )
+        db.add(site)
+        db.flush()
+        section = SiteSection(
+            site_id=site.id,
+            name="资质公告",
+            url="https://www.mohurd.gov.cn/list.html",
+            enabled=True,
+        )
+        db.add(section)
+        db.flush()
+        run = CrawlRun(
+            run_no="manual-test",
+            status="success",
+            run_type="manual",
+            discovered_items=1,
+            new_items=1,
+        )
+        db.add(run)
+        db.flush()
+        announcement = Announcement(
+            site_id=site.id,
+            section_id=section.id,
+            run_id=run.id,
+            identity_key="abc",
+            identity_strategy="test",
+            title="资质核准公告",
+            item_type="qualification_notice",
+            source_url="https://www.mohurd.gov.cn/a.html",
+            status="active",
+            content="公告正文",
+            content_hash="hash",
+            attachments_hash="attachments",
+            snapshot_path="snapshots/mohurd/1/a.html",
+        )
+        db.add(announcement)
+        db.flush()
+        attachment = Attachment(
+            announcement_id=announcement.id,
+            site_id=site.id,
+            run_id=run.id,
+            attachment_key="att",
+            name="附件",
+            safe_name="a.pdf",
+            source_url="https://www.mohurd.gov.cn/a.pdf",
+            local_path="attachments/mohurd/1/a.pdf",
+            file_size=11,
+            file_hash="file-hash",
+            download_status="success",
+        )
+        db.add(attachment)
+        db.add(
+            ChangeLog(
+                announcement_id=announcement.id,
+                attachment_id=attachment.id,
+                site_id=site.id,
+                section_id=section.id,
+                run_id=run.id,
+                change_type="new_announcement",
+                title="资质核准公告",
+                summary="首次抓取入库",
+                source_url=announcement.source_url,
+            )
+        )
+        db.commit()
+
+    announcement_list = client.get("/announcements")
+    assert announcement_list.status_code == 200
+    assert "资质核准公告" in announcement_list.text
+    assert str(tmp_path) not in announcement_list.text
+
+    detail = client.get("/announcements/1")
+    assert detail.status_code == 200
+    assert "公告正文" in detail.text
+    assert "snapshots/mohurd/1/a.html" in detail.text
+    assert str(tmp_path) not in detail.text
+
+    attachments = client.get("/attachments")
+    assert attachments.status_code == 200
+    assert "附件" in attachments.text
+
+    download = client.get("/attachments/1/download")
+    assert download.status_code == 200
+    assert download.content == b"pdf-content"
+
+    runs = client.get("/crawl-runs")
+    assert runs.status_code == 200
+    assert "manual-test" in runs.text
+
+    run_detail = client.get("/crawl-runs/1")
+    assert run_detail.status_code == 200
+    assert "new_announcement" in run_detail.text
