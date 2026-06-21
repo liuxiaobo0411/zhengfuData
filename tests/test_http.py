@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from urllib.parse import parse_qs, urlsplit
 
-from app.services.crawler.http import normalize_request_url
+import httpx
+
+from app.models import SiteSection
+from app.services.crawler.http import fetch_url, normalize_request_url
+from app.services.crawler.types import FetchedPage
 
 
 def test_normalize_request_url_encodes_chinese_query_values():
@@ -25,3 +29,39 @@ def test_normalize_request_url_encodes_non_ascii_path():
     normalized = normalize_request_url("https://example.gov.cn/附件/通知.pdf?x=1")
 
     assert normalized == "https://example.gov.cn/%E9%99%84%E4%BB%B6/%E9%80%9A%E7%9F%A5.pdf?x=1"
+
+
+def test_fetch_url_waits_with_backoff_between_retry_attempts(monkeypatch):
+    section = SiteSection(
+        name="测试栏目",
+        url="https://example.gov.cn/list.html",
+        crawler_strategy="http_with_retry",
+        request_timeout=5,
+        retry_times=2,
+        request_interval_seconds=2,
+    )
+    sleeps: list[int] = []
+
+    def fake_get(*args, **kwargs):
+        raise httpx.ConnectError("timeout")
+
+    def fake_sleep(seconds: int):
+        sleeps.append(seconds)
+
+    def fake_curl(url: str, section: SiteSection, timeout: int):
+        return FetchedPage(
+            url=url,
+            final_url=url,
+            body=b"ok",
+            text="ok",
+            content_type="text/html",
+        )
+
+    monkeypatch.setattr("app.services.crawler.http.httpx.get", fake_get)
+    monkeypatch.setattr("app.services.crawler.http.time.sleep", fake_sleep)
+    monkeypatch.setattr("app.services.crawler.http.fetch_url_with_curl", fake_curl)
+
+    page = fetch_url("https://example.gov.cn/list.html", section)
+
+    assert page.text == "ok"
+    assert sleeps == [2, 4]

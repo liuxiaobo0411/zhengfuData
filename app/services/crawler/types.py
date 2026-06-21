@@ -10,6 +10,7 @@ class FetchedPage:
     body: bytes
     text: str
     content_type: str
+    headers: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

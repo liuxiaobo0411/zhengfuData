@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import subprocess
 import tempfile
+import time
 from pathlib import Path
 from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
@@ -35,7 +36,7 @@ def fetch_url(url: str, section: SiteSection, timeout: int | None = None) -> Fet
     retries = max(0, section.retry_times if section.crawler_strategy == "http_with_retry" else 0)
     headers = section_headers(section)
     last_error: Exception | None = None
-    for _ in range(retries + 1):
+    for attempt in range(retries + 1):
         try:
             response = httpx.get(
                 request_url,
@@ -51,9 +52,12 @@ def fetch_url(url: str, section: SiteSection, timeout: int | None = None) -> Fet
                 body=response.content,
                 text=response.text,
                 content_type=response.headers.get("content-type", ""),
+                headers=dict(response.headers),
             )
         except httpx.HTTPError as exc:
             last_error = exc
+            if attempt < retries:
+                wait_for_retry(section, attempt)
     if last_error is not None:
         return fetch_url_with_curl(url, section, timeout or section.request_timeout)
     raise RuntimeError("request failed without error")
@@ -109,6 +113,12 @@ def fetch_url_with_curl(url: str, section: SiteSection, timeout: int) -> Fetched
         )
     finally:
         body_path.unlink(missing_ok=True)
+
+
+def wait_for_retry(section: SiteSection, attempt: int) -> None:
+    interval = max(0, section.request_interval_seconds or 0)
+    if interval:
+        time.sleep(interval * (attempt + 1))
 
 
 def decode_body(body: bytes, content_type: str) -> str:

@@ -16,7 +16,12 @@ from app.services.crawler.runner import (
 from app.services.crawler.types import FetchedPage
 
 
-def fetched(url: str, body: bytes | str, content_type: str = "text/html") -> FetchedPage:
+def fetched(
+    url: str,
+    body: bytes | str,
+    content_type: str = "text/html",
+    headers: dict[str, str] | None = None,
+) -> FetchedPage:
     text = body.decode() if isinstance(body, bytes) else body
     raw_body = body if isinstance(body, bytes) else body.encode()
     return FetchedPage(
@@ -25,6 +30,7 @@ def fetched(url: str, body: bytes | str, content_type: str = "text/html") -> Fet
         body=raw_body,
         text=text,
         content_type=content_type,
+        headers=headers or {},
     )
 
 
@@ -91,12 +97,11 @@ def test_crawl_section_saves_html_announcement_snapshot_and_attachment(tmp_path,
                 text=html,
                 content_type="text/html",
             )
-        return FetchedPage(
-            url=url,
-            final_url=url,
-            body=b"pdf-bytes",
-            text="pdf-bytes",
-            content_type="application/pdf",
+        return fetched(
+            url,
+            b"pdf-bytes",
+            "application/pdf",
+            headers={"last-modified": "Sun, 21 Jun 2026 08:30:00 GMT"},
         )
 
     monkeypatch.setattr("app.services.crawler.runner.fetch_url", fake_fetch)
@@ -115,6 +120,7 @@ def test_crawl_section_saves_html_announcement_snapshot_and_attachment(tmp_path,
         assert announcement.snapshot_path.endswith(".html")
         assert attachment.download_status == "success"
         assert attachment.local_path.endswith(".pdf")
+        assert attachment.file_updated_at.isoformat() == "2026-06-21T08:30:00"
         assert (settings.storage_root / attachment.local_path).exists()
         assert {change.change_type for change in changes} == {
             "new_announcement",

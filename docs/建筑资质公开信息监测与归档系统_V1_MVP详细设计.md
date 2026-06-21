@@ -637,6 +637,7 @@ http_with_headers
 
 http_with_retry
 适合偶发失败的网站，支持超时、重试、退避等待。
+退避等待按栏目 `request_interval_seconds` 递增执行，避免失败时高频请求目标网站。
 
 browser_rendered
 使用 Playwright 渲染页面，适合动态加载的网站。
@@ -869,6 +870,8 @@ last_seen_at
 created_at
 updated_at
 ```
+
+`file_updated_at` 优先取附件响应头 `Last-Modified`。目标站未返回该响应头时，保留已有更新时间，不用空值覆盖历史记录。
 
 ### 6.8 attachment_versions 附件版本表
 

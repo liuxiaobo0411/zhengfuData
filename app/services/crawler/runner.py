@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 from datetime import datetime
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -259,6 +260,8 @@ def save_record(
     announcement.final_url = final_url
     announcement.raw_published_at = record.raw_published_at
     announcement.published_at = parse_date_text(record.raw_published_at)
+    announcement.raw_page_updated_at = record.raw_published_at
+    announcement.page_updated_at = announcement.published_at
     announcement.fetched_at = now
     announcement.content = content
     announcement.content_summary = content[:500]
@@ -412,6 +415,9 @@ def save_attachment(
         attachment.file_hash = new_hash
         attachment.file_ext = target.suffix.lower()
         attachment.mime_type = page.content_type
+        file_updated_at = parse_http_datetime(page.headers.get("last-modified"))
+        if file_updated_at:
+            attachment.file_updated_at = file_updated_at
         attachment.downloaded_at = now
         attachment.download_status = "success"
         attachment.failure_reason = None
@@ -515,3 +521,12 @@ def sha256_text(value: str) -> str:
 
 def sha256_bytes(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
+
+
+def parse_http_datetime(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        return parsedate_to_datetime(value)
+    except (TypeError, ValueError, IndexError, OverflowError):
+        return None
