@@ -33,12 +33,13 @@ def seed_acceptance_data():
         db.add(section)
         db.flush()
         run = CrawlRun(
-            run_no="scheduled-test",
+            run_no="scheduled-test-1",
             run_type="scheduled",
             status="success",
             discovered_items=1,
             new_items=1,
             attachment_success_count=1,
+            triggered_by="cli_daily",
         )
         db.add(run)
         db.flush()
@@ -96,7 +97,68 @@ def test_render_acceptance_report_summarizes_database(tmp_path):
     assert "归档公告：1" in report
     assert "附件记录：1" in report
     assert "OpenClaw webhook：已配置" in report
-    assert "scheduled-test" in report
+    assert "scheduled-test-1" in report
+    assert "1 个启用栏目的完整每日任务：已完成" in report
+    assert "1 个启用栏目的完整每日任务验收。" not in report
+
+
+def test_render_acceptance_report_keeps_failed_full_daily_in_pending(tmp_path):
+    setup_db(tmp_path)
+    with SessionLocal() as db:
+        site = Site(
+            name="测试站点",
+            slug="test-site",
+            homepage_url="https://example.gov.cn",
+            enabled=True,
+        )
+        db.add(site)
+        db.flush()
+        db.add_all(
+            [
+                SiteSection(
+                    site_id=site.id,
+                    name="公告栏目1",
+                    url="https://example.gov.cn/list-1.html",
+                    enabled=True,
+                ),
+                SiteSection(
+                    site_id=site.id,
+                    name="公告栏目2",
+                    url="https://example.gov.cn/list-2.html",
+                    enabled=True,
+                ),
+            ]
+        )
+        db.flush()
+        db.add_all(
+            [
+                CrawlRun(
+                    run_no="scheduled-test-1",
+                    run_type="scheduled",
+                    status="success",
+                    triggered_by="cli_daily",
+                    discovered_items=1,
+                ),
+                CrawlRun(
+                    run_no="scheduled-test-2",
+                    run_type="scheduled",
+                    status="failed",
+                    triggered_by="cli_daily",
+                    error_summary="timeout",
+                ),
+            ]
+        )
+        db.commit()
+
+    with SessionLocal() as db:
+        report = render_acceptance_report(
+            db,
+            settings=Settings(APP_STORAGE_ROOT=tmp_path / "storage"),
+            now=datetime(2026, 6, 21, 12, 0),
+        )
+
+    assert "2 个启用栏目的完整每日任务：已执行但有失败" in report
+    assert "2 个启用栏目的完整每日任务验收。" in report
 
 
 def test_export_acceptance_report_writes_markdown_file(tmp_path):

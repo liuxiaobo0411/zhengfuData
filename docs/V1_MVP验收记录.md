@@ -80,7 +80,7 @@ pytest
 测试结果：
 
 ```text
-40 passed
+43 passed
 ```
 
 本机未安装 `pwsh`，PowerShell 脚本语法解析未在 macOS 开发机执行。已通过测试检查 Windows 脚本文件存在、使用项目相对路径，并在 `docs/Windows本地部署说明.md` 中列明 Windows 实机验收步骤。
@@ -193,6 +193,63 @@ latest run: scheduled-20260621215135385692-1 scheduled cli_daily success
 - `cli_daily` 和应用内置定时触发会写入 `run_type=scheduled`。
 - 普通后台或 CLI 单栏目抓取仍属于手动任务。
 
+## 12 个启用栏目完整每日任务验收
+
+执行命令：
+
+```bash
+zhengfudata run-daily-crawl --no-notify
+```
+
+结果：
+
+```text
+daily sections=12 success=12 failed=0
+```
+
+数据库验证：
+
+```text
+run ids: 10-21
+sections 12 success 12 failed 0
+discovered 120
+new 90
+content_changed 0
+attachment_success 132
+attachment_failed 20
+attachment_added 117
+attachment_changed 0
+announcements 120
+attachments 152
+local attachment files 132
+storage size 23M
+```
+
+逐栏目结果：
+
+```text
+建设工程企业资质行政审批专栏-公告 success discovered=10 new=0 attachment_success=35 attachment_failed=0 duration=81s
+陕西建筑施工公告 success discovered=20 new=0 attachment_success=0 attachment_failed=0 duration=8s
+政策发布 success discovered=10 new=10 attachment_success=12 attachment_failed=0 duration=44s
+住房和城乡建设部行政规范性文件库 success discovered=10 new=10 attachment_success=9 attachment_failed=20 duration=65s
+建设工程企业资质行政审批专栏-部门规章 success discovered=3 new=3 attachment_success=6 attachment_failed=0 duration=17s
+建设工程企业资质行政审批专栏-资质标准 success discovered=7 new=7 attachment_success=9 attachment_failed=0 duration=34s
+建设工程企业资质行政审批专栏-政策文件 success discovered=10 new=10 attachment_success=1 attachment_failed=0 duration=20s
+建设工程企业资质行政审批专栏-审查意见公示 success discovered=10 new=10 attachment_success=29 attachment_failed=0 duration=69s
+建设工程企业资质行政审批专栏-通报 success discovered=10 new=10 attachment_success=0 attachment_failed=0 duration=19s
+工程建设项目审批制度改革工作-政策文件 success discovered=10 new=10 attachment_success=11 attachment_failed=0 duration=39s
+公告公示 success discovered=10 new=10 attachment_success=7 attachment_failed=0 duration=27s
+省厅文件 success discovered=10 new=10 attachment_success=13 attachment_failed=0 duration=43s
+```
+
+说明：
+
+- 12 个启用栏目已完成一次完整每日任务实测。
+- 每个栏目任务状态均为 `success`，说明列表抓取、正文解析、入库流程完整跑通。
+- 附件记录共 152 条，其中 132 个文件已下载到 `storage/attachments`。
+- 住房和城乡建设部行政规范性文件库有 20 个附件下载失败，失败会进入附件状态和变化日志，不影响栏目任务完成；后续可针对该栏目补充下载限速、重试或特殊附件地址适配。
+- 本次使用 `--no-notify`，不触发 OpenClaw；真实企微群日报仍需配置 webhook 后单独验收。
+
 ## 后台页面验证
 
 已启动本地服务并验证以下页面返回 200：
@@ -279,4 +336,3 @@ docs/Windows本地部署说明.md
 - 在 Windows 电脑按 `docs/Windows本地部署说明.md` 完成安装、启动、导入、抓取和附件下载验证。
 - 配置真实 `OPENCLAW_WEBHOOK_URL` 后，验证企微群日报发送。
 - 针对待适配动态查询页面补 Playwright 或接口适配器。
-- 逐步扩大到 12 个启用栏目，完成一次完整每日任务验收。
