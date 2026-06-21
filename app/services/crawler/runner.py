@@ -1,0 +1,339 @@
+from __future__ import annotations
+
+import hashlib
+from datetime import datetime
+from pathlib import Path
+from urllib.parse import urlparse
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.config import Settings, get_settings
+from app.models import Announcement, Attachment, ChangeLog, CrawlRun, Site, SiteSection
+from app.services.crawler.http import fetch_url
+from app.services.crawler.parser import (
+    parse_date_text,
+    parse_detail_page,
+    parse_json_page,
+    parse_list_page,
+)
+from app.services.crawler.types import FetchedPage, ParsedAnnouncement, ParsedAttachment
+from app.services.path_utils import safe_filename
+from app.services.storage import prepare_storage
+
+
+def crawl_section(
+    db: Session,
+    section_id: int,
+    triggered_by: str = "manual",
+    settings: Settings | None = None,
+) -> CrawlRun:
+    settings = settings or get_settings()
+    storage = prepare_storage(settings)
+    section = db.get(SiteSection, section_id)
+    if section is None:
+        raise ValueError(f"site section not found: {section_id}")
+    site = db.get(Site, section.site_id)
+    if site is None:
+        raise ValueError(f"site not found: {section.site_id}")
+
+    now = datetime.now()
+    run = CrawlRun(
+        run_no=f"manual-{now.strftime('%Y%m%d%H%M%S')}-{section.id}",
+        run_type="manual",
+        status="running",
+        started_at=now,
+        total_sections=1,
+        triggered_by=triggered_by,
+    )
+    db.add(run)
+    db.flush()
+
+    try:
+        if section.crawler_strategy in {"browser_rendered", "custom_adapter", "manual_import"}:
+            raise RuntimeError(f"当前策略暂未接入自动抓取: {section.crawler_strategy}")
+        page = fetch_url(section.url, section)
+        if section.crawler_strategy == "json_api":
+            records = parse_json_page(page.text, page.final_url, section)
+        else:
+            records = parse_list_page(page.text, page.final_url, section)[
+                : section.max_items_per_run
+            ]
+        run.discovered_items = len(records)
+        new_items = 0
+        attachment_success = 0
+        attachment_failed = 0
+        for record in records:
+            result = save_record(db, site, section, run, record, storage.root, settings)
+            new_items += int(result["is_new"])
+            attachment_success += result["attachment_success"]
+            attachment_failed += result["attachment_failed"]
+
+        run.status = "success"
+        run.success_sections = 1
+        run.new_items = new_items
+        run.attachment_success_count = attachment_success
+        run.attachment_failed_count = attachment_failed
+        run.finished_at = datetime.now()
+        run.duration_seconds = int((run.finished_at - run.started_at).total_seconds())
+        section.last_status = "success"
+        section.last_crawled_at = run.finished_at
+        section.last_error = None
+        site.last_status = "success"
+        site.last_crawled_at = run.finished_at
+    except Exception as exc:
+        run.status = "failed"
+        run.failed_sections = 1
+        run.error_summary = f"{type(exc).__name__}: {exc}"
+        run.finished_at = datetime.now()
+        run.duration_seconds = int((run.finished_at - run.started_at).total_seconds())
+        section.last_status = "failed"
+        section.last_crawled_at = run.finished_at
+        section.last_error = run.error_summary
+        site.last_status = "failed"
+        site.last_crawled_at = run.finished_at
+        db.add(
+            ChangeLog(
+                site_id=site.id,
+                section_id=section.id,
+                run_id=run.id,
+                change_type="crawl_failed",
+                title=section.name,
+                summary=run.error_summary,
+                source_url=section.url,
+            )
+        )
+    db.commit()
+    db.refresh(run)
+    return run
+
+
+def save_record(
+    db: Session,
+    site: Site,
+    section: SiteSection,
+    run: CrawlRun,
+    record: ParsedAnnouncement,
+    storage_root: Path,
+    settings: Settings,
+) -> dict[str, int | bool]:
+    if record.content is None:
+        detail_page = fetch_url(record.source_url, section)
+        content, attachments = parse_detail_page(detail_page.text, detail_page.final_url, section)
+        final_url = detail_page.final_url
+        snapshot_path = (
+            save_snapshot(storage_root, site, section, detail_page)
+            if section.save_snapshot
+            else None
+        )
+    else:
+        content = record.content
+        attachments = record.attachments
+        final_url = record.source_url
+        snapshot_path = (
+            save_text_snapshot(storage_root, site, section, record)
+            if section.save_snapshot
+            else None
+        )
+    identity_key = identity_for(record.source_url)
+    content_hash = sha256_text(content)
+    attachment_hash = sha256_text("\n".join(sorted(item.url for item in attachments)))
+    announcement = db.scalar(
+        select(Announcement).where(
+            Announcement.section_id == section.id,
+            Announcement.identity_key == identity_key,
+        )
+    )
+    is_new = announcement is None
+    now = datetime.now()
+    if announcement is None:
+        announcement = Announcement(
+            site_id=site.id,
+            section_id=section.id,
+            run_id=run.id,
+            identity_key=identity_key,
+            identity_strategy="source_url_sha256",
+            title=record.title,
+            item_type=section.item_type,
+            source_url=record.source_url,
+            first_seen_at=now,
+        )
+        db.add(announcement)
+    announcement.run_id = run.id
+    announcement.final_url = final_url
+    announcement.raw_published_at = record.raw_published_at
+    announcement.published_at = parse_date_text(record.raw_published_at)
+    announcement.fetched_at = now
+    announcement.content = content
+    announcement.content_summary = content[:500]
+    announcement.content_hash = content_hash
+    announcement.attachments_hash = attachment_hash
+    announcement.snapshot_path = (
+        str(snapshot_path.relative_to(settings.storage_root)) if snapshot_path else None
+    )
+    announcement.last_seen_at = now
+    db.flush()
+
+    if is_new:
+        db.add(
+            ChangeLog(
+                announcement_id=announcement.id,
+                site_id=site.id,
+                section_id=section.id,
+                run_id=run.id,
+                change_type="new_announcement",
+                title=announcement.title,
+                summary="首次抓取入库",
+                new_hash=content_hash,
+                source_url=announcement.source_url,
+            )
+        )
+
+    attachment_success = 0
+    attachment_failed = 0
+    if section.download_attachments:
+        for parsed_attachment in attachments:
+            if save_attachment(
+                db,
+                site,
+                announcement,
+                run,
+                parsed_attachment,
+                section,
+                storage_root,
+            ):
+                attachment_success += 1
+            else:
+                attachment_failed += 1
+    return {
+        "is_new": is_new,
+        "attachment_success": attachment_success,
+        "attachment_failed": attachment_failed,
+    }
+
+
+def save_attachment(
+    db: Session,
+    site: Site,
+    announcement: Announcement,
+    run: CrawlRun,
+    parsed_attachment: ParsedAttachment,
+    section: SiteSection,
+    storage_root: Path,
+) -> bool:
+    key = identity_for(parsed_attachment.url)
+    attachment = db.scalar(
+        select(Attachment).where(
+            Attachment.announcement_id == announcement.id,
+            Attachment.attachment_key == key,
+        )
+    )
+    now = datetime.now()
+    if attachment is None:
+        attachment = Attachment(
+            announcement_id=announcement.id,
+            site_id=site.id,
+            run_id=run.id,
+            attachment_key=key,
+            name=parsed_attachment.name,
+            safe_name=safe_filename(parsed_attachment.name),
+            source_url=parsed_attachment.url,
+            first_seen_at=now,
+        )
+        db.add(attachment)
+        db.flush()
+        db.add(
+            ChangeLog(
+                announcement_id=announcement.id,
+                attachment_id=attachment.id,
+                site_id=site.id,
+                section_id=announcement.section_id,
+                run_id=run.id,
+                change_type="attachment_added",
+                title=parsed_attachment.name,
+                summary="首次发现附件",
+                source_url=parsed_attachment.url,
+            )
+        )
+
+    attachment.run_id = run.id
+    attachment.last_seen_at = now
+    try:
+        page = fetch_url(parsed_attachment.url, section, timeout=max(60, section.request_timeout))
+        filename = attachment_filename(parsed_attachment, page)
+        target = attachment_target(storage_root, site, announcement, filename)
+        target.write_bytes(page.body)
+        attachment.safe_name = target.name
+        attachment.final_url = page.final_url
+        attachment.local_path = str(target.relative_to(storage_root))
+        attachment.file_size = len(page.body)
+        attachment.file_hash = sha256_bytes(page.body)
+        attachment.file_ext = target.suffix.lower()
+        attachment.mime_type = page.content_type
+        attachment.downloaded_at = now
+        attachment.download_status = "success"
+        attachment.failure_reason = None
+        return True
+    except Exception as exc:
+        attachment.download_status = "failed"
+        attachment.failure_reason = f"{type(exc).__name__}: {exc}"
+        return False
+
+
+def save_snapshot(storage_root: Path, site: Site, section: SiteSection, page: FetchedPage) -> Path:
+    snapshot_dir = storage_root / "snapshots" / safe_filename(site.slug) / str(section.id)
+    snapshot_dir.mkdir(parents=True, exist_ok=True)
+    target = snapshot_dir / f"{identity_for(page.final_url)[:16]}.html"
+    target.write_bytes(page.body)
+    return target
+
+
+def save_text_snapshot(
+    storage_root: Path,
+    site: Site,
+    section: SiteSection,
+    record: ParsedAnnouncement,
+) -> Path:
+    snapshot_dir = storage_root / "snapshots" / safe_filename(site.slug) / str(section.id)
+    snapshot_dir.mkdir(parents=True, exist_ok=True)
+    target = snapshot_dir / f"{identity_for(record.source_url)[:16]}.json"
+    target.write_text(record.content or "", encoding="utf-8")
+    return target
+
+
+def attachment_target(
+    storage_root: Path,
+    site: Site,
+    announcement: Announcement,
+    filename: str,
+) -> Path:
+    attachment_dir = storage_root / "attachments" / safe_filename(site.slug) / str(announcement.id)
+    attachment_dir.mkdir(parents=True, exist_ok=True)
+    target = attachment_dir / filename
+    if target.exists():
+        suffix = datetime.now().strftime("%H%M%S")
+        target = attachment_dir / f"{target.stem}_{suffix}{target.suffix}"
+    return target
+
+
+def attachment_filename(parsed_attachment: ParsedAttachment, page: FetchedPage) -> str:
+    parsed_path = urlparse(page.final_url).path
+    source_name = Path(parsed_path).name
+    candidate = source_name or parsed_attachment.name
+    if not Path(candidate).suffix and Path(parsed_attachment.name).suffix:
+        candidate = parsed_attachment.name
+    if not Path(candidate).suffix:
+        candidate = f"{parsed_attachment.name}.bin"
+    return safe_filename(candidate)
+
+
+def identity_for(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def sha256_text(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def sha256_bytes(value: bytes) -> str:
+    return hashlib.sha256(value).hexdigest()

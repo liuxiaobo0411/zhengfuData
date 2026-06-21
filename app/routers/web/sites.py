@@ -12,6 +12,7 @@ from app.config import BASE_DIR
 from app.database import SessionLocal
 from app.models import Site, SiteSection
 from app.routers.web.security import require_user
+from app.services.crawler import crawl_section
 
 router = APIRouter(tags=["sites"])
 templates = Jinja2Templates(directory=str(BASE_DIR / "app" / "templates"))
@@ -20,6 +21,7 @@ CRAWLER_STRATEGIES = [
     "http_static",
     "http_with_headers",
     "http_with_retry",
+    "json_api",
     "browser_rendered",
     "custom_adapter",
     "manual_import",
@@ -246,6 +248,17 @@ def toggle_section(request: Request, section_id: int):
         if section is not None:
             section.enabled = not section.enabled
             db.commit()
+    return RedirectResponse("/sites", status_code=303)
+
+
+@router.post("/sections/{section_id}/crawl")
+def crawl_site_section(request: Request, section_id: int):
+    user = require_user(request)
+    if isinstance(user, RedirectResponse):
+        return user
+
+    with SessionLocal() as db:
+        crawl_section(db, section_id, triggered_by=user.username)
     return RedirectResponse("/sites", status_code=303)
 
 

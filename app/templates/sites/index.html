@@ -83,12 +83,15 @@
           <div class="section-row">
             <div>
               <strong>{{ section.name }}</strong>
-              <span>{{ section.item_type }} · {{ section.crawler_strategy }} · {{ section.schedule_cron }}</span>
+              <span>{{ section.item_type }} · {{ section.crawler_strategy }} · {{ section.schedule_cron }} · {{ section.last_status or "未抓取" }}</span>
             </div>
             <a href="{{ section.url }}" target="_blank" rel="noreferrer">{{ section.url }}</a>
             <div class="row-actions">
               <span class="state {{ 'on' if section.enabled else 'off' }}">{{ "启用" if section.enabled else "停用" }}</span>
               <a class="text-action" href="/sections/{{ section.id }}/edit">编辑</a>
+              <form method="post" action="/sections/{{ section.id }}/crawl">
+                <button class="quiet-button" type="submit">手动抓取</button>
+              </form>
               <form method="post" action="/sections/{{ section.id }}/toggle">
                 <button class="quiet-button" type="submit">{{ "停用" if section.enabled else "启用" }}</button>
               </form>
