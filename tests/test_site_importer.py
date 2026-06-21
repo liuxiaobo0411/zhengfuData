@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import app.models  # noqa: F401
+from app.config import BASE_DIR
 from app.database import Base, SessionLocal, configure_database
 from app.models import Site, SiteSection
 from app.services.site_importer import import_sites_from_yaml
@@ -40,3 +41,17 @@ sites:
         assert db.query(Site).count() == 1
         assert db.query(SiteSection).count() == 1
         assert db.query(SiteSection).one().crawler_strategy == "http_static"
+
+
+def test_repository_sites_config_imports_v1_seed_sections(tmp_path: Path):
+    engine = configure_database(f"sqlite:///{tmp_path / 'sites.db'}")
+    Base.metadata.create_all(engine)
+
+    with SessionLocal() as db:
+        result = import_sites_from_yaml(db, BASE_DIR / "configs" / "sites.yaml")
+
+    assert result["sites"] >= 3
+    assert result["sections"] >= 12
+    with SessionLocal() as db:
+        enabled_sections = db.query(SiteSection).where(SiteSection.enabled.is_(True)).count()
+        assert enabled_sections >= 10

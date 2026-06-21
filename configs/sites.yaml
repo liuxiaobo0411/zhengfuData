@@ -6,10 +6,50 @@ sites:
     region: 国家
     enabled: true
     sections:
-      - name: 建设工程企业资质行政审批专栏-公告
-        url: https://www.mohurd.gov.cn/ztbd/zyglgd/zyglgdspzlgg/index.html
-        item_type: qualification_notice
-        crawler_strategy: http_static
+      - name: 政策发布
+        url: https://www.mohurd.gov.cn/zhengcefabu/index.html
+        item_type: government_policy
+        crawler_strategy: http_with_retry
+        schedule_cron: "0 9 * * *"
+        enabled: true
+        download_attachments: true
+        save_snapshot: true
+        request_timeout: 25
+        retry_times: 1
+        request_interval_seconds: 3
+        max_pages: 1
+        max_items_per_run: 10
+        crawl_date_window_days: 1
+        list_selector: li.date
+        title_selector: a
+        date_selector: .date
+        detail_url_selector: a
+        content_selector: .article-content, .TRS_Editor, body
+        attachment_selector: a
+      - name: 住房和城乡建设部行政规范性文件库
+        url: https://www.mohurd.gov.cn/gongkai/zc/xzgfxwjk/index.html
+        item_type: government_policy
+        crawler_strategy: http_with_retry
+        schedule_cron: "0 9 * * *"
+        enabled: true
+        download_attachments: true
+        save_snapshot: true
+        request_timeout: 25
+        retry_times: 1
+        request_interval_seconds: 3
+        max_pages: 1
+        max_items_per_run: 10
+        crawl_date_window_days: 1
+        list_selector: tr
+        title_selector: "td:nth-child(2) a"
+        date_selector: "td:nth-child(4)"
+        detail_url_selector: "td:nth-child(2) a"
+        content_selector: .article-content, .TRS_Editor, body
+        attachment_selector: a
+      - name: 建设工程企业资质行政审批专栏-部门规章
+        url: https://www.mohurd.gov.cn/ztbd/zyglgd/zyglgdbmgz/index.html
+        item_type: regulation
+        crawler_strategy: http_with_retry
         schedule_cron: "0 9 * * *"
         enabled: true
         download_attachments: true
@@ -26,6 +66,173 @@ sites:
         detail_url_selector: a
         content_selector: .article-content, .TRS_Editor, body
         attachment_selector: a
+      - name: 建设工程企业资质行政审批专栏-资质标准
+        url: https://www.mohurd.gov.cn/ztbd/zyglgd/zyglgdbz/index.html
+        item_type: qualification_standard
+        crawler_strategy: http_with_retry
+        schedule_cron: "0 9 * * *"
+        enabled: true
+        download_attachments: true
+        save_snapshot: true
+        request_timeout: 25
+        retry_times: 1
+        request_interval_seconds: 3
+        max_pages: 1
+        max_items_per_run: 10
+        crawl_date_window_days: 1
+        list_selector: li.date
+        title_selector: a
+        date_selector: .date-info
+        detail_url_selector: a
+        content_selector: .article-content, .TRS_Editor, body
+        attachment_selector: a
+      - name: 建设工程企业资质行政审批专栏-政策文件
+        url: https://www.mohurd.gov.cn/ztbd/zyglgd/zyglgdssyj/index.html
+        item_type: government_policy
+        crawler_strategy: http_with_retry
+        schedule_cron: "0 9 * * *"
+        enabled: true
+        download_attachments: true
+        save_snapshot: true
+        request_timeout: 25
+        retry_times: 1
+        request_interval_seconds: 3
+        max_pages: 1
+        max_items_per_run: 10
+        crawl_date_window_days: 1
+        list_selector: li.date
+        title_selector: a
+        date_selector: .date-info
+        detail_url_selector: a
+        content_selector: .article-content, .TRS_Editor, body
+        attachment_selector: a
+      - name: 建设工程企业资质行政审批专栏-审查意见公示
+        url: https://www.mohurd.gov.cn/ztbd/zyglgd/zyglgdspzlgs/index.html
+        item_type: qualification_review
+        crawler_strategy: http_with_retry
+        schedule_cron: "0 9 * * *"
+        enabled: true
+        download_attachments: true
+        save_snapshot: true
+        request_timeout: 25
+        retry_times: 1
+        request_interval_seconds: 3
+        max_pages: 1
+        max_items_per_run: 10
+        crawl_date_window_days: 1
+        list_selector: li.date
+        title_selector: a
+        date_selector: .date-info
+        detail_url_selector: a
+        content_selector: .article-content, .TRS_Editor, body
+        attachment_selector: a
+      - name: 建设工程企业资质行政审批专栏-公告
+        url: https://www.mohurd.gov.cn/ztbd/zyglgd/zyglgdspzlgg/index.html
+        item_type: qualification_notice
+        crawler_strategy: http_with_retry
+        schedule_cron: "0 9 * * *"
+        enabled: true
+        download_attachments: true
+        save_snapshot: true
+        request_timeout: 25
+        retry_times: 1
+        request_interval_seconds: 3
+        max_pages: 1
+        max_items_per_run: 10
+        crawl_date_window_days: 1
+        list_selector: li.date
+        title_selector: a
+        date_selector: .date-info
+        detail_url_selector: a
+        content_selector: .article-content, .TRS_Editor, body
+        attachment_selector: a
+      - name: 建设工程企业资质行政审批专栏-通报
+        url: https://www.mohurd.gov.cn/ztbd/zyglgd/zyglgdspzlcftb/index.html
+        item_type: supervision_notice
+        crawler_strategy: http_with_retry
+        schedule_cron: "0 9 * * *"
+        enabled: true
+        download_attachments: true
+        save_snapshot: true
+        request_timeout: 25
+        retry_times: 1
+        request_interval_seconds: 3
+        max_pages: 1
+        max_items_per_run: 10
+        crawl_date_window_days: 1
+        list_selector: li.date
+        title_selector: a
+        date_selector: .date-info
+        detail_url_selector: a
+        content_selector: .article-content, .TRS_Editor, body
+        attachment_selector: a
+      - name: 工程建设项目审批制度改革工作-政策文件
+        url: https://www.mohurd.gov.cn/ztbd/gcjsxmspzdgggz/ggjczcjd/index.html
+        item_type: government_policy
+        crawler_strategy: http_with_retry
+        schedule_cron: "0 9 * * *"
+        enabled: true
+        download_attachments: true
+        save_snapshot: true
+        request_timeout: 25
+        retry_times: 1
+        request_interval_seconds: 3
+        max_pages: 1
+        max_items_per_run: 10
+        crawl_date_window_days: 1
+        list_selector: li.date
+        title_selector: a
+        date_selector: .date-info
+        detail_url_selector: a
+        content_selector: .article-content, .TRS_Editor, body
+        attachment_selector: a
+  - name: 陕西省住房和城乡建设厅
+    slug: shaanxi-housing
+    homepage_url: https://js.shaanxi.gov.cn/
+    organization: 陕西省住房和城乡建设厅
+    region: 陕西
+    enabled: true
+    sections:
+      - name: 公告公示
+        url: https://js.shaanxi.gov.cn/sy/zcwj/gsgg/
+        item_type: qualification_notice
+        crawler_strategy: http_with_retry
+        schedule_cron: "0 9 * * *"
+        enabled: true
+        download_attachments: true
+        save_snapshot: true
+        request_timeout: 25
+        retry_times: 1
+        request_interval_seconds: 3
+        max_pages: 1
+        max_items_per_run: 10
+        crawl_date_window_days: 1
+        list_selector: ul.cm-news-list.gl-news-list li
+        title_selector: a
+        date_selector: span
+        detail_url_selector: a
+        content_selector: .article-content, .TRS_Editor, .TRS_UEDITOR, body
+        attachment_selector: a
+      - name: 省厅文件
+        url: https://js.shaanxi.gov.cn/sy/zcwj/stwj/
+        item_type: government_policy
+        crawler_strategy: http_with_retry
+        schedule_cron: "0 9 * * *"
+        enabled: true
+        download_attachments: true
+        save_snapshot: true
+        request_timeout: 25
+        retry_times: 1
+        request_interval_seconds: 3
+        max_pages: 1
+        max_items_per_run: 10
+        crawl_date_window_days: 1
+        list_selector: ul.cm-news-list.gl-news-list li
+        title_selector: a
+        date_selector: span
+        detail_url_selector: a
+        content_selector: .article-content, .TRS_Editor, .TRS_UEDITOR, body
+        attachment_selector: a
   - name: 陕西省工程建设企业资质公告接口
     slug: shaanxi-qualification-api
     homepage_url: https://qiye.sxxzsp.cn:29086/
@@ -39,6 +246,34 @@ sites:
         crawler_strategy: json_api
         schedule_cron: "0 9 * * *"
         enabled: true
+        download_attachments: false
+        save_snapshot: true
+        request_timeout: 30
+        retry_times: 1
+        request_interval_seconds: 3
+        max_pages: 1
+        max_items_per_run: 20
+        crawl_date_window_days: 1
+      - name: 陕西资质查询
+        url: https://qiye.sxxzsp.cn:29086/qualification
+        item_type: qualification_query
+        crawler_strategy: browser_rendered
+        schedule_cron: "0 9 * * *"
+        enabled: false
+        download_attachments: false
+        save_snapshot: true
+        request_timeout: 30
+        retry_times: 1
+        request_interval_seconds: 3
+        max_pages: 1
+        max_items_per_run: 20
+        crawl_date_window_days: 1
+      - name: 陕西资质增项公告查询页面
+        url: https://qiye.sxxzsp.cn:29086/affiche
+        item_type: administrative_license
+        crawler_strategy: browser_rendered
+        schedule_cron: "0 9 * * *"
+        enabled: false
         download_attachments: false
         save_snapshot: true
         request_timeout: 30
