@@ -18,6 +18,18 @@ def test_settings_exposes_storage_and_database_paths():
     assert settings.database_path == (BASE_DIR / "data" / "app.db").resolve()
 
 
+def test_settings_exposes_scheduler_options():
+    settings = Settings(
+        APP_SCHEDULER_ENABLED=True,
+        APP_SCHEDULER_DAILY_TIME="08:30",
+        APP_TIMEZONE="Asia/Shanghai",
+    )
+
+    assert settings.app_scheduler_enabled is True
+    assert settings.app_scheduler_daily_time == "08:30"
+    assert settings.app_timezone == "Asia/Shanghai"
+
+
 def test_load_yaml_config_reads_mapping(tmp_path: Path):
     config = tmp_path / "app.yaml"
     config.write_text("app:\n  name: test\n", encoding="utf-8")

@@ -120,7 +120,8 @@ p {
   align-items: center;
 }
 
-button {
+button,
+.button-link {
   height: 36px;
   padding: 0 16px;
   border: 0;
@@ -128,6 +129,12 @@ button {
   color: #fff;
   background: var(--blue);
   font-weight: 600;
+  text-decoration: none;
+}
+
+.button-link {
+  display: inline-flex;
+  align-items: center;
 }
 
 .status-pill {

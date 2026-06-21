@@ -9,6 +9,7 @@ from app.config import BASE_DIR, get_settings
 from app.database import SessionLocal
 from app.models import Announcement, Attachment, Site, SiteSection
 from app.routers.web.security import require_user
+from app.services.scheduler import scheduler_status
 from app.services.storage import prepare_storage
 
 router = APIRouter(tags=["web"])
@@ -35,6 +36,7 @@ def dashboard(request: Request):
         "user": user,
         "settings": settings,
         "storage": storage,
+        "scheduler": scheduler_status(settings),
         "metrics": [
             {"label": "政府网站", "value": str(site_count), "hint": "已配置"},
             {"label": "监测栏目", "value": str(section_count), "hint": "抓取入口"},

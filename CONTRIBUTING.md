@@ -82,6 +82,7 @@ docs/update-deploy-guide
 ```text
 services/crawler      请求、解析、变化检测、附件下载的抓取核心闭环
 services/notifier     OpenClaw 和后续通知适配器
+services/scheduler    每日定时抓取和手动每日任务入口
 services/storage      本地归档目录、快照和附件文件写入
 routers/web           后台页面
 routers/api           API 接口
@@ -179,6 +180,7 @@ V1 后台是内部工作台，不做营销页。
 - 至少 1 个静态 HTML 解析 fixture。
 - 至少 1 个 JSON API 解析 fixture。
 - 通知失败不影响任务完成的测试。
+- 定时任务只抓取启用网站和启用栏目的测试。
 
 抓取外部网站的测试不要依赖实时网络。应使用 fixture、mock 或录制样例，避免测试不稳定。
 

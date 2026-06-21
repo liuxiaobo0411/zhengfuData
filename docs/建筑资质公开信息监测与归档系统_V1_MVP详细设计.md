@@ -1100,6 +1100,8 @@ V1 需要考虑未来在 Windows 上部署运行。
 - 文件名清理 Windows 非法字符。
 - 后台展示逻辑路径和下载入口，不直接暴露本机绝对路径。
 - 定时任务使用应用内部调度，不依赖 Linux cron。
+- V1 使用 `APP_SCHEDULER_ENABLED` 控制定时任务是否随应用启动，使用 `APP_SCHEDULER_DAILY_TIME` 配置每日固定抓取时间。
+- Windows 上可选择常驻 FastAPI 应用内置调度，也可通过 Windows 任务计划调用 `zhengfudata run-daily-crawl` 做兜底。
 - 配置项中不要写死 macOS 或 Linux 路径。
 - 后续如需部署为 Windows 服务，可在部署阶段补充服务管理方案。
 
@@ -1275,6 +1277,7 @@ V1 按“先跑通业务闭环，再补后台和策略扩展”的方式开发�
 
 - 至少 10 个网站或栏目完成配置。
 - 至少 1 次完整定时任务跑通。
+- `zhengfudata run-daily-crawl` 可手动触发每日任务闭环。
 - 验收记录中包含成功来源、失败来源、失败原因和后续处理建议。
 
 ## 13. 开发设计 Review

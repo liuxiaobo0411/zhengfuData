@@ -61,6 +61,12 @@ M5 已进入第一轮实现：
 - 通知成功、失败和未配置原因会写入 `notification_logs`。
 - 后台可查看通知日志。
 
+M6 已开始推进：
+
+- 已接入应用内部 APScheduler 每日定时任务。
+- 可通过 CLI 手动运行一次每日抓取闭环。
+- 每日任务会按启用网站和启用栏目抓取，并在结束后发送日报。
+
 已有设计文档位于 `docs/` 目录：
 
 - [V1 MVP 详细设计](./docs/建筑资质公开信息监测与归档系统_V1_MVP详细设计.md)
@@ -146,13 +152,17 @@ APP_PORT=8000
 APP_SECRET_KEY=change-me
 APP_DATABASE_URL=sqlite:///data/app.db
 APP_STORAGE_ROOT=storage
+APP_CONFIG_FILE=configs/app.yaml
+APP_PUBLIC_BASE_URL=http://127.0.0.1:8000
+APP_SCHEDULER_ENABLED=false
+APP_SCHEDULER_DAILY_TIME=09:00
+APP_TIMEZONE=Asia/Shanghai
 
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=change-me
 
 OPENCLAW_DASHBOARD_URL=http://127.0.0.1:18789/
 OPENCLAW_WEBHOOK_URL=
-APP_PUBLIC_BASE_URL=http://127.0.0.1:8000
 OPENCLAW_GATEWAY_URL=ws://127.0.0.1:18789
 WECOM_NOTIFY_TARGET_TYPE=direct
 WECOM_NOTIFY_TARGET_ID=
@@ -251,6 +261,32 @@ zhengfudata crawl-section 1
 
 ```bash
 zhengfudata send-daily-report
+```
+
+运行一次“每日抓取 + 日报通知”完整闭环：
+
+```bash
+zhengfudata run-daily-crawl
+```
+
+只抓取前 2 个启用栏目并发送日报：
+
+```bash
+zhengfudata run-daily-crawl --limit 2
+```
+
+只抓取不发送日报：
+
+```bash
+zhengfudata run-daily-crawl --no-notify
+```
+
+启用应用内部每日定时任务时，在 `.env` 中配置：
+
+```env
+APP_SCHEDULER_ENABLED=true
+APP_SCHEDULER_DAILY_TIME=09:00
+APP_TIMEZONE=Asia/Shanghai
 ```
 
 ## 开发顺序

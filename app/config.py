@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     app_database_url: str = Field(default="sqlite:///data/app.db", alias="APP_DATABASE_URL")
     app_storage_root: Path = Field(default=Path("storage"), alias="APP_STORAGE_ROOT")
     app_config_file: Path = Field(default=Path("configs/app.yaml"), alias="APP_CONFIG_FILE")
+    app_scheduler_enabled: bool = Field(default=False, alias="APP_SCHEDULER_ENABLED")
+    app_scheduler_daily_time: str = Field(default="09:00", alias="APP_SCHEDULER_DAILY_TIME")
+    app_timezone: str = Field(default="Asia/Shanghai", alias="APP_TIMEZONE")
 
     admin_username: str = Field(default="admin", alias="ADMIN_USERNAME")
     admin_password: str = Field(default="change-me", alias="ADMIN_PASSWORD")

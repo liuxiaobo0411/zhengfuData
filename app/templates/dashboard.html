@@ -6,12 +6,14 @@
   <header class="topbar">
     <div>
       <h1>工作台</h1>
-      <p>M0 项目底座已启动，等待接入真实抓取任务。</p>
+      <p>查看今日抓取、归档、附件和通知状态。</p>
     </div>
     <div class="topbar-actions">
       <span class="status-pill success">OpenClaw 配置就绪</span>
-      <span class="status-pill warning">企微目标待配置</span>
-      <button type="button">手动抓取</button>
+      <span class="status-pill {{ 'success' if scheduler.running else 'warning' }}">
+        定时抓取{{ '运行中' if scheduler.running else '未启用' }}
+      </span>
+      <a class="button-link" href="/sites">手动抓取</a>
     </div>
   </header>
 
@@ -34,7 +36,7 @@
     <article class="panel large">
       <div class="panel-title">
         <h2>开发阶段</h2>
-        <span>M2 抓取闭环</span>
+        <span>M6 端到端验收</span>
       </div>
       <ol class="timeline">
         <li class="done">FastAPI 应用创建</li>
@@ -46,6 +48,9 @@
         <li class="done">真实站点端到端验收</li>
         <li class="done">公告、附件和任务查看</li>
         <li class="done">OpenClaw 企微日报</li>
+        <li class="done">每日定时抓取调度</li>
+        <li>扩展首批 10 个网站或栏目</li>
+        <li>Windows 本地运行验收</li>
       </ol>
     </article>
 
@@ -61,6 +66,10 @@
         <dd>{{ settings.app_database_url }}</dd>
         <dt>config</dt>
         <dd>{{ settings.config_file }}</dd>
+        <dt>schedule</dt>
+        <dd>{{ scheduler.daily_time }} {{ scheduler.timezone }}</dd>
+        <dt>next run</dt>
+        <dd>{{ scheduler.next_run_at or '-' }}</dd>
       </dl>
     </article>
   </section>
