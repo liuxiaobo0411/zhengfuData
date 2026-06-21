@@ -62,6 +62,14 @@ scripts\windows\doctor.ps1
 
 自检会检查数据库连接、核心表结构、默认密码和密钥、storage 写入、站点配置文件、已导入来源、OpenClaw 配置和 Windows 脚本完整性。`WARN` 表示可继续运行但需要关注，`FAIL` 表示需要先修复。
 
+也可以直接运行一键验收检查：
+
+```powershell
+scripts\windows\acceptance-check.ps1 -SourceLimit 2
+```
+
+该脚本会依次执行部署自检、来源抽样验证，并导出 V1 验收报告。
+
 ## 验证来源配置
 
 先验证前 2 个启用栏目：
@@ -178,6 +186,7 @@ storage\snapshots
 
 - `scripts\windows\setup.ps1` 成功。
 - `scripts\windows\doctor.ps1` 无 `FAIL`。
+- `scripts\windows\acceptance-check.ps1 -SourceLimit 2` 成功。
 - `scripts\windows\validate-sources.ps1 -Limit 2` 成功。
 - 后台可以登录。
 - `scripts\windows\run-daily-crawl.ps1 -Limit 2` 成功。

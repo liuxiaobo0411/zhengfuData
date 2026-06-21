@@ -37,6 +37,10 @@ def main() -> None:
     report_parser = subparsers.add_parser("export-acceptance-report")
     report_parser.add_argument("--output", default="")
 
+    acceptance_parser = subparsers.add_parser("acceptance-check")
+    acceptance_parser.add_argument("--source-limit", type=int, default=2)
+    acceptance_parser.add_argument("--skip-source-validation", action="store_true")
+
     subparsers.add_parser("doctor")
     subparsers.add_parser("send-daily-report")
 
@@ -53,6 +57,8 @@ def main() -> None:
         validate_sources(args.limit)
     elif args.command == "export-acceptance-report":
         export_report(Path(args.output) if args.output else None)
+    elif args.command == "acceptance-check":
+        acceptance_check(args.source_limit, skip_source_validation=args.skip_source_validation)
     elif args.command == "doctor":
         doctor()
     elif args.command == "send-daily-report":
@@ -111,6 +117,12 @@ def send_report() -> None:
 
 def validate_sources(limit: int) -> None:
     summary = validate_enabled_sources(limit=limit)
+    print_source_validation_summary(summary)
+    if summary.failed_count:
+        raise SystemExit(1)
+
+
+def print_source_validation_summary(summary) -> None:
     for result in summary.results:
         if result.status == "success":
             print(
@@ -127,8 +139,6 @@ def validate_sources(limit: int) -> None:
         f"summary total={summary.total_count} success={summary.success_count} "
         f"failed={summary.failed_count}"
     )
-    if summary.failed_count:
-        raise SystemExit(1)
 
 
 def export_report(output_path: Path | None) -> None:
@@ -143,6 +153,30 @@ def doctor() -> None:
         report = run_system_doctor(db, settings=get_settings())
     print(format_doctor_report(report))
     if report.failed_count:
+        raise SystemExit(1)
+
+
+def acceptance_check(source_limit: int, skip_source_validation: bool = False) -> None:
+    settings = get_settings()
+    failed = False
+    with SessionLocal() as db:
+        doctor_report = run_system_doctor(db, settings=settings)
+        acceptance_report = export_acceptance_report(db, settings=settings)
+
+    print(format_doctor_report(doctor_report))
+    print(f"acceptance_report={acceptance_report.path}")
+    if doctor_report.failed_count:
+        failed = True
+
+    if not skip_source_validation:
+        summary = validate_enabled_sources(limit=source_limit)
+        print_source_validation_summary(summary)
+        if summary.failed_count:
+            failed = True
+    else:
+        print("source_validation=skipped")
+
+    if failed:
         raise SystemExit(1)
 
 

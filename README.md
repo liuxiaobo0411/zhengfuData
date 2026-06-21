@@ -87,6 +87,7 @@ M6 已开始推进：
 - 后台已提供只读系统配置页，查看运行环境、storage、调度、OpenClaw 和 Windows 脚本状态。
 - 可通过 `zhengfudata export-acceptance-report` 导出 V1 自动验收报告，包含部署自检摘要、后台入口、失败来源和处理建议。
 - 可通过 `zhengfudata doctor` 做部署自检，检查数据库核心表、默认密码和密钥、storage、来源配置、OpenClaw 和 Windows 脚本状态。
+- 可通过 `zhengfudata acceptance-check` 一键执行部署自检、来源抽样验证和验收报告导出。
 
 已有设计文档位于 `docs/` 目录：
 
@@ -284,6 +285,12 @@ zhengfudata validate-sources --limit 2
 
 ```bash
 zhengfudata export-acceptance-report
+```
+
+一键执行本地验收检查：
+
+```bash
+zhengfudata acceptance-check --source-limit 2
 ```
 
 手动抓取全部启用栏目：
