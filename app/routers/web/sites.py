@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 from typing import Any
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -83,6 +85,10 @@ async def create_site(request: Request):
         return user
 
     form = await request.form()
+    error = validate_site_form(form)
+    if error:
+        return sites_page_response(request, user, error=error)
+
     site = Site(
         name=clean_text(form.get("name")),
         slug=clean_text(form.get("slug")),
@@ -93,6 +99,8 @@ async def create_site(request: Request):
         remark=clean_text(form.get("remark")) or None,
     )
     with SessionLocal() as db:
+        if db.scalar(select(Site).where(Site.slug == site.slug)):
+            return sites_page_response(request, user, error="唯一标识已存在")
         db.add(site)
         db.commit()
     return RedirectResponse("/sites", status_code=303)
@@ -124,8 +132,30 @@ async def update_site(request: Request, site_id: int):
         return user
 
     form = await request.form()
+    error = validate_site_form(form)
     with SessionLocal() as db:
         site = db.get(Site, site_id)
+        if site is None:
+            return RedirectResponse("/sites", status_code=303)
+        if error:
+            db.expunge(site)
+            return templates.TemplateResponse(
+                request,
+                "sites/edit.html",
+                {"active_nav": "sites", "user": user, "site": site, "error": error},
+                status_code=400,
+            )
+        duplicate = db.scalar(
+            select(Site).where(Site.slug == clean_text(form.get("slug"))).where(Site.id != site_id)
+        )
+        if duplicate:
+            db.expunge(site)
+            return templates.TemplateResponse(
+                request,
+                "sites/edit.html",
+                {"active_nav": "sites", "user": user, "site": site, "error": "唯一标识已存在"},
+                status_code=400,
+            )
         if site is not None:
             site.name = clean_text(form.get("name"))
             site.slug = clean_text(form.get("slug"))
@@ -198,6 +228,27 @@ async def create_section(request: Request, site_id: int):
         return user
 
     form = await request.form()
+    error = validate_section_form(form)
+    if error:
+        with SessionLocal() as db:
+            site = db.get(Site, site_id)
+            if site is None:
+                return RedirectResponse("/sites", status_code=303)
+            db.expunge(site)
+        return templates.TemplateResponse(
+            request,
+            "sites/section_form.html",
+            {
+                "active_nav": "sites",
+                "user": user,
+                "site": site,
+                "section": None,
+                "crawler_strategies": CRAWLER_STRATEGIES,
+                "item_types": ITEM_TYPES,
+                "error": error,
+            },
+            status_code=400,
+        )
     section = build_section_from_form(form)
     section.site_id = site_id
     with SessionLocal() as db:
@@ -245,6 +296,26 @@ async def update_section(request: Request, section_id: int):
     with SessionLocal() as db:
         section = db.get(SiteSection, section_id)
         if section is not None:
+            error = validate_section_form(form)
+            if error:
+                site = db.get(Site, section.site_id)
+                db.expunge(section)
+                if site is not None:
+                    db.expunge(site)
+                return templates.TemplateResponse(
+                    request,
+                    "sites/section_form.html",
+                    {
+                        "active_nav": "sites",
+                        "user": user,
+                        "site": site,
+                        "section": section,
+                        "crawler_strategies": CRAWLER_STRATEGIES,
+                        "item_types": ITEM_TYPES,
+                        "error": error,
+                    },
+                    status_code=400,
+                )
             update_section_from_form(section, form)
             db.commit()
     return RedirectResponse("/sites", status_code=303)
@@ -286,6 +357,88 @@ def enabled_section_ids_for_site(db, site_id: int) -> list[int]:
             .order_by(SiteSection.id)
         ).all()
     )
+
+
+def sites_page_response(request: Request, user, error: str | None = None):
+    with SessionLocal() as db:
+        sites = db.scalars(
+            select(Site).options(selectinload(Site.sections)).order_by(Site.created_at.desc())
+        ).all()
+        section_count = db.scalar(select(func.count(SiteSection.id))) or 0
+    return templates.TemplateResponse(
+        request,
+        "sites/index.html",
+        {
+            "active_nav": "sites",
+            "user": user,
+            "sites": sites,
+            "section_count": section_count,
+            "error": error,
+        },
+        status_code=400 if error else 200,
+    )
+
+
+def validate_site_form(form: Any) -> str | None:
+    if not clean_text(form.get("name")):
+        return "网站名称不能为空"
+    if not clean_text(form.get("slug")):
+        return "唯一标识不能为空"
+    if not valid_http_url(clean_text(form.get("homepage_url"))):
+        return "首页地址必须是 http 或 https 地址"
+    return None
+
+
+def validate_section_form(form: Any) -> str | None:
+    if not clean_text(form.get("name")):
+        return "栏目名称不能为空"
+    if not valid_http_url(clean_text(form.get("url"))):
+        return "栏目地址必须是 http 或 https 地址"
+    if clean_text(form.get("item_type")) not in ITEM_TYPES:
+        return "信息类型不支持"
+    crawler_strategy = clean_text(form.get("crawler_strategy")) or "http_static"
+    if crawler_strategy not in CRAWLER_STRATEGIES:
+        return "爬虫策略不支持"
+    if crawler_strategy == "custom_adapter" and not clean_text(form.get("custom_adapter")):
+        return "定制适配器策略需要填写适配器名称"
+    if error := validate_min_int(form, "request_timeout", 1, "超时秒数"):
+        return error
+    if error := validate_min_int(form, "retry_times", 0, "重试次数"):
+        return error
+    if error := validate_min_int(form, "request_interval_seconds", 0, "请求间隔秒"):
+        return error
+    if error := validate_min_int(form, "max_pages", 1, "最大页数"):
+        return error
+    if error := validate_min_int(form, "max_items_per_run", 1, "单次最大条数"):
+        return error
+    if error := validate_min_int(form, "crawl_date_window_days", 1, "抓取日期窗口"):
+        return error
+    if error := validate_min_int(form, "stop_when_seen_existing_count", 1, "连续已存在停止数"):
+        return error
+    request_headers = clean_text(form.get("request_headers"))
+    if request_headers:
+        try:
+            parsed_headers = json.loads(request_headers)
+        except json.JSONDecodeError:
+            return "请求头 JSON 格式不正确"
+        if not isinstance(parsed_headers, dict):
+            return "请求头 JSON 必须是对象"
+    return None
+
+
+def validate_min_int(form: Any, key: str, minimum: int, label: str) -> str | None:
+    try:
+        value = int(form.get(key))
+    except (TypeError, ValueError):
+        return f"{label}必须是数字"
+    if value < minimum:
+        return f"{label}不能小于 {minimum}"
+    return None
+
+
+def valid_http_url(value: str) -> bool:
+    parsed = urlparse(value)
+    return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
 
 
 def build_section_from_form(form: Any) -> SiteSection:

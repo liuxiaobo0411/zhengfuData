@@ -139,6 +139,92 @@ def test_site_and_section_can_be_created(tmp_path):
         assert db.get(SiteSection, 1).crawler_strategy == "http_static"
 
 
+def test_site_form_rejects_invalid_url_and_duplicate_slug(tmp_path):
+    client = make_client(tmp_path)
+    login(client)
+
+    invalid_response = client.post(
+        "/sites",
+        data={
+            "name": "无效网站",
+            "slug": "bad-site",
+            "homepage_url": "not-a-url",
+            "enabled": "on",
+        },
+    )
+
+    assert invalid_response.status_code == 400
+    assert "首页地址必须是 http 或 https 地址" in invalid_response.text
+    with SessionLocal() as db:
+        assert db.query(Site).count() == 0
+
+    client.post(
+        "/sites",
+        data={
+            "name": "测试网站",
+            "slug": "test-site",
+            "homepage_url": "https://example.gov.cn/",
+            "enabled": "on",
+        },
+    )
+    duplicate_response = client.post(
+        "/sites",
+        data={
+            "name": "重复网站",
+            "slug": "test-site",
+            "homepage_url": "https://duplicate.example.gov.cn/",
+            "enabled": "on",
+        },
+    )
+
+    assert duplicate_response.status_code == 400
+    assert "唯一标识已存在" in duplicate_response.text
+    with SessionLocal() as db:
+        assert db.query(Site).count() == 1
+
+
+def test_section_form_rejects_invalid_request_headers(tmp_path):
+    client = make_client(tmp_path)
+    login(client)
+    with SessionLocal() as db:
+        site = Site(
+            name="测试网站",
+            slug="test-site",
+            homepage_url="https://example.gov.cn/",
+            enabled=True,
+        )
+        db.add(site)
+        db.commit()
+
+    response = client.post(
+        "/sites/1/sections",
+        data={
+            "name": "公告栏目",
+            "url": "https://example.gov.cn/list.html",
+            "item_type": "qualification_notice",
+            "crawler_strategy": "http_static",
+            "crawl_method": "http",
+            "schedule_cron": "0 9 * * *",
+            "enabled": "on",
+            "download_attachments": "on",
+            "save_snapshot": "on",
+            "request_timeout": "20",
+            "retry_times": "2",
+            "request_interval_seconds": "3",
+            "max_pages": "3",
+            "max_items_per_run": "100",
+            "crawl_date_window_days": "1",
+            "stop_when_seen_existing_count": "20",
+            "request_headers": "{bad json",
+        },
+    )
+
+    assert response.status_code == 400
+    assert "请求头 JSON 格式不正确" in response.text
+    with SessionLocal() as db:
+        assert db.query(SiteSection).count() == 0
+
+
 def test_archive_pages_and_attachment_download(tmp_path, monkeypatch):
     client = make_client(tmp_path, monkeypatch)
     login(client)

@@ -20,6 +20,9 @@
       <h2>新增网站</h2>
       <span>政府公开源</span>
     </div>
+    {% if error %}
+    <div class="form-error">{{ error }}</div>
+    {% endif %}
     <div class="form-grid">
       <label>
         <span>网站名称</span>

@@ -15,6 +15,9 @@
 
 <section class="content-narrow">
   <form class="panel form-panel" method="post" action="/sites/{{ site.id }}/edit">
+    {% if error %}
+    <div class="form-error">{{ error }}</div>
+    {% endif %}
     <div class="form-grid">
       <label>
         <span>网站名称</span>

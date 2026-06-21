@@ -19,6 +19,9 @@
       <h2>栏目基础信息</h2>
       <span>抓取入口</span>
     </div>
+    {% if error %}
+    <div class="form-error">{{ error }}</div>
+    {% endif %}
     <div class="form-grid">
       <label>
         <span>栏目名称</span>
