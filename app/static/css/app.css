@@ -354,6 +354,31 @@ a {
   font-size: 12px;
 }
 
+.inline-action-form {
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+  margin: 0;
+}
+
+.inline-checkbox {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.inline-checkbox input {
+  width: 16px;
+  height: 16px;
+}
+
+.inline-checkbox span {
+  margin: 0;
+}
+
 .panel-title.nested {
   margin-top: 30px;
 }

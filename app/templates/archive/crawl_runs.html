@@ -8,6 +8,15 @@
     <h1>抓取任务</h1>
     <p>查看抓取批次状态、数量统计和失败原因。</p>
   </div>
+  <div class="topbar-actions">
+    <form class="inline-action-form" method="post" action="/crawl-runs/run-daily">
+      <label class="inline-checkbox">
+        <input type="checkbox" name="notify">
+        <span>发送日报</span>
+      </label>
+      <button type="submit">执行每日抓取</button>
+    </form>
+  </div>
 </header>
 
 <section class="content-stack">

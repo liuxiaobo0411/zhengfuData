@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 import app.models  # noqa: F401
+import app.routers.web.archive as archive_router
 from app.config import get_settings
 from app.database import Base, SessionLocal, configure_database
 from app.main import create_app
@@ -61,6 +62,7 @@ def test_login_and_dashboard_page_loads(tmp_path):
     assert dashboard_response.status_code == 200
     assert "工作台" in dashboard_response.text
     assert "最近变化" in dashboard_response.text
+    assert "/crawl-runs/run-daily" in dashboard_response.text
     assert "正式抓取模块接入后" not in dashboard_response.text
 
 
@@ -285,3 +287,34 @@ def test_archive_pages_and_attachment_download(tmp_path, monkeypatch):
     notifications = client.get("/notifications")
     assert notifications.status_code == 200
     assert "OPENCLAW_WEBHOOK_URL 未配置" in notifications.text
+
+
+def test_web_daily_crawl_action_requires_login_and_passes_notify(tmp_path, monkeypatch):
+    client = make_client(tmp_path)
+    calls = []
+
+    def fake_run_daily_crawl(*, notify, triggered_by):
+        calls.append({"notify": notify, "triggered_by": triggered_by})
+
+    monkeypatch.setattr(archive_router, "run_daily_crawl", fake_run_daily_crawl)
+
+    anonymous_response = client.post("/crawl-runs/run-daily", follow_redirects=False)
+    assert anonymous_response.status_code == 303
+    assert anonymous_response.headers["location"] == "/login"
+    assert calls == []
+
+    login(client)
+    crawl_runs = client.get("/crawl-runs")
+    assert crawl_runs.status_code == 200
+    assert "执行每日抓取" in crawl_runs.text
+    assert "发送日报" in crawl_runs.text
+
+    response = client.post(
+        "/crawl-runs/run-daily",
+        data={"notify": "on"},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/crawl-runs"
+    assert calls == [{"notify": True, "triggered_by": "admin"}]

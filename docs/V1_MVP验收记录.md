@@ -340,6 +340,30 @@ docs/Windows本地部署说明.md
 - `export-acceptance-report.ps1` 负责导出自动验收报告。
 - `install-daily-task.ps1` 负责注册 Windows 任务计划。
 
+## 后台手动执行每日抓取
+
+已补充后台触发入口：
+
+- 工作台页面可直接点击“执行每日抓取”。
+- 抓取任务页面可点击“执行每日抓取”。
+- 抓取任务页面可勾选“发送日报”，同步触发 OpenClaw 通知。
+- 后台入口复用 `run_daily_crawl` 调度服务，避免另建一套抓取逻辑。
+
+本轮自测结果：
+
+```text
+ruff check .                 PASS
+ruff format --check .        PASS
+pytest                       48 passed, 1 warning
+```
+
+新增测试覆盖：
+
+- 未登录访问后台每日抓取触发入口会跳转登录页。
+- 登录后触发每日抓取会进入调度服务。
+- 勾选“发送日报”时，`notify=True` 会传入调度服务。
+- 工作台和抓取任务页均展示后台手动触发入口。
+
 ## 后续验收事项
 
 - 在 Windows 电脑按 `docs/Windows本地部署说明.md` 完成安装、启动、导入、抓取和附件下载验证。

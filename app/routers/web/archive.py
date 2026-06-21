@@ -20,6 +20,7 @@ from app.models import (
     SiteSection,
 )
 from app.routers.web.security import require_user
+from app.services.scheduler import run_daily_crawl
 
 router = APIRouter(tags=["archive"])
 templates = Jinja2Templates(directory=str(BASE_DIR / "app" / "templates"))
@@ -281,6 +282,18 @@ def crawl_run_list(request: Request):
         "archive/crawl_runs.html",
         {"active_nav": "crawl_runs", "user": user, "runs": rows},
     )
+
+
+@router.post("/crawl-runs/run-daily")
+async def run_daily_crawl_from_web(request: Request):
+    user = require_user(request)
+    if isinstance(user, RedirectResponse):
+        return user
+
+    form = await request.form()
+    notify = form.get("notify") in {"on", "true", "1", "yes"}
+    run_daily_crawl(notify=notify, triggered_by=user.username)
+    return RedirectResponse("/crawl-runs", status_code=303)
 
 
 @router.get("/crawl-runs/{run_id}", response_class=HTMLResponse)

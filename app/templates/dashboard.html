@@ -15,7 +15,9 @@
       <span class="status-pill {{ 'success' if scheduler.running else 'warning' }}">
         定时抓取{{ '运行中' if scheduler.running else '未启用' }}
       </span>
-      <a class="button-link" href="/sites">手动抓取</a>
+      <form class="inline-action-form" method="post" action="/crawl-runs/run-daily">
+        <button type="submit">执行每日抓取</button>
+      </form>
     </div>
   </header>
 
