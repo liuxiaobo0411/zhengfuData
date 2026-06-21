@@ -152,6 +152,19 @@ def toggle_site(request: Request, site_id: int):
     return RedirectResponse("/sites", status_code=303)
 
 
+@router.post("/sites/{site_id}/crawl")
+def crawl_site(request: Request, site_id: int):
+    user = require_user(request)
+    if isinstance(user, RedirectResponse):
+        return user
+
+    with SessionLocal() as db:
+        section_ids = enabled_section_ids_for_site(db, site_id)
+        for section_id in section_ids:
+            crawl_section(db, section_id, triggered_by=user.username)
+    return RedirectResponse("/crawl-runs", status_code=303)
+
+
 @router.get("/sites/{site_id}/sections/new", response_class=HTMLResponse)
 def new_section_page(request: Request, site_id: int):
     user = require_user(request)
@@ -260,6 +273,19 @@ def crawl_site_section(request: Request, section_id: int):
     with SessionLocal() as db:
         crawl_section(db, section_id, triggered_by=user.username)
     return RedirectResponse("/sites", status_code=303)
+
+
+def enabled_section_ids_for_site(db, site_id: int) -> list[int]:
+    return list(
+        db.scalars(
+            select(SiteSection.id)
+            .join(Site, Site.id == SiteSection.site_id)
+            .where(Site.id == site_id)
+            .where(Site.enabled.is_(True))
+            .where(SiteSection.enabled.is_(True))
+            .order_by(SiteSection.id)
+        ).all()
+    )
 
 
 def build_section_from_form(form: Any) -> SiteSection:

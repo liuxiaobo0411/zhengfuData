@@ -73,6 +73,9 @@
           <span class="state {{ 'on' if site.enabled else 'off' }}">{{ "启用" if site.enabled else "停用" }}</span>
           <a class="text-action" href="/sites/{{ site.id }}/edit">编辑</a>
           <a class="text-action" href="/sites/{{ site.id }}/sections/new">新增栏目</a>
+          <form method="post" action="/sites/{{ site.id }}/crawl">
+            <button class="quiet-button" type="submit">抓取网站</button>
+          </form>
           <form method="post" action="/sites/{{ site.id }}/toggle">
             <button class="quiet-button" type="submit">{{ "停用" if site.enabled else "启用" }}</button>
           </form>

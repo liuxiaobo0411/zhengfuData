@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 
 import app.models  # noqa: F401
 import app.routers.web.archive as archive_router
+import app.routers.web.sites as sites_router
 from app.config import get_settings
 from app.database import Base, SessionLocal, configure_database
 from app.main import create_app
@@ -105,6 +106,7 @@ def test_site_and_section_can_be_created(tmp_path):
     sites_page = client.get("/sites")
     assert sites_page.status_code == 200
     assert "住房和城乡建设部" in sites_page.text
+    assert "/sites/1/crawl" in sites_page.text
 
     client.post(
         "/sites/1/sections",
@@ -325,6 +327,55 @@ def test_web_daily_crawl_action_requires_login_and_passes_notify(tmp_path, monke
     assert response.status_code == 303
     assert response.headers["location"] == "/crawl-runs"
     assert calls == [{"notify": True, "triggered_by": "admin"}]
+
+
+def test_web_site_crawl_action_requires_login_and_crawls_enabled_sections(tmp_path, monkeypatch):
+    client = make_client(tmp_path)
+    calls = []
+
+    with SessionLocal() as db:
+        site = Site(
+            name="测试站点",
+            slug="test-site",
+            homepage_url="https://example.gov.cn/",
+            enabled=True,
+        )
+        db.add(site)
+        db.flush()
+        db.add_all(
+            [
+                SiteSection(
+                    site_id=site.id,
+                    name="启用栏目",
+                    url="https://example.gov.cn/list-1.html",
+                    enabled=True,
+                ),
+                SiteSection(
+                    site_id=site.id,
+                    name="停用栏目",
+                    url="https://example.gov.cn/list-2.html",
+                    enabled=False,
+                ),
+            ]
+        )
+        db.commit()
+
+    def fake_crawl_section(db, section_id, triggered_by):
+        calls.append({"section_id": section_id, "triggered_by": triggered_by})
+
+    monkeypatch.setattr(sites_router, "crawl_section", fake_crawl_section)
+
+    anonymous_response = client.post("/sites/1/crawl", follow_redirects=False)
+    assert anonymous_response.status_code == 303
+    assert anonymous_response.headers["location"] == "/login"
+    assert calls == []
+
+    login(client)
+    response = client.post("/sites/1/crawl", follow_redirects=False)
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/crawl-runs"
+    assert calls == [{"section_id": 1, "triggered_by": "admin"}]
 
 
 def test_web_notification_retry_action_requires_login(tmp_path, monkeypatch):
