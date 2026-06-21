@@ -68,12 +68,15 @@
         </div>
         <span>{{ announcement_title }}</span>
         <span>{{ site_name }}</span>
-        <span>{{ attachment.download_status }}</span>
+        <span>{{ attachment.download_status }}{% if attachment.failure_reason %} · {{ attachment.failure_reason }}{% endif %}</span>
         <div class="row-actions">
           {% if attachment.local_path %}
           <a class="text-action" href="/attachments/{{ attachment.id }}/download">下载</a>
           {% endif %}
           <a class="text-action" href="{{ attachment.source_url }}" target="_blank" rel="noreferrer">原始</a>
+          <form class="inline-action-form" method="post" action="/attachments/{{ attachment.id }}/retry">
+            <button class="quiet-button" type="submit">重试</button>
+          </form>
         </div>
       </div>
       {% endfor %}

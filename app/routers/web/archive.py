@@ -20,6 +20,7 @@ from app.models import (
     SiteSection,
 )
 from app.routers.web.security import require_user
+from app.services.crawler import retry_attachment_download
 from app.services.notifier import retry_notification
 from app.services.scheduler import run_daily_crawl
 
@@ -265,6 +266,17 @@ def download_attachment(request: Request, attachment_id: int):
             media_type=attachment.mime_type or "application/octet-stream",
             filename=attachment.safe_name,
         )
+
+
+@router.post("/attachments/{attachment_id}/retry")
+def retry_attachment_from_web(request: Request, attachment_id: int):
+    user = require_user(request)
+    if isinstance(user, RedirectResponse):
+        return user
+
+    with SessionLocal() as db:
+        retry_attachment_download(db, attachment_id, triggered_by=user.username)
+    return RedirectResponse("/attachments", status_code=303)
 
 
 @router.get("/crawl-runs", response_class=HTMLResponse)

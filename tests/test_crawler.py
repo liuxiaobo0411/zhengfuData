@@ -7,7 +7,12 @@ from app.config import Settings
 from app.database import Base, SessionLocal, configure_database
 from app.models import Announcement, Attachment, ChangeLog, CrawlRun, Site, SiteSection
 from app.services.crawler.parser import extract_unitbuild_requests
-from app.services.crawler.runner import crawl_section, run_type_for
+from app.services.crawler.runner import (
+    crawl_section,
+    identity_for,
+    retry_attachment_download,
+    run_type_for,
+)
 from app.services.crawler.types import FetchedPage
 
 
@@ -285,6 +290,75 @@ def test_unsupported_strategy_records_readable_failure(tmp_path):
     with SessionLocal() as db:
         assert db.query(CrawlRun).one().status == "failed"
         assert db.query(ChangeLog).one().change_type == "crawl_failed"
+
+
+def test_retry_attachment_download_updates_failed_attachment(tmp_path, monkeypatch):
+    setup_db(tmp_path)
+    with SessionLocal() as db:
+        site = Site(
+            name="测试政府网站",
+            slug="test-gov",
+            homepage_url="https://example.gov.cn/",
+            enabled=True,
+        )
+        db.add(site)
+        db.flush()
+        section = SiteSection(
+            site_id=site.id,
+            name="公告栏目",
+            url="https://example.gov.cn/list.html",
+            enabled=True,
+        )
+        db.add(section)
+        db.flush()
+        announcement = Announcement(
+            site_id=site.id,
+            section_id=section.id,
+            identity_key="abc",
+            identity_strategy="test",
+            title="资质核准公告",
+            item_type="qualification_notice",
+            source_url="https://example.gov.cn/a.html",
+        )
+        db.add(announcement)
+        db.flush()
+        attachment = Attachment(
+            announcement_id=announcement.id,
+            site_id=site.id,
+            attachment_key=identity_for("https://example.gov.cn/failed.pdf"),
+            name="失败附件.pdf",
+            safe_name="failed.pdf",
+            source_url="https://example.gov.cn/failed.pdf",
+            download_status="failed",
+            failure_reason="timeout",
+        )
+        db.add(attachment)
+        db.commit()
+        attachment_id = attachment.id
+
+    def fake_fetch(url: str, section: SiteSection, timeout: int | None = None):
+        return fetched(url, b"pdf-content", "application/pdf")
+
+    monkeypatch.setattr("app.services.crawler.runner.fetch_url", fake_fetch)
+    settings = Settings(APP_STORAGE_ROOT=tmp_path / "storage")
+    with SessionLocal() as db:
+        attachment = retry_attachment_download(
+            db,
+            attachment_id,
+            triggered_by="tester",
+            settings=settings,
+        )
+
+    assert attachment is not None
+    assert attachment.download_status == "success"
+    assert attachment.failure_reason is None
+    assert attachment.local_path.endswith(".pdf")
+    assert (settings.storage_root / attachment.local_path).read_bytes() == b"pdf-content"
+    with SessionLocal() as db:
+        run = db.query(CrawlRun).one()
+        assert run.status == "success"
+        assert run.attachment_success_count == 1
+        assert db.query(ChangeLog).count() == 0
 
 
 def test_extract_unitbuild_requests_reads_mohurd_script():

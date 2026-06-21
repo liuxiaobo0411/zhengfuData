@@ -256,12 +256,15 @@ def test_archive_pages_and_attachment_download(tmp_path, monkeypatch):
     assert detail.status_code == 200
     assert "公告正文" in detail.text
     assert "snapshots/mohurd/1/a.html" in detail.text
+    assert "/attachments/2/retry" in detail.text
     assert str(tmp_path) not in detail.text
 
     attachments = client.get("/attachments")
     assert attachments.status_code == 200
     assert "附件" in attachments.text
     assert "失败附件" in attachments.text
+    assert "timeout" in attachments.text
+    assert "/attachments/2/retry" in attachments.text
 
     failed_attachments = client.get("/attachments?download_status=failed")
     assert failed_attachments.status_code == 200
@@ -341,3 +344,29 @@ def test_web_notification_retry_action_requires_login(tmp_path, monkeypatch):
     assert response.status_code == 303
     assert response.headers["location"] == "/notifications"
     assert calls == [7]
+
+
+def test_web_attachment_retry_action_requires_login(tmp_path, monkeypatch):
+    client = make_client(tmp_path)
+    calls = []
+
+    def fake_retry_attachment_download(db, attachment_id, triggered_by):
+        calls.append({"attachment_id": attachment_id, "triggered_by": triggered_by})
+
+    monkeypatch.setattr(
+        archive_router,
+        "retry_attachment_download",
+        fake_retry_attachment_download,
+    )
+
+    anonymous_response = client.post("/attachments/9/retry", follow_redirects=False)
+    assert anonymous_response.status_code == 303
+    assert anonymous_response.headers["location"] == "/login"
+    assert calls == []
+
+    login(client)
+    response = client.post("/attachments/9/retry", follow_redirects=False)
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/attachments"
+    assert calls == [{"attachment_id": 9, "triggered_by": "admin"}]

@@ -118,6 +118,63 @@ def crawl_section(
     return run
 
 
+def retry_attachment_download(
+    db: Session,
+    attachment_id: int,
+    triggered_by: str = "manual",
+    settings: Settings | None = None,
+) -> Attachment | None:
+    settings = settings or get_settings()
+    storage = prepare_storage(settings)
+    attachment = db.get(Attachment, attachment_id)
+    if attachment is None:
+        return None
+
+    announcement = db.get(Announcement, attachment.announcement_id)
+    if announcement is None:
+        return None
+    site = db.get(Site, attachment.site_id)
+    section = db.get(SiteSection, announcement.section_id)
+    if site is None or section is None:
+        return None
+
+    now = datetime.now()
+    run_type = run_type_for(triggered_by)
+    run = CrawlRun(
+        run_no=f"{run_type}-attachment-{now.strftime('%Y%m%d%H%M%S%f')}-{attachment.id}",
+        run_type=run_type,
+        status="running",
+        started_at=now,
+        total_sections=1,
+        triggered_by=triggered_by,
+    )
+    db.add(run)
+    db.flush()
+
+    result = save_attachment(
+        db,
+        site,
+        announcement,
+        run,
+        ParsedAttachment(name=attachment.name, url=attachment.source_url),
+        section,
+        storage.root,
+    )
+    run.status = "success" if result["success"] else "failed"
+    run.success_sections = 1 if result["success"] else 0
+    run.failed_sections = 0 if result["success"] else 1
+    run.attachment_success_count = 1 if result["success"] else 0
+    run.attachment_failed_count = 0 if result["success"] else 1
+    run.attachment_changed_count = int(result["changed"])
+    if not result["success"]:
+        run.error_summary = attachment.failure_reason
+    run.finished_at = datetime.now()
+    run.duration_seconds = int((run.finished_at - run.started_at).total_seconds())
+    db.commit()
+    db.refresh(attachment)
+    return attachment
+
+
 def run_type_for(triggered_by: str) -> str:
     if triggered_by in {"scheduled", "cli_daily"}:
         return "scheduled"
