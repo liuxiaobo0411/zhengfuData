@@ -60,6 +60,8 @@ def test_login_and_dashboard_page_loads(tmp_path):
     dashboard_response = client.get("/")
     assert dashboard_response.status_code == 200
     assert "工作台" in dashboard_response.text
+    assert "最近变化" in dashboard_response.text
+    assert "正式抓取模块接入后" not in dashboard_response.text
 
 
 def test_settings_page_requires_login_and_masks_secrets(tmp_path, monkeypatch):

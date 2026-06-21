@@ -9,7 +9,9 @@
       <p>查看今日抓取、归档、附件和通知状态。</p>
     </div>
     <div class="topbar-actions">
-      <span class="status-pill success">OpenClaw 配置就绪</span>
+      <span class="status-pill {{ 'success' if openclaw_configured else 'warning' }}">
+        OpenClaw {{ '已配置' if openclaw_configured else '未配置' }}
+      </span>
       <span class="status-pill {{ 'success' if scheduler.running else 'warning' }}">
         定时抓取{{ '运行中' if scheduler.running else '未启用' }}
       </span>
@@ -19,7 +21,7 @@
 
   <section class="section-heading">
     <h2>今日概览</h2>
-    <span>正式抓取模块接入后，这里展示每日新增、变化、附件和失败统计。</span>
+    <span>按本机当天抓取任务统计新增、变化、附件和失败。</span>
   </section>
 
   <section class="metrics-grid">
@@ -35,23 +37,20 @@
   <section class="dashboard-grid">
     <article class="panel large">
       <div class="panel-title">
-        <h2>开发阶段</h2>
-        <span>M6 端到端验收</span>
+        <h2>最近变化</h2>
+        <span>{{ recent_changes|length }} 条</span>
       </div>
-      <ol class="timeline">
-        <li class="done">FastAPI 应用创建</li>
-        <li class="done">配置读取与 storage 目录准备</li>
-        <li class="done">健康检查 API</li>
-        <li class="done">SQLAlchemy / Alembic 迁移建模</li>
-        <li class="done">网站栏目后台管理</li>
-        <li class="done">单栏目手动抓取服务</li>
-        <li class="done">真实站点端到端验收</li>
-        <li class="done">公告、附件和任务查看</li>
-        <li class="done">OpenClaw 企微日报</li>
-        <li class="done">每日定时抓取调度</li>
-        <li>扩展首批 10 个网站或栏目</li>
-        <li>Windows 本地运行验收</li>
-      </ol>
+      <div class="compact-list">
+        {% for change, site_name, section_name in recent_changes %}
+        <div class="compact-row">
+          <strong>{{ change.change_type }} · {{ change.title or "-" }}</strong>
+          <span>{{ site_name or "-" }} · {{ section_name or "-" }}</span>
+          <span>{{ change.summary or "-" }}</span>
+        </div>
+        {% else %}
+        <div class="empty-state compact">暂无变化记录</div>
+        {% endfor %}
+      </div>
     </article>
 
     <article class="panel">
