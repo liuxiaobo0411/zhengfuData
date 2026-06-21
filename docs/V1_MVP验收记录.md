@@ -341,7 +341,7 @@ docs/Windows本地部署说明.md
 - `run-daily-crawl.ps1` 负责执行每日抓取。
 - `validate-sources.ps1` 负责验证启用栏目列表页可访问且可解析。
 - `export-acceptance-report.ps1` 负责导出自动验收报告。
-- `doctor.ps1` 负责检查数据库、storage、来源配置、OpenClaw 和 Windows 脚本状态。
+- `doctor.ps1` 负责检查数据库核心表、默认密码和密钥、storage、来源配置、OpenClaw 和 Windows 脚本状态。
 - `install-daily-task.ps1` 负责注册 Windows 任务计划。
 
 ## 后台手动抓取入口

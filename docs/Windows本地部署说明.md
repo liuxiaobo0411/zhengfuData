@@ -60,7 +60,7 @@ OPENCLAW_NOTIFY_RETRY_TIMES=2
 scripts\windows\doctor.ps1
 ```
 
-自检会检查数据库连接、storage 写入、站点配置文件、已导入来源、OpenClaw 配置和 Windows 脚本完整性。`WARN` 表示可继续运行但需要关注，`FAIL` 表示需要先修复。
+自检会检查数据库连接、核心表结构、默认密码和密钥、storage 写入、站点配置文件、已导入来源、OpenClaw 配置和 Windows 脚本完整性。`WARN` 表示可继续运行但需要关注，`FAIL` 表示需要先修复。
 
 ## 验证来源配置
 

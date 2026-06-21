@@ -21,6 +21,7 @@ def test_system_doctor_warns_for_unimported_sources_without_failing(tmp_path):
     assert report.failed_count == 0
     assert any(check.name == "sources" and check.status == "warn" for check in report.checks)
     assert any(check.name == "openclaw" and check.status == "warn" for check in report.checks)
+    assert any(check.name == "security" and check.status == "warn" for check in report.checks)
     rendered = format_doctor_report(report)
     assert "系统自检结果" in rendered
     assert "summary" in rendered
@@ -52,6 +53,8 @@ def test_system_doctor_passes_for_ready_local_environment(tmp_path):
             db,
             settings=Settings(
                 APP_STORAGE_ROOT=tmp_path / "storage",
+                APP_SECRET_KEY="test-secret-key",
+                ADMIN_PASSWORD="test-password",
                 OPENCLAW_WEBHOOK_URL="https://openclaw.example/webhook",
             ),
         )
@@ -60,9 +63,33 @@ def test_system_doctor_passes_for_ready_local_environment(tmp_path):
     assert report.warning_count == 0
     assert {check.name for check in report.checks} == {
         "database",
+        "database_schema",
+        "security",
         "storage",
         "sites_config",
         "sources",
         "openclaw",
         "windows_scripts",
     }
+
+
+def test_system_doctor_fails_when_core_tables_are_missing(tmp_path):
+    configure_database(f"sqlite:///{tmp_path / 'empty.db'}")
+
+    with SessionLocal() as db:
+        report = run_system_doctor(
+            db,
+            settings=Settings(
+                APP_STORAGE_ROOT=tmp_path / "storage",
+                APP_SECRET_KEY="test-secret-key",
+                ADMIN_PASSWORD="test-password",
+            ),
+        )
+
+    assert report.failed_count >= 1
+    assert any(
+        check.name == "database_schema"
+        and check.status == "fail"
+        and "alembic upgrade head" in check.message
+        for check in report.checks
+    )

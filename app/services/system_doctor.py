@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from sqlalchemy import func, select, text
+from sqlalchemy import func, inspect, select, text
 from sqlalchemy.orm import Session
 
 from app.config import BASE_DIR, Settings, get_settings
@@ -41,6 +41,8 @@ def run_system_doctor(
     settings = settings or get_settings()
     checks = [
         check_database(db),
+        check_database_schema(db),
+        check_security_defaults(settings),
         check_storage(settings),
         check_sites_config(),
         check_imported_sources(db),
@@ -56,6 +58,45 @@ def check_database(db: Session) -> DoctorCheck:
         return DoctorCheck("database", "ok", "数据库连接正常")
     except Exception as exc:
         return DoctorCheck("database", "fail", f"数据库连接失败：{type(exc).__name__}: {exc}")
+
+
+def check_database_schema(db: Session) -> DoctorCheck:
+    required_tables = {
+        "users",
+        "sites",
+        "site_sections",
+        "crawl_runs",
+        "announcements",
+        "attachments",
+        "attachment_versions",
+        "change_logs",
+        "notification_logs",
+    }
+    try:
+        existing_tables = set(inspect(db.get_bind()).get_table_names())
+    except Exception as exc:
+        return DoctorCheck(
+            "database_schema", "fail", f"读取数据库表失败：{type(exc).__name__}: {exc}"
+        )
+    missing = sorted(required_tables - existing_tables)
+    if missing:
+        return DoctorCheck(
+            "database_schema",
+            "fail",
+            f"数据库缺少核心表：{', '.join(missing)}；请执行 alembic upgrade head",
+        )
+    return DoctorCheck("database_schema", "ok", "数据库核心表完整")
+
+
+def check_security_defaults(settings: Settings) -> DoctorCheck:
+    warnings: list[str] = []
+    if settings.admin_password == "change-me":
+        warnings.append("ADMIN_PASSWORD 仍为默认值")
+    if settings.app_secret_key == "change-me":
+        warnings.append("APP_SECRET_KEY 仍为默认值")
+    if warnings:
+        return DoctorCheck("security", "warn", "；".join(warnings))
+    return DoctorCheck("security", "ok", "后台密码和应用密钥已修改")
 
 
 def check_storage(settings: Settings) -> DoctorCheck:
