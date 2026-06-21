@@ -4,9 +4,11 @@
 
 系统用于抓取国家及地方政府公开网站中的建筑资质相关公告、政府文件、行政许可、企业名单、考试人员公告等信息，保存正文和附件，识别新增和变化，并通过 OpenClaw 推送企微通知。
 
-## 开发状态
+## 当前状态
 
-当前已进入正式开发，M0 项目底座已具备：
+当前已进入正式开发，M0-M5 已完成第一轮闭环实现，后续重点是 M6 扩展站点、定时调度和端到端验收。
+
+M0 项目底座已具备：
 
 - FastAPI 应用入口、健康检查接口和基础后台工作台页面。
 - `.env` + `configs/app.yaml` 配置体系。
@@ -32,8 +34,6 @@ M2 已进入第一轮实现：
 - 公告去重入库与新增公告、附件新增、抓取失败 change log。
 - 后台栏目列表支持手动触发单栏目抓取。
 
-M2 后续还需要继续补真实站点配置和端到端验收。
-
 当前已配置首批真实栏目：
 
 - 住房和城乡建设部：建设工程企业资质行政审批专栏-公告。
@@ -54,6 +54,13 @@ M4 已进入第一轮实现：
 - 后台可查看抓取任务列表和任务详情。
 - 后台只展示相对路径和下载入口，不暴露本机绝对路径。
 
+M5 已进入第一轮实现：
+
+- 可生成抓取日报 payload 和 markdown 文本。
+- 可通过 `OPENCLAW_WEBHOOK_URL` POST 到 OpenClaw。
+- 通知成功、失败和未配置原因会写入 `notification_logs`。
+- 后台可查看通知日志。
+
 已有设计文档位于 `docs/` 目录：
 
 - [V1 MVP 详细设计](./docs/建筑资质公开信息监测与归档系统_V1_MVP详细设计.md)
@@ -66,6 +73,16 @@ M4 已进入第一轮实现：
 - `../june_archive.py`
 
 原型脚本只用于验证，不作为正式架构直接继续堆功能。
+
+## 同事快速接手
+
+新同事接手时建议按这个顺序看：
+
+1. 先读 `docs/建筑资质公开信息监测与归档系统_V1_MVP详细设计.md`，确认业务边界。
+2. 再读 `CONTRIBUTING.md`，确认开发规范、提交要求和完成定义。
+3. 按本文“开发启动流程”启动本地服务。
+4. 跑一次 `pytest`、`ruff check .`、`ruff format --check .`，确认本地环境干净。
+5. 从 `configs/sites.yaml` 导入站点，使用 `zhengfudata crawl-enabled --limit 2` 做最小抓取验证。
 
 ## V1 技术栈
 
@@ -87,15 +104,12 @@ app/
   config.py
   database.py
   models/
-  schemas/
   services/
     crawler/
-    parser/
-    detector/
-    downloader/
     notifier/
-    scheduler/
-  adapters/
+    storage.py
+    site_importer.py
+    path_utils.py
   routers/
     web/
     api/
@@ -108,8 +122,6 @@ data/
 storage/
   attachments/
   snapshots/
-  exports/
-  logs/
 tests/
 ```
 
@@ -139,6 +151,8 @@ ADMIN_USERNAME=admin
 ADMIN_PASSWORD=change-me
 
 OPENCLAW_DASHBOARD_URL=http://127.0.0.1:18789/
+OPENCLAW_WEBHOOK_URL=
+APP_PUBLIC_BASE_URL=http://127.0.0.1:8000
 OPENCLAW_GATEWAY_URL=ws://127.0.0.1:18789
 WECOM_NOTIFY_TARGET_TYPE=direct
 WECOM_NOTIFY_TARGET_ID=
@@ -199,6 +213,14 @@ ruff format --check .
 pytest
 ```
 
+涉及数据库结构变更时，还需要运行：
+
+```bash
+alembic upgrade head
+```
+
+涉及后台页面时，需要本地打开页面人工检查一次，至少确认登录、导航、列表、详情、下载入口和错误提示可用。
+
 ## 首批站点导入与抓取
 
 导入 `configs/sites.yaml` 中的首批真实站点：
@@ -223,6 +245,12 @@ zhengfudata crawl-enabled --limit 2
 
 ```bash
 zhengfudata crawl-section 1
+```
+
+发送当天抓取日报到 OpenClaw：
+
+```bash
+zhengfudata send-daily-report
 ```
 
 ## 开发顺序

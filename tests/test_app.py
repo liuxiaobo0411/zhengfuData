@@ -4,7 +4,15 @@ import app.models  # noqa: F401
 from app.config import get_settings
 from app.database import Base, SessionLocal, configure_database
 from app.main import create_app
-from app.models import Announcement, Attachment, ChangeLog, CrawlRun, Site, SiteSection
+from app.models import (
+    Announcement,
+    Attachment,
+    ChangeLog,
+    CrawlRun,
+    NotificationLog,
+    Site,
+    SiteSection,
+)
 
 
 def make_client(tmp_path, monkeypatch=None):
@@ -182,6 +190,15 @@ def test_archive_pages_and_attachment_download(tmp_path, monkeypatch):
                 source_url=announcement.source_url,
             )
         )
+        db.add(
+            NotificationLog(
+                run_id=run.id,
+                provider="openclaw",
+                event_type="daily_crawl_report",
+                status="failed",
+                failure_reason="OPENCLAW_WEBHOOK_URL 未配置",
+            )
+        )
         db.commit()
 
     announcement_list = client.get("/announcements")
@@ -210,3 +227,7 @@ def test_archive_pages_and_attachment_download(tmp_path, monkeypatch):
     run_detail = client.get("/crawl-runs/1")
     assert run_detail.status_code == 200
     assert "new_announcement" in run_detail.text
+
+    notifications = client.get("/notifications")
+    assert notifications.status_code == 200
+    assert "OPENCLAW_WEBHOOK_URL 未配置" in notifications.text

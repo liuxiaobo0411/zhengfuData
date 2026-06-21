@@ -21,7 +21,7 @@
         <a class="nav-item {% if active_nav == 'attachments' %}active{% endif %}" href="/attachments">附件管理</a>
         <a class="nav-item {% if active_nav == 'crawl_runs' %}active{% endif %}" href="/crawl-runs">抓取任务</a>
         <a class="nav-item {% if active_nav == 'sites' %}active{% endif %}" href="/sites">网站栏目</a>
-        <a class="nav-item" href="#">通知日志</a>
+        <a class="nav-item {% if active_nav == 'notifications' %}active{% endif %}" href="/notifications">通知日志</a>
         <a class="nav-item" href="#">系统配置</a>
       </nav>
       {% if user %}

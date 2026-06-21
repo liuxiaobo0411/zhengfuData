@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}通知日志 - 建筑资质公开信息监测与归档系统{% endblock %}
+
+{% block content %}
+<header class="topbar">
+  <div>
+    <h1>通知日志</h1>
+    <p>查看 OpenClaw 企微日报发送状态和失败原因。</p>
+  </div>
+  <div class="topbar-actions">
+    <span class="status-pill success">{{ notifications|length }} 条日志</span>
+  </div>
+</header>
+
+<section class="content-stack">
+  <section class="panel table-panel">
+    {% if notifications %}
+    <div class="data-table notification-table">
+      <div class="table-head">
+        <span>事件</span>
+        <span>状态</span>
+        <span>目标</span>
+        <span>响应</span>
+        <span>失败原因</span>
+      </div>
+      {% for item in notifications %}
+      <div class="table-row">
+        <div>
+          <strong>{{ item.event_type }}</strong>
+          <span>{{ item.created_at }}</span>
+        </div>
+        <span>{{ item.status }}</span>
+        <span>{{ item.target_type or "-" }} · {{ item.target_id or "-" }}</span>
+        <span>{{ item.response_status_code or "-" }}</span>
+        <span>{{ item.failure_reason or "-" }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">暂无通知日志</div>
+    {% endif %}
+  </section>
+</section>
+{% endblock %}

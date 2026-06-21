@@ -200,3 +200,21 @@ class ChangeLog(TimestampMixin, Base):
     old_hash: Mapped[str | None] = mapped_column(String(128))
     new_hash: Mapped[str | None] = mapped_column(String(128))
     source_url: Mapped[str | None] = mapped_column(String(1000))
+
+
+class NotificationLog(TimestampMixin, Base):
+    __tablename__ = "notification_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    run_id: Mapped[int | None] = mapped_column(ForeignKey("crawl_runs.id"), index=True)
+    provider: Mapped[str] = mapped_column(String(64), default="openclaw", nullable=False)
+    event_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    target_type: Mapped[str | None] = mapped_column(String(64))
+    target_id: Mapped[str | None] = mapped_column(String(255))
+    status: Mapped[str] = mapped_column(String(32), default="pending", nullable=False)
+    request_url: Mapped[str | None] = mapped_column(String(1000))
+    request_payload: Mapped[str | None] = mapped_column(Text)
+    response_status_code: Mapped[int | None] = mapped_column(Integer)
+    response_body: Mapped[str | None] = mapped_column(Text)
+    failure_reason: Mapped[str | None] = mapped_column(Text)
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

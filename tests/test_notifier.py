@@ -1,0 +1,111 @@
+from __future__ import annotations
+
+from datetime import datetime
+
+import app.models  # noqa: F401
+from app.config import Settings
+from app.database import Base, SessionLocal, configure_database
+from app.models import ChangeLog, CrawlRun, NotificationLog
+from app.services.notifier import build_daily_report_payload, send_daily_report
+
+
+def setup_db(tmp_path):
+    engine = configure_database(f"sqlite:///{tmp_path / 'notify.db'}")
+    Base.metadata.create_all(engine)
+
+
+def seed_run():
+    with SessionLocal() as db:
+        run = CrawlRun(
+            run_no="manual-test",
+            run_type="manual",
+            status="success",
+            started_at=datetime(2026, 6, 21, 9, 0),
+            finished_at=datetime(2026, 6, 21, 9, 1),
+            discovered_items=3,
+            new_items=2,
+            content_changed_items=1,
+            attachment_added_count=4,
+            attachment_changed_count=1,
+            attachment_success_count=5,
+            attachment_failed_count=1,
+        )
+        db.add(run)
+        db.flush()
+        db.add(
+            ChangeLog(
+                run_id=run.id,
+                change_type="new_announcement",
+                title="资质核准公告",
+                summary="首次抓取入库",
+                source_url="https://example.gov.cn/a.html",
+            )
+        )
+        db.commit()
+
+
+def test_build_daily_report_payload_summarizes_runs(tmp_path):
+    setup_db(tmp_path)
+    seed_run()
+
+    with SessionLocal() as db:
+        payload = build_daily_report_payload(
+            db,
+            settings=Settings(APP_PUBLIC_BASE_URL="http://localhost:8000"),
+            now=datetime(2026, 6, 21, 12, 0),
+        )
+
+    assert payload["new_items"] == 2
+    assert payload["content_changed_items"] == 1
+    assert payload["attachment_added"] == 4
+    assert payload["attachment_failed"] == 1
+    assert "资质核准公告" in payload["markdown"]
+    assert payload["detail_url"] == "http://localhost:8000/crawl-runs/1"
+
+
+def test_send_daily_report_records_missing_webhook_failure(tmp_path):
+    setup_db(tmp_path)
+    seed_run()
+
+    with SessionLocal() as db:
+        log = send_daily_report(
+            db,
+            settings=Settings(OPENCLAW_WEBHOOK_URL=""),
+            now=datetime(2026, 6, 21, 12, 0),
+        )
+
+    assert log.status == "failed"
+    assert "OPENCLAW_WEBHOOK_URL" in log.failure_reason
+    with SessionLocal() as db:
+        assert db.query(NotificationLog).count() == 1
+
+
+def test_send_daily_report_posts_to_openclaw(tmp_path, monkeypatch):
+    setup_db(tmp_path)
+    seed_run()
+    sent = {}
+
+    class FakeResponse:
+        status_code = 200
+        text = "ok"
+
+        def raise_for_status(self):
+            return None
+
+    def fake_post(url, json, timeout):
+        sent["url"] = url
+        sent["json"] = json
+        sent["timeout"] = timeout
+        return FakeResponse()
+
+    monkeypatch.setattr("app.services.notifier.httpx.post", fake_post)
+    with SessionLocal() as db:
+        log = send_daily_report(
+            db,
+            settings=Settings(OPENCLAW_WEBHOOK_URL="http://openclaw.local/webhook"),
+            now=datetime(2026, 6, 21, 12, 0),
+        )
+
+    assert log.status == "success"
+    assert sent["url"] == "http://openclaw.local/webhook"
+    assert sent["json"]["event_type"] == "daily_crawl_report"

@@ -35,7 +35,9 @@ class Settings(BaseSettings):
         default="http://127.0.0.1:18789/",
         alias="OPENCLAW_DASHBOARD_URL",
     )
+    openclaw_webhook_url: str = Field(default="", alias="OPENCLAW_WEBHOOK_URL")
     openclaw_gateway_url: str = Field(default="ws://127.0.0.1:18789", alias="OPENCLAW_GATEWAY_URL")
+    app_public_base_url: str = Field(default="http://127.0.0.1:8000", alias="APP_PUBLIC_BASE_URL")
     wecom_notify_target_type: str = Field(default="direct", alias="WECOM_NOTIFY_TARGET_TYPE")
     wecom_notify_target_id: str = Field(default="", alias="WECOM_NOTIFY_TARGET_ID")
 

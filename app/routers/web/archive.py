@@ -10,7 +10,15 @@ from sqlalchemy.orm import aliased
 
 from app.config import BASE_DIR, get_settings
 from app.database import SessionLocal
-from app.models import Announcement, Attachment, ChangeLog, CrawlRun, Site, SiteSection
+from app.models import (
+    Announcement,
+    Attachment,
+    ChangeLog,
+    CrawlRun,
+    NotificationLog,
+    Site,
+    SiteSection,
+)
 from app.routers.web.security import require_user
 
 router = APIRouter(tags=["archive"])
@@ -217,6 +225,26 @@ def crawl_run_detail(request: Request, run_id: int):
         request,
         "archive/crawl_run_detail.html",
         {"active_nav": "crawl_runs", "user": user, "run": run, "changes": changes},
+    )
+
+
+@router.get("/notifications", response_class=HTMLResponse)
+def notification_list(request: Request):
+    user = require_user(request)
+    if isinstance(user, RedirectResponse):
+        return user
+
+    with SessionLocal() as db:
+        rows = db.scalars(
+            select(NotificationLog)
+            .order_by(NotificationLog.created_at.desc(), NotificationLog.id.desc())
+            .limit(200)
+        ).all()
+
+    return templates.TemplateResponse(
+        request,
+        "archive/notifications.html",
+        {"active_nav": "notifications", "user": user, "notifications": rows},
     )
 
 

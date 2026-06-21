@@ -9,6 +9,7 @@ from app.config import get_settings, resolve_project_path
 from app.database import SessionLocal
 from app.models import SiteSection
 from app.services.crawler import crawl_section
+from app.services.notifier import send_daily_report
 from app.services.site_importer import import_sites_from_yaml
 
 
@@ -25,6 +26,8 @@ def main() -> None:
     crawl_enabled_parser = subparsers.add_parser("crawl-enabled")
     crawl_enabled_parser.add_argument("--limit", type=int, default=0)
 
+    subparsers.add_parser("send-daily-report")
+
     args = parser.parse_args()
     if args.command == "import-sites":
         import_sites(Path(args.file))
@@ -32,6 +35,8 @@ def main() -> None:
         crawl_one(args.section_id)
     elif args.command == "crawl-enabled":
         crawl_enabled(args.limit)
+    elif args.command == "send-daily-report":
+        send_report()
 
 
 def import_sites(path: Path) -> None:
@@ -59,6 +64,12 @@ def crawl_enabled(limit: int) -> None:
                 f"section={section.id} run={run.run_no} "
                 f"status={run.status} new_items={run.new_items}"
             )
+
+
+def send_report() -> None:
+    with SessionLocal() as db:
+        log = send_daily_report(db, settings=get_settings())
+    print(f"notification={log.id} status={log.status} reason={log.failure_reason or ''}")
 
 
 if __name__ == "__main__":
