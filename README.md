@@ -69,6 +69,7 @@ M6 已开始推进：
 - 可通过 CLI 手动运行一次每日抓取闭环。
 - 每日任务会按启用网站和启用栏目抓取，并在结束后发送日报。
 - `configs/sites.yaml` 已包含 12 个启用栏目和 2 个待适配查询页面。
+- 已补充 Windows 本地部署脚本和任务计划脚本。
 
 已有设计文档位于 `docs/` 目录：
 
@@ -76,6 +77,7 @@ M6 已开始推进：
 - [前端 UI 详细设计](./docs/建筑资质公开信息监测与归档系统_前端UI详细设计.md)
 - [UI 视觉哲学](./docs/建筑资质公开信息监测与归档系统_UI视觉哲学.md)
 - [V1 MVP 验收记录](./docs/V1_MVP验收记录.md)
+- [Windows 本地部署说明](./docs/Windows本地部署说明.md)
 - [工作台 Demo PNG](./docs/assets/建筑资质公开信息监测与归档系统_工作台Demo.png)
 
 原型脚本位于上一级目录：
@@ -203,19 +205,18 @@ admin / change-me
 ### Windows PowerShell
 
 ```powershell
-py -m venv .venv
-.venv\Scripts\Activate.ps1
-python -m pip install -e ".[dev]"
-Copy-Item .env.example .env
-alembic upgrade head
-uvicorn app.main:app --reload
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+scripts\windows\setup.ps1
+scripts\windows\run-server.ps1
 ```
 
-如 Windows 当前 PowerShell 禁止执行虚拟环境脚本，可先在当前窗口执行：
+运行每日抓取：
 
 ```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+scripts\windows\run-daily-crawl.ps1 -Limit 2
 ```
+
+完整说明见 [Windows 本地部署说明](./docs/Windows本地部署说明.md)。
 
 ## 开发验证
 

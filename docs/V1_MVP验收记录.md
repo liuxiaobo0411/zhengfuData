@@ -80,8 +80,10 @@ pytest
 测试结果：
 
 ```text
-35 passed
+37 passed
 ```
+
+本机未安装 `pwsh`，PowerShell 脚本语法解析未在 macOS 开发机执行。已通过测试检查 Windows 脚本文件存在、使用项目相对路径，并在 `docs/Windows本地部署说明.md` 中列明 Windows 实机验收步骤。
 
 ## 小批量完整闭环验证
 
@@ -149,9 +151,29 @@ latest run: scheduled-20260621215135385692-1 scheduled cli_daily success
 /notifications  通知日志
 ```
 
+## Windows 部署交付物
+
+已补充：
+
+```text
+scripts/windows/setup.ps1
+scripts/windows/run-server.ps1
+scripts/windows/run-daily-crawl.ps1
+scripts/windows/install-daily-task.ps1
+docs/Windows本地部署说明.md
+```
+
+说明：
+
+- 脚本均通过 `$PSScriptRoot` 自动定位项目根目录，不依赖固定本机路径。
+- `setup.ps1` 负责创建虚拟环境、安装依赖、初始化 `.env`、执行迁移和导入首批站点。
+- `run-server.ps1` 负责启动后台。
+- `run-daily-crawl.ps1` 负责执行每日抓取。
+- `install-daily-task.ps1` 负责注册 Windows 任务计划。
+
 ## 后续验收事项
 
-- 在 Windows 电脑按 README 完成安装、启动、导入、抓取和附件下载验证。
+- 在 Windows 电脑按 `docs/Windows本地部署说明.md` 完成安装、启动、导入、抓取和附件下载验证。
 - 配置真实 `OPENCLAW_WEBHOOK_URL` 后，验证企微群日报发送。
 - 针对待适配动态查询页面补 Playwright 或接口适配器。
 - 逐步扩大到 12 个启用栏目，完成一次完整每日任务验收。
