@@ -19,7 +19,7 @@ from app.models import (
     Site,
     SiteSection,
 )
-from app.services.crawler.http import add_query_params, fetch_url
+from app.services.crawler.http import add_query_params, fetch_browser_rendered_page, fetch_url
 from app.services.crawler.parser import (
     extract_unitbuild_requests,
     parse_date_text,
@@ -62,9 +62,9 @@ def crawl_section(
     db.flush()
 
     try:
-        if section.crawler_strategy in {"browser_rendered", "custom_adapter", "manual_import"}:
+        if section.crawler_strategy in {"custom_adapter", "manual_import"}:
             raise RuntimeError(f"当前策略暂未接入自动抓取: {section.crawler_strategy}")
-        page = fetch_url(section.url, section)
+        page = fetch_page_for_section(section.url, section)
         if section.crawler_strategy == "json_api":
             records = parse_json_page(page.text, page.final_url, section)
         else:
@@ -211,6 +211,12 @@ def dedupe_by_source_url(records: list[ParsedAnnouncement]) -> list[ParsedAnnoun
     return list(unique.values())
 
 
+def fetch_page_for_section(url: str, section: SiteSection) -> FetchedPage:
+    if section.crawler_strategy == "browser_rendered":
+        return fetch_browser_rendered_page(url, section)
+    return fetch_url(url, section)
+
+
 def save_record(
     db: Session,
     site: Site,
@@ -221,7 +227,7 @@ def save_record(
     settings: Settings,
 ) -> dict[str, int | bool]:
     if record.content is None:
-        detail_page = fetch_url(record.source_url, section)
+        detail_page = fetch_page_for_section(record.source_url, section)
         content, attachments = parse_detail_page(detail_page.text, detail_page.final_url, section)
         final_url = detail_page.final_url
         snapshot_path = (

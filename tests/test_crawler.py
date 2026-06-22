@@ -332,9 +332,45 @@ def test_crawl_section_saves_qualification_query_json_rows(tmp_path, monkeypatch
         assert "D361000001" in announcement.content
 
 
-def test_unsupported_strategy_records_readable_failure(tmp_path):
+def test_crawl_section_uses_browser_rendered_fetch_for_dynamic_pages(tmp_path, monkeypatch):
     setup_db(tmp_path)
     section_id = create_site_and_section("browser_rendered")
+    calls: list[str] = []
+
+    with SessionLocal() as db:
+        section = db.get(SiteSection, section_id)
+        section.download_attachments = False
+        db.commit()
+
+    def fake_browser_fetch(url: str, section: SiteSection, timeout: int | None = None):
+        calls.append(url)
+        if url.endswith("list.html"):
+            return fetched(
+                url,
+                "<html><li><a href='detail.html'>动态公告</a>2026-06-21</li></html>",
+            )
+        return fetched(url, "<html><body><main>动态正文</main></body></html>")
+
+    monkeypatch.setattr(
+        "app.services.crawler.runner.fetch_browser_rendered_page",
+        fake_browser_fetch,
+    )
+
+    settings = Settings(APP_STORAGE_ROOT=tmp_path / "storage")
+    with SessionLocal() as db:
+        run = crawl_section(db, section_id, triggered_by="tester", settings=settings)
+
+    assert run.status == "success"
+    assert calls == ["https://example.gov.cn/list.html", "https://example.gov.cn/detail.html"]
+    with SessionLocal() as db:
+        announcement = db.query(Announcement).one()
+        assert announcement.title == "动态公告"
+        assert "动态正文" in announcement.content
+
+
+def test_unsupported_strategy_records_readable_failure(tmp_path):
+    setup_db(tmp_path)
+    section_id = create_site_and_section("custom_adapter")
 
     with SessionLocal() as db:
         run = crawl_section(
@@ -345,7 +381,7 @@ def test_unsupported_strategy_records_readable_failure(tmp_path):
         )
 
     assert run.status == "failed"
-    assert "browser_rendered" in run.error_summary
+    assert "custom_adapter" in run.error_summary
     with SessionLocal() as db:
         assert db.query(CrawlRun).one().status == "failed"
         assert db.query(ChangeLog).one().change_type == "crawl_failed"

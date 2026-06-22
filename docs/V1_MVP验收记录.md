@@ -376,6 +376,19 @@ pytest                       48 passed, 1 warning
 - 无效网站 URL、重复网站标识和非法请求头 JSON 会返回校验错误。
 - 工作台和抓取任务页均展示后台手动触发入口。
 
+## browser_rendered 基础策略
+
+已补充动态页面基础抓取能力：
+
+- `browser_rendered` 栏目不再直接标记为暂未接入，会通过 Playwright 渲染列表页和详情页。
+- 附件下载仍使用普通 HTTP，避免用浏览器处理二进制文件。
+- Playwright 作为可选依赖安装；未安装时会返回明确安装提示。
+
+新增测试覆盖：
+
+- `browser_rendered` 可走完整公告抓取闭环。
+- `custom_adapter` 等未实现策略仍会记录可读失败原因。
+
 ## 附件更新时间与温和重试
 
 已补充抓取细节：

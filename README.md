@@ -28,6 +28,7 @@ M1 已完成第一版：
 M2 已进入第一轮实现：
 
 - 静态 HTML 列表页抓取服务。
+- `browser_rendered` 基础渲染抓取策略，按需安装 Playwright 后可用于动态页面。
 - JSON API 列表抓取服务。
 - 详情页正文解析、附件链接识别、附件下载。
 - 页面 HTML / JSON 快照保存。
@@ -206,6 +207,13 @@ python -m pip install -e ".[dev]"
 cp .env.example .env
 alembic upgrade head
 uvicorn app.main:app --reload
+```
+
+如需启用 `browser_rendered` 动态页面策略，额外安装：
+
+```bash
+python -m pip install -e ".[browser]"
+python -m playwright install chromium
 ```
 
 启动后访问：

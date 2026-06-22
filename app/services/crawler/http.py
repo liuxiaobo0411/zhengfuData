@@ -63,6 +63,44 @@ def fetch_url(url: str, section: SiteSection, timeout: int | None = None) -> Fet
     raise RuntimeError("request failed without error")
 
 
+def fetch_browser_rendered_page(
+    url: str,
+    section: SiteSection,
+    timeout: int | None = None,
+) -> FetchedPage:
+    try:
+        from playwright.sync_api import Error as PlaywrightError
+        from playwright.sync_api import sync_playwright
+    except ImportError as exc:
+        raise RuntimeError(
+            "browser_rendered 策略需要安装 Playwright："
+            'python -m pip install ".[browser]" && python -m playwright install chromium'
+        ) from exc
+
+    request_url = normalize_request_url(url)
+    headers = section_headers(section)
+    timeout_ms = max(1, timeout or section.request_timeout) * 1000
+    try:
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.launch(headless=True)
+            try:
+                page = browser.new_page(extra_http_headers=headers)
+                page.goto(request_url, wait_until="networkidle", timeout=timeout_ms)
+                body = page.content().encode("utf-8")
+                return FetchedPage(
+                    url=url,
+                    final_url=page.url,
+                    body=body,
+                    text=body.decode("utf-8"),
+                    content_type="text/html; charset=utf-8",
+                    headers={},
+                )
+            finally:
+                browser.close()
+    except PlaywrightError as exc:
+        raise RuntimeError(f"browser_rendered 页面渲染失败：{exc}") from exc
+
+
 def add_query_params(url: str, params: dict[str, str]) -> str:
     separator = "&" if "?" in url else "?"
     return f"{url}{separator}{urlencode(params)}"

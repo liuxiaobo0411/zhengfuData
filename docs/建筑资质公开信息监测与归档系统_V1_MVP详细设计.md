@@ -641,6 +641,7 @@ http_with_retry
 
 browser_rendered
 使用 Playwright 渲染页面，适合动态加载的网站。
+Playwright 作为可选依赖安装，未安装浏览器运行时时需要给出明确错误提示。
 
 custom_adapter
 定制适配器，适合分页复杂、附件跳转特殊、接口特殊的网站。

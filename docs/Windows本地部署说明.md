@@ -44,6 +44,13 @@ scripts\windows\setup.ps1 -PythonCommand python
 - 执行数据库迁移。
 - 导入 `configs/sites.yaml` 中的首批站点配置。
 
+如需启用 `browser_rendered` 动态页面策略，需要额外安装 Playwright：
+
+```powershell
+.venv\Scripts\python.exe -m pip install -e ".[browser]"
+.venv\Scripts\python.exe -m playwright install chromium
+```
+
 初始化后必须修改 `.env`：
 
 ```env
