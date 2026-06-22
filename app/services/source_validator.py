@@ -6,9 +6,8 @@ from sqlalchemy import select
 
 from app.database import SessionLocal
 from app.models import Site, SiteSection
-from app.services.crawler.http import fetch_url
 from app.services.crawler.parser import parse_json_page
-from app.services.crawler.runner import parse_listing_records
+from app.services.crawler.runner import fetch_page_for_section, parse_listing_records
 
 
 @dataclass(frozen=True)
@@ -60,10 +59,10 @@ def validate_enabled_sources(limit: int = 0) -> SourceValidationSummary:
 
 def validate_section(section: SiteSection) -> SourceValidationResult:
     try:
-        if section.crawler_strategy in {"browser_rendered", "custom_adapter", "manual_import"}:
+        if section.crawler_strategy in {"custom_adapter", "manual_import"}:
             raise RuntimeError(f"当前策略不支持轻量来源验证: {section.crawler_strategy}")
 
-        page = fetch_url(section.url, section)
+        page = fetch_page_for_section(section.url, section)
         records = (
             parse_json_page(page.text, page.final_url, section)
             if section.crawler_strategy == "json_api"

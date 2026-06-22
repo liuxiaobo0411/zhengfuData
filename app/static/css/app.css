@@ -427,6 +427,34 @@ a {
   font-size: 13px;
 }
 
+.validation-result {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.validation-result strong {
+  font-size: 13px;
+}
+
+.validation-result span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.validation-result.success {
+  color: var(--green);
+  background: #e7f8f0;
+}
+
+.validation-result.failed {
+  color: var(--red);
+  background: #fff1f2;
+}
+
 .content-grid {
   display: grid;
   grid-template-columns: minmax(360px, 0.72fr) minmax(0, 1.28fr);

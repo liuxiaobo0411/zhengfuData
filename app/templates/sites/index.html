@@ -23,6 +23,19 @@
     {% if error %}
     <div class="form-error">{{ error }}</div>
     {% endif %}
+    {% if validation_result %}
+    <div class="validation-result {{ 'success' if validation_result.status == 'success' else 'failed' }}">
+      <strong>{{ "测试抓取成功" if validation_result.status == "success" else "测试抓取失败" }}</strong>
+      <span>
+        {{ validation_result.section_name }} · {{ validation_result.strategy }}
+        {% if validation_result.status == "success" %}
+        · 解析到 {{ validation_result.record_count }} 条 · {{ validation_result.sample_title }}
+        {% else %}
+        · {{ validation_result.failure_reason }}
+        {% endif %}
+      </span>
+    </div>
+    {% endif %}
     <div class="form-grid">
       <label>
         <span>网站名称</span>
@@ -97,6 +110,9 @@
               <a class="text-action" href="/sections/{{ section.id }}/edit">编辑</a>
               <form method="post" action="/sections/{{ section.id }}/crawl">
                 <button class="quiet-button" type="submit">手动抓取</button>
+              </form>
+              <form method="post" action="/sections/{{ section.id }}/validate">
+                <button class="quiet-button" type="submit">测试抓取</button>
               </form>
               <form method="post" action="/sections/{{ section.id }}/toggle">
                 <button class="quiet-button" type="submit">{{ "停用" if section.enabled else "启用" }}</button>

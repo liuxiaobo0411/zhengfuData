@@ -15,6 +15,7 @@ from app.database import SessionLocal
 from app.models import Site, SiteSection
 from app.routers.web.security import require_user
 from app.services.crawler import crawl_section
+from app.services.source_validator import SourceValidationResult, validate_section
 
 router = APIRouter(tags=["sites"])
 templates = Jinja2Templates(directory=str(BASE_DIR / "app" / "templates"))
@@ -346,6 +347,21 @@ def crawl_site_section(request: Request, section_id: int):
     return RedirectResponse("/sites", status_code=303)
 
 
+@router.post("/sections/{section_id}/validate", response_class=HTMLResponse)
+def validate_site_section(request: Request, section_id: int):
+    user = require_user(request)
+    if isinstance(user, RedirectResponse):
+        return user
+
+    with SessionLocal() as db:
+        section = db.get(SiteSection, section_id)
+        if section is None:
+            return RedirectResponse("/sites", status_code=303)
+        result = validate_section(section)
+
+    return sites_page_response(request, user, validation_result=result)
+
+
 def enabled_section_ids_for_site(db, site_id: int) -> list[int]:
     return list(
         db.scalars(
@@ -359,7 +375,12 @@ def enabled_section_ids_for_site(db, site_id: int) -> list[int]:
     )
 
 
-def sites_page_response(request: Request, user, error: str | None = None):
+def sites_page_response(
+    request: Request,
+    user,
+    error: str | None = None,
+    validation_result: SourceValidationResult | None = None,
+):
     with SessionLocal() as db:
         sites = db.scalars(
             select(Site).options(selectinload(Site.sections)).order_by(Site.created_at.desc())
@@ -374,6 +395,7 @@ def sites_page_response(request: Request, user, error: str | None = None):
             "sites": sites,
             "section_count": section_count,
             "error": error,
+            "validation_result": validation_result,
         },
         status_code=400 if error else 200,
     )

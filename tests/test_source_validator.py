@@ -60,7 +60,7 @@ def test_validate_enabled_sources_parses_html_and_json_sections(tmp_path, monkey
             return fake_page(url, json.dumps(payload), "application/json")
         return fake_page(url, "<html><li><a href='a.html'>HTML 公告</a>2026-06-21</li></html>")
 
-    monkeypatch.setattr(source_validator, "fetch_url", fake_fetch)
+    monkeypatch.setattr(source_validator, "fetch_page_for_section", fake_fetch)
 
     summary = source_validator.validate_enabled_sources()
 
@@ -76,7 +76,7 @@ def test_validate_enabled_sources_records_parse_failures(tmp_path, monkeypatch):
 
     monkeypatch.setattr(
         source_validator,
-        "fetch_url",
+        "fetch_page_for_section",
         lambda url, section: fake_page(url, "<html><main>无列表</main></html>"),
     )
 
@@ -85,3 +85,26 @@ def test_validate_enabled_sources_records_parse_failures(tmp_path, monkeypatch):
     assert summary.total_count == 1
     assert summary.failed_count == 1
     assert "未解析到列表记录" in summary.results[0].failure_reason
+
+
+def test_validate_section_supports_browser_rendered_strategy(tmp_path, monkeypatch):
+    setup_db(tmp_path)
+    section_id = add_section(
+        "动态栏目",
+        "https://example.gov.cn/dynamic.html",
+        strategy="browser_rendered",
+    )
+    calls = []
+
+    def fake_fetch(url, section):
+        calls.append((url, section.crawler_strategy))
+        return fake_page(url, "<html><li><a href='a.html'>动态公告</a>2026-06-21</li></html>")
+
+    monkeypatch.setattr(source_validator, "fetch_page_for_section", fake_fetch)
+
+    with SessionLocal() as db:
+        result = source_validator.validate_section(db.get(SiteSection, section_id))
+
+    assert result.status == "success"
+    assert result.sample_title == "动态公告"
+    assert calls == [("https://example.gov.cn/dynamic.html", "browser_rendered")]

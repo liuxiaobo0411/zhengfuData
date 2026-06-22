@@ -495,6 +495,62 @@ def test_web_site_crawl_action_requires_login_and_crawls_enabled_sections(tmp_pa
     assert calls == [{"section_id": 1, "triggered_by": "admin"}]
 
 
+def test_web_section_validate_action_requires_login_and_shows_result(tmp_path, monkeypatch):
+    client = make_client(tmp_path)
+    calls = []
+
+    with SessionLocal() as db:
+        site = Site(
+            name="测试站点",
+            slug="test-site",
+            homepage_url="https://example.gov.cn/",
+            enabled=True,
+        )
+        db.add(site)
+        db.flush()
+        db.add(
+            SiteSection(
+                site_id=site.id,
+                name="公告栏目",
+                url="https://example.gov.cn/list.html",
+                enabled=True,
+            )
+        )
+        db.commit()
+
+    def fake_validate_section(section):
+        calls.append(section.id)
+        return sites_router.SourceValidationResult(
+            section_id=section.id,
+            section_name=section.name,
+            strategy=section.crawler_strategy,
+            status="success",
+            record_count=2,
+            sample_title="样例公告",
+        )
+
+    monkeypatch.setattr(sites_router, "validate_section", fake_validate_section)
+
+    anonymous_response = client.post("/sections/1/validate", follow_redirects=False)
+    assert anonymous_response.status_code == 303
+    assert anonymous_response.headers["location"] == "/login"
+    assert calls == []
+
+    login(client)
+    sites_page = client.get("/sites")
+    assert sites_page.status_code == 200
+    assert "/sections/1/validate" in sites_page.text
+
+    response = client.post("/sections/1/validate")
+
+    assert response.status_code == 200
+    assert "测试抓取成功" in response.text
+    assert "样例公告" in response.text
+    assert calls == [1]
+    with SessionLocal() as db:
+        assert db.query(CrawlRun).count() == 0
+
+
 def test_web_notification_retry_action_requires_login(tmp_path, monkeypatch):
     client = make_client(tmp_path)
     calls = []

@@ -196,6 +196,7 @@ storage\snapshots
 - `scripts\windows\acceptance-check.ps1 -SourceLimit 2` 成功。
 - `scripts\windows\validate-sources.ps1 -Limit 2` 成功。
 - 后台可以登录。
+- 后台网站栏目页可以对单个栏目执行“测试抓取”，并展示成功或失败原因。
 - `scripts\windows\run-daily-crawl.ps1 -Limit 2` 成功。
 - `scripts\windows\export-acceptance-report.ps1` 成功。
 - 后台可以查看抓取任务、公告、附件和通知日志。
