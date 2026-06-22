@@ -654,6 +654,14 @@ pytest                       48 passed, 1 warning
 - `openclaw` 为 WARN：`OPENCLAW_NOTIFY_MODE=cli` 已启用，但 `WECOM_NOTIFY_TARGET_ID` 未配置真实 `group:<chatid>`。
 - 汇总：`ok=7 warn=1 fail=0`。
 
+2026-06-22 后续补充：
+
+- 已将 `WECOM_NOTIFY_TARGET_ID` 配置为用户提供的 `group:...` 群目标。
+- 修正 `doctor` 检测本机 OpenClaw 控制台时受系统代理影响的误判，检测本机地址时不走环境代理。
+- `.venv/bin/zhengfudata doctor`：`ok=8 warn=0 fail=0`。
+- `.venv/bin/zhengfudata send-daily-report`：已触达 OpenClaw CLI 和企业微信 API，但企业微信返回 `93006 invalid chatid`。
+- 通知日志：`notification=4 status=failed`，失败原因为企业微信接口返回 `invalid chatid`。
+
 来源验证结果：
 
 - `.venv/bin/zhengfudata validate-sources`：13 个启用栏目全部成功。
@@ -697,11 +705,11 @@ pytest                       48 passed, 1 warning
 当前结论：
 
 - 抓取、解析、去重、正文变化识别、附件归档、附件版本、本地后台查询、单附件下载、全部附件打包下载均已完成本机端到端复验。
-- 企微真实群通知尚未完成最终验收，原因是缺少真实 `WECOM_NOTIFY_TARGET_ID=group:<企微群 chatid>`。
-- OpenClaw CLI 通知路径已接入代码并有测试覆盖；本机 OpenClaw 企微通道可用性已验证到 WeCom API 返回 `invalid chatid`，说明剩余问题是目标群 chatid 配置，而非应用代码链路缺失。
+- 企微真实群通知尚未完成最终验收，原因是当前提供的群目标已被企业微信 API 判定为 `invalid chatid`。
+- OpenClaw CLI 通知路径已接入代码并有测试覆盖；本机 OpenClaw 企微通道可用性已验证到企业微信 API，说明剩余问题是目标群 `chatid` 与当前企微机器人/应用是否匹配，而非应用代码链路缺失。
 
 ## 后续验收事项
 
 - 在 Windows 电脑按 `docs/Windows本地部署说明.md` 完成安装、自检、启动、导入、抓取和附件下载验证。
-- 配置真实 `WECOM_NOTIFY_TARGET_ID=group:<企微群 chatid>` 后，执行 `.venv/bin/zhengfudata doctor` 和 `.venv/bin/zhengfudata send-daily-report`，验证企微群日报发送。
+- 确认当前企微机器人/应用可发送的真实群 `chatid` 后，更新 `WECOM_NOTIFY_TARGET_ID=group:<企微群 chatid>`，执行 `.venv/bin/zhengfudata doctor` 和 `.venv/bin/zhengfudata send-daily-report`，验证企微群日报发送。
 - 针对资质增项公告查询页面补 Playwright 或接口适配器。

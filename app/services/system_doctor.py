@@ -185,7 +185,8 @@ def openclaw_gateway_reachable(url: str) -> bool:
         parsed = urlparse(url)
         if parsed.scheme not in {"http", "https"} or not parsed.netloc:
             return False
-        response = httpx.get(url, timeout=3)
+        with httpx.Client(timeout=3, trust_env=False) as client:
+            response = client.get(url)
         return response.status_code < 500
     except Exception:
         return False
