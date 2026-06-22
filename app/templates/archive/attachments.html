@@ -59,9 +59,11 @@
         <span>所属公告</span>
         <span>来源网站</span>
         <span>状态</span>
+        <span>解析</span>
         <span>操作</span>
       </div>
       {% for attachment, announcement_title, site_name in rows %}
+      {% set parse_status = parse_statuses.get(attachment.id) %}
       <div class="table-row">
         <div>
           <strong>{{ attachment.name }}</strong>
@@ -70,9 +72,19 @@
         <span>{{ announcement_title }}</span>
         <span>{{ site_name }}</span>
         <span>{{ attachment.download_status }}{% if attachment.failure_reason %} · {{ attachment.failure_reason }}{% endif %}</span>
+        <span>
+          {% if parse_status %}
+          {{ parse_status.status }} · {{ parse_status.text_length }} 字
+          {% else %}
+          未解析
+          {% endif %}
+        </span>
         <div class="row-actions">
           {% if attachment.local_path %}
           <a class="text-action" href="/attachments/{{ attachment.id }}/download">下载</a>
+          <form class="inline-action-form" method="post" action="/attachments/{{ attachment.id }}/parse">
+            <button class="quiet-button" type="submit">解析</button>
+          </form>
           {% endif %}
           <a class="text-action" href="{{ attachment.source_url }}" target="_blank" rel="noreferrer">原始</a>
           <form class="inline-action-form" method="post" action="/attachments/{{ attachment.id }}/retry">

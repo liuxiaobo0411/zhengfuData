@@ -7,11 +7,20 @@ from app.config import get_settings, resolve_project_path
 from app.database import SessionLocal
 from app.services.acceptance_report import export_acceptance_report
 from app.services.crawler import crawl_section
+from app.services.kb import (
+    ask_knowledge,
+    kb_stats,
+    parse_attachment,
+    parse_attachments,
+    rebuild_search_index,
+    search_knowledge,
+)
 from app.services.notifier import send_daily_report
 from app.services.scheduler import run_daily_crawl
 from app.services.site_importer import import_sites_from_yaml
 from app.services.source_validator import validate_enabled_sources
 from app.services.system_doctor import format_doctor_report, run_system_doctor
+from app.services.v2_acceptance import format_v2_acceptance_report, run_v2_acceptance_check
 
 
 def main() -> None:
@@ -44,6 +53,24 @@ def main() -> None:
     subparsers.add_parser("doctor")
     subparsers.add_parser("send-daily-report")
 
+    parse_attachments_parser = subparsers.add_parser("parse-attachments")
+    parse_attachments_parser.add_argument("--limit", type=int, default=20)
+
+    parse_attachment_parser = subparsers.add_parser("parse-attachment")
+    parse_attachment_parser.add_argument("attachment_id", type=int)
+
+    subparsers.add_parser("rebuild-search-index")
+
+    kb_search_parser = subparsers.add_parser("kb-search")
+    kb_search_parser.add_argument("query")
+    kb_search_parser.add_argument("--limit", type=int, default=10)
+
+    kb_ask_parser = subparsers.add_parser("kb-ask")
+    kb_ask_parser.add_argument("question")
+    kb_ask_parser.add_argument("--limit", type=int, default=5)
+
+    subparsers.add_parser("v2-acceptance-check")
+
     args = parser.parse_args()
     if args.command == "import-sites":
         import_sites(Path(args.file))
@@ -63,6 +90,18 @@ def main() -> None:
         doctor()
     elif args.command == "send-daily-report":
         send_report()
+    elif args.command == "parse-attachments":
+        parse_attachment_batch(args.limit)
+    elif args.command == "parse-attachment":
+        parse_attachment_one(args.attachment_id)
+    elif args.command == "rebuild-search-index":
+        rebuild_index()
+    elif args.command == "kb-search":
+        kb_search(args.query, args.limit)
+    elif args.command == "kb-ask":
+        kb_ask(args.question, args.limit)
+    elif args.command == "v2-acceptance-check":
+        v2_acceptance_check()
 
 
 def import_sites(path: Path) -> None:
@@ -113,6 +152,61 @@ def send_report() -> None:
     with SessionLocal() as db:
         log = send_daily_report(db, settings=get_settings())
     print(f"notification={log.id} status={log.status} reason={log.failure_reason or ''}")
+
+
+def parse_attachment_batch(limit: int) -> None:
+    with SessionLocal() as db:
+        summary = parse_attachments(db, limit=limit, settings=get_settings())
+        stats = kb_stats(db)
+    print(
+        f"parse total={summary.total} success={summary.success} "
+        f"failed={summary.failed} unsupported={summary.unsupported}"
+    )
+    print(
+        f"kb document_texts={stats['document_texts']} parsed_success={stats['parsed_success']} "
+        f"search_index={stats['search_index']}"
+    )
+
+
+def parse_attachment_one(attachment_id: int) -> None:
+    with SessionLocal() as db:
+        document_text = parse_attachment(db, attachment_id, settings=get_settings())
+    print(
+        f"attachment={attachment_id} status={document_text.status} "
+        f"text_length={document_text.text_length} reason={document_text.error_message or ''}"
+    )
+
+
+def rebuild_index() -> None:
+    with SessionLocal() as db:
+        count = rebuild_search_index(db)
+        stats = kb_stats(db)
+    print(f"rebuild_search_index count={count} total={stats['search_index']}")
+
+
+def kb_search(query: str, limit: int) -> None:
+    with SessionLocal() as db:
+        results = search_knowledge(db, query, limit=limit)
+    for result in results:
+        print(
+            f"{result.entity_type}#{result.entity_id} score={result.score} "
+            f"title={result.title[:80]}"
+        )
+        if result.snippet:
+            print(f"  snippet={result.snippet[:160]}")
+        if result.source_url:
+            print(f"  source={result.source_url}")
+    print(f"summary total={len(results)}")
+
+
+def kb_ask(question: str, limit: int) -> None:
+    with SessionLocal() as db:
+        result = ask_knowledge(db, question, limit=limit)
+    print(result["answer"])
+    for index, item in enumerate(result["items"], start=1):
+        print(f"{index}. {item['title']}")
+        if item.get("source_url"):
+            print(f"   {item['source_url']}")
 
 
 def validate_sources(limit: int) -> None:
@@ -177,6 +271,14 @@ def acceptance_check(source_limit: int, skip_source_validation: bool = False) ->
         print("source_validation=skipped")
 
     if failed:
+        raise SystemExit(1)
+
+
+def v2_acceptance_check() -> None:
+    with SessionLocal() as db:
+        report = run_v2_acceptance_check(db, settings=get_settings())
+    print(format_v2_acceptance_report(report))
+    if report.failed_count:
         raise SystemExit(1)
 
 

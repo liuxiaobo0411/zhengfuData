@@ -221,6 +221,53 @@ class AttachmentVersion(TimestampMixin, Base):
     )
 
 
+class DocumentText(TimestampMixin, Base):
+    __tablename__ = "document_texts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    attachment_id: Mapped[int] = mapped_column(
+        ForeignKey("attachments.id"), nullable=False, index=True
+    )
+    attachment_version_id: Mapped[int | None] = mapped_column(
+        ForeignKey("attachment_versions.id"),
+        index=True,
+    )
+    source_type: Mapped[str] = mapped_column(String(64), default="attachment", nullable=False)
+    parser_name: Mapped[str | None] = mapped_column(String(120))
+    parser_version: Mapped[str | None] = mapped_column(String(64))
+    status: Mapped[str] = mapped_column(String(32), default="pending", nullable=False)
+    text: Mapped[str | None] = mapped_column(Text)
+    text_hash: Mapped[str | None] = mapped_column(String(128))
+    text_length: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    error_message: Mapped[str | None] = mapped_column(Text)
+    parsed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        UniqueConstraint(
+            "attachment_version_id",
+            name="uq_document_texts_attachment_version",
+        ),
+    )
+
+
+class SearchIndex(TimestampMixin, Base):
+    __tablename__ = "search_index"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    entity_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    entity_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    title: Mapped[str] = mapped_column(String(500), nullable=False)
+    body: Mapped[str | None] = mapped_column(Text)
+    source_url: Mapped[str | None] = mapped_column(String(1000))
+    backend_path: Mapped[str | None] = mapped_column(String(1000))
+    site_name: Mapped[str | None] = mapped_column(String(200))
+    section_name: Mapped[str | None] = mapped_column(String(200))
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    indexed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (UniqueConstraint("entity_type", "entity_id", name="uq_search_index_entity"),)
+
+
 class ChangeLog(TimestampMixin, Base):
     __tablename__ = "change_logs"
 

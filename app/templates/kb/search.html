@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}知识库检索 - 建筑资质公开信息监测与归档系统{% endblock %}
+
+{% block content %}
+<header class="topbar">
+  <div>
+    <h1>知识库检索</h1>
+    <p>检索已归档公告、正文和附件解析文本。</p>
+  </div>
+  <div class="topbar-actions">
+    <span class="status-pill success">{{ results|length }} 条结果</span>
+  </div>
+</header>
+
+<section class="content-stack">
+  <form class="panel filter-panel" method="get" action="/kb/search">
+    <div class="filter-grid">
+      <label>
+        <span>关键词</span>
+        <input name="q" value="{{ query }}" placeholder="建筑业企业资质延续">
+      </label>
+      <label>
+        <span>类型</span>
+        <select name="entity_type">
+          <option value="">全部</option>
+          <option value="announcement" {% if entity_type == "announcement" %}selected{% endif %}>公告</option>
+          <option value="attachment" {% if entity_type == "attachment" %}selected{% endif %}>附件</option>
+        </select>
+      </label>
+    </div>
+    <button type="submit">检索</button>
+  </form>
+
+  <section class="panel table-panel">
+    {% if query and results %}
+    <div class="data-table">
+      <div class="table-head">
+        <span>标题</span>
+        <span>类型</span>
+        <span>来源</span>
+        <span>命中</span>
+        <span>操作</span>
+      </div>
+      {% for item in results %}
+      <div class="table-row">
+        <div>
+          <strong>{{ item.title }}</strong>
+          <span>{{ item.snippet }}</span>
+        </div>
+        <span>{{ "公告" if item.entity_type == "announcement" else "附件" }}</span>
+        <div>
+          <strong>{{ item.site_name or "-" }}</strong>
+          <span>{{ item.section_name or "-" }}</span>
+        </div>
+        <span>{{ item.match_fields|join(", ") }}</span>
+        <div class="row-actions">
+          {% if item.backend_path %}
+          <a class="text-action" href="{{ item.backend_path }}">后台</a>
+          {% endif %}
+          {% if item.source_url %}
+          <a class="text-action" href="{{ item.source_url }}" target="_blank" rel="noreferrer">原始</a>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% elif query %}
+    <div class="empty-state">没有找到匹配结果</div>
+    {% else %}
+    <div class="empty-state">输入关键词开始检索</div>
+    {% endif %}
+  </section>
+</section>
+{% endblock %}

@@ -308,6 +308,26 @@ zhengfudata export-acceptance-report
 zhengfudata acceptance-check --source-limit 2
 ```
 
+解析已下载附件并构建本地知识库：
+
+```bash
+zhengfudata parse-attachments --limit 20
+zhengfudata rebuild-search-index
+```
+
+执行知识库关键词检索和问答摘要：
+
+```bash
+zhengfudata kb-search "建筑业企业资质延续"
+zhengfudata kb-ask "最近建筑业企业资质延续公告有哪些？"
+```
+
+一键执行 V2 知识库验收检查：
+
+```bash
+zhengfudata v2-acceptance-check
+```
+
 手动抓取全部启用栏目：
 
 ```bash

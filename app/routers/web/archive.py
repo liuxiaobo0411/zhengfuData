@@ -19,12 +19,14 @@ from app.models import (
     AttachmentVersion,
     ChangeLog,
     CrawlRun,
+    DocumentText,
     NotificationLog,
     Site,
     SiteSection,
 )
 from app.routers.web.security import require_user
 from app.services.crawler import retry_attachment_download
+from app.services.kb import parse_attachment
 from app.services.notifier import retry_notification
 from app.services.scheduler import run_daily_crawl
 from app.services.storage import prepare_storage
@@ -214,6 +216,7 @@ def attachment_list(request: Request):
         query = attachment_list_query(filters)
         rows = db.execute(query.limit(300)).all()
         version_counts = attachment_version_counts(db, [row[0].id for row in rows])
+        parse_statuses = attachment_parse_statuses(db, [row[0].id for row in rows])
         sites = db.scalars(select(Site).order_by(Site.name)).all()
         download_statuses = list(
             db.scalars(
@@ -231,6 +234,7 @@ def attachment_list(request: Request):
             "sites": sites,
             "download_statuses": download_statuses,
             "version_counts": version_counts,
+            "parse_statuses": parse_statuses,
             "filters": filters,
             "download_all_url": download_all_url(filters),
         },
@@ -364,6 +368,20 @@ def attachment_version_counts(db, attachment_ids: list[int]) -> dict[int, int]:
     return {attachment_id: count for attachment_id, count in rows}
 
 
+def attachment_parse_statuses(db, attachment_ids: list[int]) -> dict[int, DocumentText]:
+    if not attachment_ids:
+        return {}
+    rows = db.scalars(
+        select(DocumentText)
+        .where(DocumentText.attachment_id.in_(attachment_ids))
+        .order_by(DocumentText.attachment_id, DocumentText.id.desc())
+    ).all()
+    statuses: dict[int, DocumentText] = {}
+    for row in rows:
+        statuses.setdefault(row.attachment_id, row)
+    return statuses
+
+
 def download_all_url(filters: dict[str, str]) -> str:
     query = {
         key: value
@@ -397,6 +415,17 @@ def retry_attachment_from_web(request: Request, attachment_id: int):
 
     with SessionLocal() as db:
         retry_attachment_download(db, attachment_id, triggered_by=user.username)
+    return RedirectResponse("/attachments", status_code=303)
+
+
+@router.post("/attachments/{attachment_id}/parse")
+def parse_attachment_from_web(request: Request, attachment_id: int):
+    user = require_user(request)
+    if isinstance(user, RedirectResponse):
+        return user
+
+    with SessionLocal() as db:
+        parse_attachment(db, attachment_id, settings=get_settings())
     return RedirectResponse("/attachments", status_code=303)
 
 

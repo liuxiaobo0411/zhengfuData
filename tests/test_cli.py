@@ -56,3 +56,42 @@ def test_acceptance_check_fails_when_source_validation_fails(tmp_path, monkeypat
     output = capsys.readouterr().out
     assert "FAIL section=1" in output
     assert "failed=1" in output
+
+
+def test_kb_search_prints_results(tmp_path, monkeypatch, capsys):
+    setup_db(tmp_path, monkeypatch)
+
+    class Result:
+        entity_type = "announcement"
+        entity_id = 1
+        score = 120
+        title = "建筑业企业资质延续公告"
+        snippet = "资质延续"
+        source_url = "https://example.gov.cn/a.html"
+
+    monkeypatch.setattr(cli, "search_knowledge", lambda db, query, limit: [Result()])
+
+    cli.kb_search("资质延续", limit=5)
+
+    output = capsys.readouterr().out
+    assert "announcement#1" in output
+    assert "建筑业企业资质延续公告" in output
+    assert "summary total=1" in output
+
+
+def test_kb_ask_prints_answer(tmp_path, monkeypatch, capsys):
+    setup_db(tmp_path, monkeypatch)
+
+    def fake_ask_knowledge(db, question, limit):
+        return {
+            "answer": "找到 1 条相关信息",
+            "items": [{"title": "资质公告", "source_url": "https://example.gov.cn/a.html"}],
+        }
+
+    monkeypatch.setattr(cli, "ask_knowledge", fake_ask_knowledge)
+
+    cli.kb_ask("资质", limit=5)
+
+    output = capsys.readouterr().out
+    assert "找到 1 条相关信息" in output
+    assert "资质公告" in output

@@ -16,6 +16,7 @@ from app.models import (
     ChangeLog,
     CrawlRun,
     NotificationLog,
+    SearchIndex,
     Site,
     SiteSection,
 )
@@ -378,6 +379,8 @@ def test_archive_pages_and_attachment_download(tmp_path, monkeypatch):
     assert "timeout" in attachments.text
     assert "/attachments/2/retry" in attachments.text
     assert "1 个版本" in attachments.text
+    assert "未解析" in attachments.text
+    assert "/attachments/1/parse" in attachments.text
     assert "打包下载" in attachments.text
 
     failed_attachments = client.get("/attachments?download_status=failed")
@@ -598,3 +601,70 @@ def test_web_attachment_retry_action_requires_login(tmp_path, monkeypatch):
     assert response.status_code == 303
     assert response.headers["location"] == "/attachments"
     assert calls == [{"attachment_id": 9, "triggered_by": "admin"}]
+
+
+def test_kb_api_and_search_page(tmp_path):
+    client = make_client(tmp_path)
+    with SessionLocal() as db:
+        db.add(
+            SearchIndex(
+                entity_type="announcement",
+                entity_id=1,
+                title="建筑业企业资质延续公告",
+                body="住房城乡建设部发布建筑业企业资质延续名单",
+                source_url="https://www.mohurd.gov.cn/a.html",
+                backend_path="/announcements/1",
+                site_name="住房城乡建设部",
+                section_name="资质公告",
+            )
+        )
+        db.commit()
+
+    response = client.post("/api/kb/search", json={"query": "资质延续"})
+    assert response.status_code == 200
+    assert response.json()["total"] == 1
+    assert response.json()["items"][0]["title"] == "建筑业企业资质延续公告"
+
+    ask_response = client.post("/api/kb/ask", json={"question": "资质延续"})
+    assert ask_response.status_code == 200
+    assert ask_response.json()["answer_type"] == "search_summary"
+
+    openclaw_response = client.post("/api/openclaw/kb/ask", json={"text": "资质延续"})
+    assert openclaw_response.status_code == 200
+    assert "建筑业企业资质延续公告" in openclaw_response.json()["text"]
+
+    anonymous_page = client.get("/kb/search", follow_redirects=False)
+    assert anonymous_page.status_code == 303
+    assert anonymous_page.headers["location"] == "/login"
+
+    login(client)
+    page = client.get("/kb/search?q=资质延续")
+    assert page.status_code == 200
+    assert "知识库检索" in page.text
+    assert "建筑业企业资质延续公告" in page.text
+
+
+def test_web_attachment_parse_action_requires_login(tmp_path, monkeypatch):
+    client = make_client(tmp_path)
+    calls = []
+
+    class FakeDocumentText:
+        status = "success"
+
+    def fake_parse_attachment(db, attachment_id, settings):
+        calls.append({"attachment_id": attachment_id, "storage": str(settings.storage_root)})
+        return FakeDocumentText()
+
+    monkeypatch.setattr(archive_router, "parse_attachment", fake_parse_attachment)
+
+    anonymous_response = client.post("/attachments/9/parse", follow_redirects=False)
+    assert anonymous_response.status_code == 303
+    assert anonymous_response.headers["location"] == "/login"
+    assert calls == []
+
+    login(client)
+    response = client.post("/attachments/9/parse", follow_redirects=False)
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/attachments"
+    assert calls[0]["attachment_id"] == 9

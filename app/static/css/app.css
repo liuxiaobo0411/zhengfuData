@@ -654,7 +654,7 @@ a {
 
 .attachment-table .table-head,
 .attachment-table .table-row {
-  grid-template-columns: minmax(220px, 1fr) minmax(240px, 1fr) minmax(160px, 0.6fr) 90px 110px;
+  grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr) minmax(140px, 0.6fr) 90px 100px 130px;
 }
 
 .notification-table .table-head,
