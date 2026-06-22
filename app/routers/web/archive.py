@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlencode
@@ -128,6 +129,8 @@ def announcement_detail(request: Request, announcement_id: int):
             .where(ChangeLog.announcement_id == announcement_id)
             .order_by(ChangeLog.created_at.desc(), ChangeLog.id.desc())
         ).all()
+        structured_content = structured_announcement_content(announcement.content)
+        display_title = structured_announcement_title(structured_content, announcement.title)
 
     return templates.TemplateResponse(
         request,
@@ -138,11 +141,120 @@ def announcement_detail(request: Request, announcement_id: int):
             "announcement": announcement,
             "site": site,
             "section": section,
+            "display_title": display_title,
+            "structured_content": structured_content,
             "attachments": attachments,
             "attachment_versions": attachment_versions,
             "changes": changes,
         },
     )
+
+
+FIELD_LABELS = {
+    "fentName": "企业名称",
+    "fname": "企业名称",
+    "fappContent": "申请内容",
+    "fmanageTypeName": "办理类型",
+    "fappResultName": "审批结果",
+    "ftime": "审批时间",
+    "ftypename": "资质类别",
+    "fcertino": "证书编号",
+    "fendtimelist": "证书有效期",
+    "fendtime": "有效期",
+    "fregistdeptid": "注册地区编码",
+    "fregistdeptname": "注册地区",
+    "fregistaddress": "注册地址",
+    "legalname": "法定代表人",
+    "responsiblename": "企业负责人",
+    "technologyname": "技术负责人",
+    "fregistfund": "注册资本",
+    "fregistfundunitid": "注册资本单位",
+    "fregistrationTime": "注册时间",
+    "faddress": "地址",
+    "fstate": "状态",
+    "fsystemname": "业务系统",
+    "fsystemid": "业务系统编号",
+    "certificateFid": "证书文件 ID",
+    "fid": "记录 ID",
+    "fjuridcialcode": "统一社会信用代码",
+    "securityFcertino": "安许证书编号",
+    "securityFendtime": "安许有效期",
+    "announcementQualifications": "公告资质",
+    "fqualiType": "资质类型",
+    "flevelname": "等级",
+    "fupdeptid": "上级部门",
+    "fleadername": "负责人",
+    "fcertifid": "证书 ID",
+    "fapptime": "申请时间",
+    "ftx2": "备注",
+    "province": "省份",
+}
+
+FIELD_ORDER = [
+    "fentName",
+    "fname",
+    "fappContent",
+    "fmanageTypeName",
+    "fappResultName",
+    "ftime",
+    "ftypename",
+    "fcertino",
+    "fendtimelist",
+    "fendtime",
+    "fregistdeptname",
+    "fregistdeptid",
+    "fregistaddress",
+    "legalname",
+    "responsiblename",
+    "technologyname",
+    "fregistfund",
+    "fregistrationTime",
+    "fstate",
+    "fsystemname",
+    "fsystemid",
+    "certificateFid",
+    "fid",
+]
+
+
+def structured_announcement_content(content: str | None) -> list[tuple[str, str, str]]:
+    if not content:
+        return []
+    try:
+        parsed = json.loads(content)
+    except json.JSONDecodeError:
+        return []
+    if not isinstance(parsed, dict):
+        return []
+    keys = [key for key in FIELD_ORDER if key in parsed]
+    keys.extend(sorted(key for key in parsed if key not in set(keys)))
+    rows: list[tuple[str, str, str]] = []
+    for key in keys:
+        value = parsed.get(key)
+        rows.append((FIELD_LABELS.get(key, key), key, display_json_value(value)))
+    return rows
+
+
+def structured_announcement_title(
+    structured_content: list[tuple[str, str, str]],
+    fallback: str,
+) -> str:
+    values = {key: value for _label, key, value in structured_content if value != "-"}
+    company = values.get("fentName") or values.get("fname")
+    content = values.get("fappContent") or values.get("ftypename")
+    if company and content and company not in fallback:
+        return f"{company} - {content}"
+    return fallback
+
+
+def display_json_value(value) -> str:
+    if value is None or value == "":
+        return "-"
+    if isinstance(value, bool):
+        return "是" if value else "否"
+    if isinstance(value, (dict, list)):
+        return json.dumps(value, ensure_ascii=False)
+    return str(value).strip() or "-"
 
 
 @router.get("/changes", response_class=HTMLResponse)

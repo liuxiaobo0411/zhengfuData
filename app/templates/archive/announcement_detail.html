@@ -17,7 +17,7 @@
 <section class="detail-layout">
   <article class="panel detail-main">
     <div class="detail-title">
-      <h2>{{ announcement.title }}</h2>
+      <h2>{{ display_title }}</h2>
       <span>{{ announcement.item_type }} · {{ announcement.status }}</span>
     </div>
     <dl class="meta-grid">
@@ -30,9 +30,29 @@
       <dt>快照</dt>
       <dd>{{ announcement.snapshot_path or "-" }}</dd>
     </dl>
+    {% if structured_content %}
+    <section class="structured-content">
+      <div class="structured-table">
+        <div class="structured-head">
+          <span>字段</span>
+          <span>内容</span>
+        </div>
+        {% for label, key, value in structured_content %}
+        <div class="structured-row">
+          <div>
+            <strong>{{ label }}</strong>
+            <span>{{ key }}</span>
+          </div>
+          <span>{{ value }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% else %}
     <div class="content-box">
       {{ announcement.content or "暂无正文" }}
     </div>
+    {% endif %}
   </article>
 
   <aside class="detail-side">

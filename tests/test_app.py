@@ -419,6 +419,54 @@ def test_archive_pages_and_attachment_download(tmp_path, monkeypatch):
     assert "重试" in notifications.text
 
 
+def test_announcement_detail_renders_json_content_as_table(tmp_path):
+    client = make_client(tmp_path)
+    login(client)
+    with SessionLocal() as db:
+        site = Site(
+            name="陕西省住房和城乡建设厅",
+            slug="shaanxi",
+            homepage_url="https://example.gov.cn/",
+            enabled=True,
+        )
+        db.add(site)
+        db.flush()
+        section = SiteSection(
+            site_id=site.id,
+            name="建筑施工公告",
+            url="https://example.gov.cn/api",
+            enabled=True,
+        )
+        db.add(section)
+        db.flush()
+        announcement = Announcement(
+            site_id=site.id,
+            section_id=section.id,
+            identity_key="json-1",
+            identity_strategy="api",
+            title="施工总承包建筑工程二级",
+            item_type="qualification_notice",
+            source_url="https://example.gov.cn/api#row-1",
+            status="active",
+            content=(
+                '{"fentName":"陕西测试建设有限公司","fappContent":"施工总承包建筑工程二级",'
+                '"fmanageTypeName":"资质延续","fappResultName":"予以许可"}'
+            ),
+        )
+        db.add(announcement)
+        db.commit()
+
+    response = client.get("/announcements/1")
+
+    assert response.status_code == 200
+    assert "陕西测试建设有限公司 - 施工总承包建筑工程二级" in response.text
+    assert "企业名称" in response.text
+    assert "申请内容" in response.text
+    assert "办理类型" in response.text
+    assert "审批结果" in response.text
+    assert "{&quot;fentName&quot;" not in response.text
+
+
 def test_web_daily_crawl_action_requires_login_and_passes_notify(tmp_path, monkeypatch):
     client = make_client(tmp_path)
     calls = []
