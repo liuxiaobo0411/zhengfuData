@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from urllib.parse import urlparse
 
+import httpx
 from sqlalchemy import func, inspect, select, text
 from sqlalchemy.orm import Session
 
@@ -150,6 +152,25 @@ def check_imported_sources(db: Session) -> DoctorCheck:
 
 
 def check_openclaw(settings: Settings) -> DoctorCheck:
+    if settings.openclaw_notify_mode == "cli":
+        if not settings.wecom_notify_target_id:
+            return DoctorCheck(
+                "openclaw",
+                "warn",
+                "OPENCLAW_NOTIFY_MODE=cli，但 WECOM_NOTIFY_TARGET_ID 未配置；需要 group:<chatid>",
+            )
+        if not openclaw_gateway_reachable(settings.openclaw_dashboard_url):
+            return DoctorCheck(
+                "openclaw",
+                "warn",
+                "OPENCLAW_NOTIFY_MODE=cli，但 OpenClaw 控制台不可访问："
+                f"{settings.openclaw_dashboard_url}",
+            )
+        return DoctorCheck(
+            "openclaw",
+            "ok",
+            "OPENCLAW_NOTIFY_MODE=cli，OpenClaw 本机服务可访问，企微目标已配置",
+        )
     if not settings.openclaw_webhook_url:
         return DoctorCheck(
             "openclaw",
@@ -157,6 +178,17 @@ def check_openclaw(settings: Settings) -> DoctorCheck:
             "OPENCLAW_WEBHOOK_URL 未配置；抓取可运行，但不会发送真实企微日报",
         )
     return DoctorCheck("openclaw", "ok", "OPENCLAW_WEBHOOK_URL 已配置")
+
+
+def openclaw_gateway_reachable(url: str) -> bool:
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            return False
+        response = httpx.get(url, timeout=3)
+        return response.status_code < 500
+    except Exception:
+        return False
 
 
 def check_windows_scripts() -> DoctorCheck:

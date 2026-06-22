@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from datetime import datetime, time
 from typing import Any
 
@@ -129,7 +130,7 @@ def send_daily_report(
         target_type=settings.wecom_notify_target_type,
         target_id=settings.wecom_notify_target_id,
         status="pending",
-        request_url=settings.openclaw_webhook_url or None,
+        request_url=notification_request_url(settings),
         request_payload=json.dumps(payload, ensure_ascii=False),
     )
     db.add(log)
@@ -155,7 +156,7 @@ def retry_notification(
         target_type=original.target_type or settings.wecom_notify_target_type,
         target_id=original.target_id or settings.wecom_notify_target_id,
         status="pending",
-        request_url=settings.openclaw_webhook_url or original.request_url,
+        request_url=notification_request_url(settings) or original.request_url,
         request_payload=json.dumps(payload, ensure_ascii=False),
     )
     db.add(retry_log)
@@ -173,12 +174,22 @@ def parse_payload(value: str | None) -> dict[str, Any]:
     return payload if isinstance(payload, dict) else {"text": payload}
 
 
+def notification_request_url(settings: Settings) -> str | None:
+    if settings.openclaw_notify_mode == "cli":
+        target = settings.wecom_notify_target_id.strip()
+        return f"openclaw-cli://wecom/{target}" if target else None
+    return settings.openclaw_webhook_url or None
+
+
 def dispatch_openclaw_notification(
     db: Session,
     log: NotificationLog,
     payload: dict[str, Any],
     settings: Settings,
 ) -> NotificationLog:
+    if settings.openclaw_notify_mode == "cli":
+        return dispatch_openclaw_cli_notification(db, log, payload, settings=settings)
+
     request_url = settings.openclaw_webhook_url or log.request_url
     if not request_url:
         log.status = "failed"
@@ -202,6 +213,66 @@ def dispatch_openclaw_notification(
             db.commit()
             db.refresh(log)
             return log
+        except Exception as exc:
+            last_error = f"{type(exc).__name__}: {exc}"
+
+    log.status = "failed"
+    log.failure_reason = f"发送失败，已尝试 {total_attempts} 次；最后错误：{last_error}"
+    db.commit()
+    db.refresh(log)
+    return log
+
+
+def dispatch_openclaw_cli_notification(
+    db: Session,
+    log: NotificationLog,
+    payload: dict[str, Any],
+    settings: Settings,
+) -> NotificationLog:
+    target = settings.wecom_notify_target_id.strip()
+    if not target:
+        log.status = "failed"
+        log.failure_reason = (
+            "WECOM_NOTIFY_TARGET_ID 未配置；CLI 模式需要 group:<chatid> 或 user:<userid>"
+        )
+        db.commit()
+        db.refresh(log)
+        return log
+
+    log.request_url = f"openclaw-cli://wecom/{target}"
+    total_attempts = max(1, settings.openclaw_notify_retry_times + 1)
+    message = str(payload.get("markdown") or payload.get("text") or "")
+    last_error = ""
+    for _attempt in range(1, total_attempts + 1):
+        try:
+            completed = subprocess.run(
+                [
+                    settings.openclaw_cli_command,
+                    "message",
+                    "send",
+                    "--channel",
+                    "wecom",
+                    "--target",
+                    target,
+                    "--message",
+                    message,
+                    "--json",
+                ],
+                capture_output=True,
+                check=False,
+                text=True,
+                timeout=60,
+            )
+            log.response_status_code = completed.returncode
+            log.response_body = (completed.stdout + completed.stderr)[:4000]
+            if completed.returncode == 0:
+                log.status = "success"
+                log.sent_at = datetime.now()
+                log.failure_reason = None
+                db.commit()
+                db.refresh(log)
+                return log
+            last_error = f"openclaw CLI exit {completed.returncode}: {log.response_body}"
         except Exception as exc:
             last_error = f"{type(exc).__name__}: {exc}"
 

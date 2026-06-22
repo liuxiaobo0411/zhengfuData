@@ -70,7 +70,7 @@ def test_send_daily_report_records_missing_webhook_failure(tmp_path):
     with SessionLocal() as db:
         log = send_daily_report(
             db,
-            settings=Settings(OPENCLAW_WEBHOOK_URL=""),
+            settings=Settings(OPENCLAW_NOTIFY_MODE="webhook", OPENCLAW_WEBHOOK_URL=""),
             now=datetime(2026, 6, 21, 12, 0),
         )
 
@@ -102,13 +102,75 @@ def test_send_daily_report_posts_to_openclaw(tmp_path, monkeypatch):
     with SessionLocal() as db:
         log = send_daily_report(
             db,
-            settings=Settings(OPENCLAW_WEBHOOK_URL="http://openclaw.local/webhook"),
+            settings=Settings(
+                OPENCLAW_NOTIFY_MODE="webhook",
+                OPENCLAW_WEBHOOK_URL="http://openclaw.local/webhook",
+            ),
             now=datetime(2026, 6, 21, 12, 0),
         )
 
     assert log.status == "success"
     assert sent["url"] == "http://openclaw.local/webhook"
     assert sent["json"]["event_type"] == "daily_crawl_report"
+
+
+def test_send_daily_report_sends_via_openclaw_cli(tmp_path, monkeypatch):
+    setup_db(tmp_path)
+    seed_run()
+    calls = []
+
+    class FakeCompleted:
+        returncode = 0
+        stdout = '{"ok":true}'
+        stderr = ""
+
+    def fake_run(command, capture_output, check, text, timeout):
+        calls.append(
+            {
+                "command": command,
+                "capture_output": capture_output,
+                "check": check,
+                "text": text,
+                "timeout": timeout,
+            }
+        )
+        return FakeCompleted()
+
+    monkeypatch.setattr("app.services.notifier.subprocess.run", fake_run)
+    with SessionLocal() as db:
+        log = send_daily_report(
+            db,
+            settings=Settings(
+                OPENCLAW_NOTIFY_MODE="cli",
+                OPENCLAW_CLI_COMMAND="openclaw",
+                WECOM_NOTIFY_TARGET_ID="group:wr123",
+            ),
+            now=datetime(2026, 6, 21, 12, 0),
+        )
+
+    assert log.status == "success"
+    assert log.request_url == "openclaw-cli://wecom/group:wr123"
+    assert calls[0]["command"][:5] == ["openclaw", "message", "send", "--channel", "wecom"]
+    assert calls[0]["command"][calls[0]["command"].index("--target") + 1] == "group:wr123"
+    assert (
+        "建筑资质公开信息抓取日报"
+        in calls[0]["command"][calls[0]["command"].index("--message") + 1]
+    )
+
+
+def test_send_daily_report_cli_requires_target(tmp_path):
+    setup_db(tmp_path)
+    seed_run()
+
+    with SessionLocal() as db:
+        log = send_daily_report(
+            db,
+            settings=Settings(OPENCLAW_NOTIFY_MODE="cli", WECOM_NOTIFY_TARGET_ID=""),
+            now=datetime(2026, 6, 21, 12, 0),
+        )
+
+    assert log.status == "failed"
+    assert "WECOM_NOTIFY_TARGET_ID" in log.failure_reason
 
 
 def test_send_daily_report_retries_openclaw_failures(tmp_path, monkeypatch):
@@ -141,6 +203,7 @@ def test_send_daily_report_retries_openclaw_failures(tmp_path, monkeypatch):
         log = send_daily_report(
             db,
             settings=Settings(
+                OPENCLAW_NOTIFY_MODE="webhook",
                 OPENCLAW_WEBHOOK_URL="http://openclaw.local/webhook",
                 OPENCLAW_NOTIFY_RETRY_TIMES=2,
             ),
@@ -187,7 +250,7 @@ def test_retry_notification_creates_new_log_from_original_payload(tmp_path, monk
         retry_log = retry_notification(
             db,
             original.id,
-            settings=Settings(OPENCLAW_WEBHOOK_URL=""),
+            settings=Settings(OPENCLAW_NOTIFY_MODE="webhook", OPENCLAW_WEBHOOK_URL=""),
         )
 
         assert retry_log is not None

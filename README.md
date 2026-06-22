@@ -190,6 +190,8 @@ ADMIN_USERNAME=admin
 ADMIN_PASSWORD=change-me
 
 OPENCLAW_DASHBOARD_URL=http://127.0.0.1:18789/
+OPENCLAW_NOTIFY_MODE=webhook
+OPENCLAW_CLI_COMMAND=openclaw
 OPENCLAW_WEBHOOK_URL=
 OPENCLAW_GATEWAY_URL=ws://127.0.0.1:18789
 OPENCLAW_NOTIFY_RETRY_TIMES=2
@@ -326,6 +328,14 @@ zhengfudata crawl-section 1
 
 ```bash
 zhengfudata send-daily-report
+```
+
+如果 OpenClaw 已通过本机 CLI 接入企业微信，可改用 CLI 通知模式：
+
+```env
+OPENCLAW_NOTIFY_MODE=cli
+OPENCLAW_CLI_COMMAND=openclaw
+WECOM_NOTIFY_TARGET_ID=group:企微群chatid
 ```
 
 运行一次“每日抓取 + 日报通知”完整闭环：

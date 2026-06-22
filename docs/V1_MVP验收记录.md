@@ -355,6 +355,67 @@ GET /crawl-runs/49               200 success，附件成功，通知状态
 - 当前 `.env` 未配置真实 `OPENCLAW_WEBHOOK_URL`，因此本轮不证明真实企微群通知。
 - 当前仍使用默认 `ADMIN_PASSWORD` 与 `APP_SECRET_KEY`，正式交付前必须修改。
 
+## OpenClaw CLI 通知模式补强
+
+2026-06-22 本机继续补强 OpenClaw 通知适配方式。
+
+背景：
+
+- 本机 OpenClaw 控制台运行在 `127.0.0.1:18789`。
+- `openclaw channels status` 显示企业微信 `default` 已 `enabled, configured, running`。
+- 当前 OpenClaw 企业微信插件未暴露项目可直接 POST 的 webhook 路径，但支持 `openclaw message send --channel wecom --target ...`。
+
+已补充能力：
+
+- 新增 `OPENCLAW_NOTIFY_MODE`，支持 `webhook` 和 `cli`。
+- 新增 `OPENCLAW_CLI_COMMAND`，默认 `openclaw`。
+- `OPENCLAW_NOTIFY_MODE=cli` 时，系统通过 OpenClaw CLI 调用企业微信通道发送日报。
+- CLI 模式下通知日志记录 `openclaw-cli://wecom/<target>`、CLI 返回码、输出内容和失败原因。
+- 自检支持 CLI 模式：OpenClaw 本机服务可访问且 `WECOM_NOTIFY_TARGET_ID` 已配置时为 OK。
+
+测试结果：
+
+```text
+ruff check .                 PASS
+ruff format --check .        PASS
+pytest                       72 passed, 1 warning
+alembic current              20260622_0004 (head)
+```
+
+本机配置状态：
+
+```text
+OPENCLAW_NOTIFY_MODE=cli
+ADMIN_PASSWORD 非默认
+APP_SECRET_KEY 非默认
+```
+
+自检结果：
+
+```text
+summary ok=7 warn=1 fail=0
+WARN openclaw: OPENCLAW_NOTIFY_MODE=cli，但 WECOM_NOTIFY_TARGET_ID 未配置；需要 group:<chatid>
+```
+
+应用侧 CLI 模式失败路径验证：
+
+```text
+zhengfudata send-daily-report
+notification=3 status=failed reason=WECOM_NOTIFY_TARGET_ID 未配置；CLI 模式需要 group:<chatid> 或 user:<userid>
+```
+
+OpenClaw 企业微信通道探测：
+
+```text
+openclaw message send --channel wecom --target __invalid_validation_target__
+GatewayClientRequestError: OutboundDeliveryError ... errcode=93006 invalid chatid
+```
+
+说明：
+
+- 该错误来自企业微信 API，证明 OpenClaw 企业微信发送通道已连到企业微信侧。
+- 最终真实群通知仍需要配置 `WECOM_NOTIFY_TARGET_ID=group:<企微群 chatid>` 后复测。
+
 ## 后台页面验证
 
 已启动本地服务并验证以下页面返回 200：

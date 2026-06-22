@@ -57,9 +57,19 @@ scripts\windows\setup.ps1 -PythonCommand python
 APP_SECRET_KEY=请改成随机长字符串
 ADMIN_PASSWORD=请改成强密码
 APP_PUBLIC_BASE_URL=http://127.0.0.1:8000
+OPENCLAW_NOTIFY_MODE=webhook
+OPENCLAW_CLI_COMMAND=openclaw
 OPENCLAW_WEBHOOK_URL=OpenClaw 提供的通知地址
 OPENCLAW_NOTIFY_RETRY_TIMES=2
 APP_RUNNING_RUN_TIMEOUT_MINUTES=360
+```
+
+如果 Windows 机器上已安装并配置 OpenClaw CLI 企业微信通道，也可以使用 CLI 通知模式：
+
+```env
+OPENCLAW_NOTIFY_MODE=cli
+OPENCLAW_CLI_COMMAND=openclaw
+WECOM_NOTIFY_TARGET_ID=group:企微群chatid
 ```
 
 ## 运行部署自检

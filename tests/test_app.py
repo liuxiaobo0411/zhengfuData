@@ -34,7 +34,7 @@ def make_client(tmp_path, monkeypatch=None):
 def login(client: TestClient):
     return client.post(
         "/login",
-        data={"username": "admin", "password": "change-me"},
+        data={"username": "admin", "password": get_settings().admin_password},
         follow_redirects=False,
     )
 
