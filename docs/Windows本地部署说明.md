@@ -69,8 +69,11 @@ APP_RUNNING_RUN_TIMEOUT_MINUTES=360
 ```env
 OPENCLAW_NOTIFY_MODE=cli
 OPENCLAW_CLI_COMMAND=openclaw
-WECOM_NOTIFY_TARGET_ID=group:企微群chatid
+WECOM_NOTIFY_TARGET_ID=企微群chatid
 ```
+
+OpenClaw CLI 企业微信通道发送群消息时使用裸 `chatid`；如果误填 `group:` 或
+`chat:` 前缀，应用会在调用 CLI 前自动剥离前缀。
 
 ## 运行部署自检
 

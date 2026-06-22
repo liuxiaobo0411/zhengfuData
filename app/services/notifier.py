@@ -176,9 +176,17 @@ def parse_payload(value: str | None) -> dict[str, Any]:
 
 def notification_request_url(settings: Settings) -> str | None:
     if settings.openclaw_notify_mode == "cli":
-        target = settings.wecom_notify_target_id.strip()
+        target = openclaw_cli_target(settings.wecom_notify_target_id)
         return f"openclaw-cli://wecom/{target}" if target else None
     return settings.openclaw_webhook_url or None
+
+
+def openclaw_cli_target(target: str) -> str:
+    normalized = target.strip()
+    for prefix in ("group:", "chat:"):
+        if normalized.lower().startswith(prefix):
+            return normalized[len(prefix) :].strip()
+    return normalized
 
 
 def dispatch_openclaw_notification(
@@ -229,11 +237,11 @@ def dispatch_openclaw_cli_notification(
     payload: dict[str, Any],
     settings: Settings,
 ) -> NotificationLog:
-    target = settings.wecom_notify_target_id.strip()
+    target = openclaw_cli_target(settings.wecom_notify_target_id)
     if not target:
         log.status = "failed"
         log.failure_reason = (
-            "WECOM_NOTIFY_TARGET_ID 未配置；CLI 模式需要 group:<chatid> 或 user:<userid>"
+            "WECOM_NOTIFY_TARGET_ID 未配置；CLI 模式需要企微群 chatid 或 user:<userid>"
         )
         db.commit()
         db.refresh(log)

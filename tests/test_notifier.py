@@ -149,9 +149,9 @@ def test_send_daily_report_sends_via_openclaw_cli(tmp_path, monkeypatch):
         )
 
     assert log.status == "success"
-    assert log.request_url == "openclaw-cli://wecom/group:wr123"
+    assert log.request_url == "openclaw-cli://wecom/wr123"
     assert calls[0]["command"][:5] == ["openclaw", "message", "send", "--channel", "wecom"]
-    assert calls[0]["command"][calls[0]["command"].index("--target") + 1] == "group:wr123"
+    assert calls[0]["command"][calls[0]["command"].index("--target") + 1] == "wr123"
     assert (
         "建筑资质公开信息抓取日报"
         in calls[0]["command"][calls[0]["command"].index("--message") + 1]

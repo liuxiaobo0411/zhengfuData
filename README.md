@@ -335,8 +335,11 @@ zhengfudata send-daily-report
 ```env
 OPENCLAW_NOTIFY_MODE=cli
 OPENCLAW_CLI_COMMAND=openclaw
-WECOM_NOTIFY_TARGET_ID=group:企微群chatid
+WECOM_NOTIFY_TARGET_ID=企微群chatid
 ```
+
+当前 OpenClaw CLI 企业微信通道发送群消息时使用裸 `chatid`；如果误填
+`group:` 或 `chat:` 前缀，应用会在调用 CLI 前自动剥离前缀。
 
 运行一次“每日抓取 + 日报通知”完整闭环：
 
