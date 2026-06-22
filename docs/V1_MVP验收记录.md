@@ -637,8 +637,71 @@ pytest                       48 passed, 1 warning
 - 抓取任务详情页可看到 OpenClaw 未配置失败原因。
 - 抓取任务详情页提供通知重试入口。
 
+## 2026-06-22 本机端到端复验
+
+本轮复验基于本地 `main` 分支提交 `8af1d44 feat: support openclaw cli notifications`，本地工作区干净。
+
+质量门结果：
+
+- `.venv/bin/ruff check .`：通过。
+- `.venv/bin/ruff format --check .`：通过，50 个文件已格式化。
+- `.venv/bin/pytest`：72 passed，1 个第三方 `StarletteDeprecationWarning`。
+- `.venv/bin/alembic current`：`20260622_0004 (head)`。
+
+系统自检结果：
+
+- `database`、`database_schema`、`security`、`storage`、`sites_config`、`sources`、`windows_scripts` 均为 OK。
+- `openclaw` 为 WARN：`OPENCLAW_NOTIFY_MODE=cli` 已启用，但 `WECOM_NOTIFY_TARGET_ID` 未配置真实 `group:<chatid>`。
+- 汇总：`ok=7 warn=1 fail=0`。
+
+来源验证结果：
+
+- `.venv/bin/zhengfudata validate-sources`：13 个启用栏目全部成功。
+- `.venv/bin/zhengfudata acceptance-check --source-limit 13`：13 个启用栏目全部成功。
+- 验收报告：`storage/exports/v1_acceptance_report_20260622_114807.md`。
+
+每日抓取结果：
+
+- 命令：`.venv/bin/zhengfudata run-daily-crawl --no-notify`。
+- 输出：`daily sections=13 success=13 partial=0 failed=0`。
+- 本轮抓取时间：2026-06-22 11:50:21 至 2026-06-22 12:12:51。
+- 本轮批次数：13。
+- 本轮成功批次：13。
+- 本轮失败批次：0。
+- 本轮发现条目：140。
+- 本轮新增条目：0。
+- 本轮正文变化：4。
+- 本轮附件下载成功：152。
+- 本轮附件下载失败：0。
+
+本地库与文件结果：
+
+- 公告总数：160。
+- 附件总数：152。
+- 附件版本总数：152。
+- 失败附件数：0。
+- 已保存本地路径附件数：152。
+- `storage/attachments` 本地文件数：152。
+- 变更日志总数：346。
+
+后台页面复验：
+
+- `GET /api/health`：200。
+- `GET /login`：200。
+- `POST /login`：303，跳转 `/`。
+- `GET /`、`/sites`、`/announcements`、`/attachments`、`/changes`、`/crawl-runs`、`/notifications`、`/settings`：全部 200。
+- `GET /crawl-runs/74`：200。
+- `GET /attachments/1/download`：200，返回 20992 bytes。
+- `GET /attachments/download-all`：200，返回 19278974 bytes。
+
+当前结论：
+
+- 抓取、解析、去重、正文变化识别、附件归档、附件版本、本地后台查询、单附件下载、全部附件打包下载均已完成本机端到端复验。
+- 企微真实群通知尚未完成最终验收，原因是缺少真实 `WECOM_NOTIFY_TARGET_ID=group:<企微群 chatid>`。
+- OpenClaw CLI 通知路径已接入代码并有测试覆盖；本机 OpenClaw 企微通道可用性已验证到 WeCom API 返回 `invalid chatid`，说明剩余问题是目标群 chatid 配置，而非应用代码链路缺失。
+
 ## 后续验收事项
 
 - 在 Windows 电脑按 `docs/Windows本地部署说明.md` 完成安装、自检、启动、导入、抓取和附件下载验证。
-- 配置真实 `OPENCLAW_WEBHOOK_URL` 后，验证企微群日报发送。
+- 配置真实 `WECOM_NOTIFY_TARGET_ID=group:<企微群 chatid>` 后，执行 `.venv/bin/zhengfudata doctor` 和 `.venv/bin/zhengfudata send-daily-report`，验证企微群日报发送。
 - 针对资质增项公告查询页面补 Playwright 或接口适配器。
