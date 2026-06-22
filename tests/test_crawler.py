@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import app.models  # noqa: F401
@@ -18,6 +19,7 @@ from app.services.crawler.parser import extract_unitbuild_requests
 from app.services.crawler.runner import (
     crawl_section,
     identity_for,
+    mark_stale_running_runs,
     retry_attachment_download,
     run_type_for,
 )
@@ -78,6 +80,76 @@ def test_run_type_for_distinguishes_manual_and_scheduled_triggers():
     assert run_type_for("cli_daily") == "scheduled"
     assert run_type_for("cli") == "manual"
     assert run_type_for("admin") == "manual"
+
+
+def test_crawl_section_returns_existing_running_run_without_duplicate_fetch(tmp_path, monkeypatch):
+    setup_db(tmp_path)
+    section_id = create_site_and_section()
+    started_at = datetime(2026, 6, 22, 9, 0)
+    with SessionLocal() as db:
+        db.add(
+            CrawlRun(
+                run_no=f"manual-20260622090000000000-{section_id}",
+                run_type="manual",
+                status="running",
+                started_at=started_at,
+                total_sections=1,
+                triggered_by="tester",
+            )
+        )
+        db.commit()
+
+    def fail_fetch(url: str, section: SiteSection, timeout: int | None = None):
+        raise AssertionError("existing running run should short-circuit fetching")
+
+    monkeypatch.setattr("app.services.crawler.runner.fetch_url", fail_fetch)
+    with SessionLocal() as db:
+        run = crawl_section(db, section_id, triggered_by="tester")
+
+    assert run.status == "running"
+    assert run.run_no.endswith(f"-{section_id}")
+    with SessionLocal() as db:
+        assert db.query(CrawlRun).count() == 1
+        section = db.get(SiteSection, section_id)
+        assert section.last_status == "running"
+        assert "已有抓取任务运行中" in section.last_error
+
+
+def test_mark_stale_running_runs_marks_timed_out_runs_failed(tmp_path):
+    setup_db(tmp_path)
+    now = datetime(2026, 6, 22, 12, 0)
+    with SessionLocal() as db:
+        db.add_all(
+            [
+                CrawlRun(
+                    run_no="manual-old-1",
+                    run_type="manual",
+                    status="running",
+                    started_at=now - timedelta(minutes=400),
+                    total_sections=1,
+                ),
+                CrawlRun(
+                    run_no="manual-new-1",
+                    run_type="manual",
+                    status="running",
+                    started_at=now - timedelta(minutes=10),
+                    total_sections=1,
+                ),
+            ]
+        )
+        db.commit()
+
+    with SessionLocal() as db:
+        count = mark_stale_running_runs(db, timeout_minutes=360, now=now)
+
+    assert count == 1
+    with SessionLocal() as db:
+        old_run = db.query(CrawlRun).filter_by(run_no="manual-old-1").one()
+        new_run = db.query(CrawlRun).filter_by(run_no="manual-new-1").one()
+        assert old_run.status == "failed"
+        assert old_run.failed_sections == 1
+        assert "异常中断" in old_run.error_summary
+        assert new_run.status == "running"
 
 
 def test_crawl_section_saves_html_announcement_snapshot_and_attachment(tmp_path, monkeypatch):

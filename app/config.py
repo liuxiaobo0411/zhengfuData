@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     app_scheduler_enabled: bool = Field(default=False, alias="APP_SCHEDULER_ENABLED")
     app_scheduler_daily_time: str = Field(default="09:00", alias="APP_SCHEDULER_DAILY_TIME")
     app_timezone: str = Field(default="Asia/Shanghai", alias="APP_TIMEZONE")
+    app_running_run_timeout_minutes: int = Field(
+        default=360,
+        alias="APP_RUNNING_RUN_TIMEOUT_MINUTES",
+    )
 
     admin_username: str = Field(default="admin", alias="ADMIN_USERNAME")
     admin_password: str = Field(default="change-me", alias="ADMIN_PASSWORD")

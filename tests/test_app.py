@@ -85,6 +85,7 @@ def test_settings_page_requires_login_and_masks_secrets(tmp_path, monkeypatch):
     assert settings_response.status_code == 200
     assert "系统配置" in settings_response.text
     assert "APP_DATABASE_URL" in settings_response.text
+    assert "running timeout" in settings_response.text
     assert "Windows 脚本" in settings_response.text
     assert "change-me" not in settings_response.text
 

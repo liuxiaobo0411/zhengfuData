@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import hashlib
-from datetime import datetime
+from datetime import datetime, timedelta
 from email.utils import parsedate_to_datetime
 from pathlib import Path
 from urllib.parse import urlparse
@@ -47,6 +47,14 @@ def crawl_section(
     site = db.get(Site, section.site_id)
     if site is None:
         raise ValueError(f"site not found: {section.site_id}")
+
+    running_run = find_running_section_run(db, section.id)
+    if running_run is not None:
+        section.last_status = "running"
+        section.last_error = f"已有抓取任务运行中: {running_run.run_no}"
+        db.commit()
+        db.refresh(running_run)
+        return running_run
 
     now = datetime.now()
     run_type = run_type_for(triggered_by)
@@ -125,6 +133,42 @@ def crawl_section(
     db.commit()
     db.refresh(run)
     return run
+
+
+def find_running_section_run(db: Session, section_id: int) -> CrawlRun | None:
+    return db.scalar(
+        select(CrawlRun)
+        .where(CrawlRun.status == "running")
+        .where(CrawlRun.run_no.like(f"%-{section_id}"))
+        .order_by(CrawlRun.started_at.desc(), CrawlRun.id.desc())
+    )
+
+
+def mark_stale_running_runs(
+    db: Session,
+    timeout_minutes: int,
+    now: datetime | None = None,
+) -> int:
+    threshold = (now or datetime.now()) - timedelta(minutes=max(1, timeout_minutes))
+    runs = list(
+        db.scalars(
+            select(CrawlRun)
+            .where(CrawlRun.status == "running")
+            .where(CrawlRun.started_at.is_not(None))
+            .where(CrawlRun.started_at < threshold)
+        ).all()
+    )
+    finished_at = now or datetime.now()
+    for run in runs:
+        run.status = "failed"
+        run.failed_sections = run.failed_sections or run.total_sections or 1
+        run.finished_at = finished_at
+        if run.started_at:
+            run.duration_seconds = int((finished_at - run.started_at).total_seconds())
+        run.error_summary = "应用启动时检测到任务长时间处于 running，已标记为异常中断"
+    if runs:
+        db.commit()
+    return len(runs)
 
 
 def retry_attachment_download(

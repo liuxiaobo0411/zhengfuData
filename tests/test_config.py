@@ -28,6 +28,7 @@ def test_settings_exposes_scheduler_options():
     assert settings.app_scheduler_enabled is True
     assert settings.app_scheduler_daily_time == "08:30"
     assert settings.app_timezone == "Asia/Shanghai"
+    assert settings.app_running_run_timeout_minutes == 360
 
 
 def test_load_yaml_config_reads_mapping(tmp_path: Path):

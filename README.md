@@ -83,6 +83,7 @@ M6 已开始推进：
 - 后台新增和编辑网站、栏目时提供服务端基础校验，避免错误 URL、重复标识和非法请求头配置入库。
 - 后台网站栏目页支持“测试抓取”，可在不入库、不通知的情况下验证栏目列表是否可访问和可解析。
 - 每日任务会按启用网站和启用栏目抓取，并在结束后发送日报。
+- 同一栏目已有运行中任务时不会重复启动抓取；应用启动时会清理超时的 running 任务。
 - `configs/sites.yaml` 已包含 13 个启用栏目和 1 个待适配查询页面。
 - 已补充 Windows 本地部署脚本和任务计划脚本。
 - 可通过 `zhengfudata validate-sources` 验证启用栏目列表页是否可访问和可解析。
@@ -183,6 +184,7 @@ APP_PUBLIC_BASE_URL=http://127.0.0.1:8000
 APP_SCHEDULER_ENABLED=false
 APP_SCHEDULER_DAILY_TIME=09:00
 APP_TIMEZONE=Asia/Shanghai
+APP_RUNNING_RUN_TIMEOUT_MINUTES=360
 
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=change-me

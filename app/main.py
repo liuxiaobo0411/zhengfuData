@@ -6,12 +6,14 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from app.config import BASE_DIR, get_settings
+from app.database import SessionLocal
 from app.routers.api.health import router as health_router
 from app.routers.web.archive import router as archive_router
 from app.routers.web.auth import router as auth_router
 from app.routers.web.dashboard import router as dashboard_router
 from app.routers.web.settings import router as settings_router
 from app.routers.web.sites import router as sites_router
+from app.services.crawler.runner import mark_stale_running_runs
 from app.services.scheduler import start_scheduler, stop_scheduler
 from app.services.storage import prepare_storage
 
@@ -22,6 +24,8 @@ def create_app() -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        with SessionLocal() as db:
+            mark_stale_running_runs(db, settings.app_running_run_timeout_minutes)
         start_scheduler(settings)
         try:
             yield

@@ -95,6 +95,8 @@
         <dd>{{ scheduler.daily_time }}</dd>
         <dt>next run</dt>
         <dd>{{ scheduler.next_run_at or '-' }}</dd>
+        <dt>running timeout</dt>
+        <dd>{{ settings.app_running_run_timeout_minutes }} minutes</dd>
       </dl>
     </article>
 
