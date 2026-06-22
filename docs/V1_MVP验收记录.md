@@ -258,6 +258,103 @@ storage size 25M
 - 曾失败的住建部行政规范性文件库附件已修复，根因是下载 URL 中中文 `fileName` 参数需要在请求前做百分号编码。
 - 本次使用 `--no-notify`，不触发 OpenClaw；真实企微群日报仍需配置 webhook 后单独验收。
 
+## 2026-06-22 本机端到端验收
+
+当前本机环境重新完成了一轮端到端验收。
+
+质量与迁移检查：
+
+```text
+ruff check .                 PASS
+ruff format --check .        PASS
+pytest                       69 passed, 1 warning
+alembic current              20260622_0004 (head)
+```
+
+部署自检：
+
+```text
+summary ok=6 warn=2 fail=0
+WARN security: ADMIN_PASSWORD 仍为默认值；APP_SECRET_KEY 仍为默认值
+WARN openclaw: OPENCLAW_WEBHOOK_URL 未配置；抓取可运行，但不会发送真实企微日报
+```
+
+13 个启用来源验证：
+
+```text
+summary total=13 success=13 failed=0
+```
+
+自动验收报告：
+
+```text
+storage/exports/v1_acceptance_report_20260622_110514.md
+summary total=13 success=13 failed=0
+```
+
+完整每日抓取：
+
+```text
+zhengfudata run-daily-crawl --no-notify
+daily sections=13 success=13 partial=0 failed=0
+```
+
+数据库与本地文件核验：
+
+```text
+runs 13 success 13 partial 0 failed 0
+discovered 140 new 20 content_changed 0
+attachment_success 152 attachment_failed 0
+announcements 160
+attachments 152 failed_attachments 0
+attachment_versions 152
+missing_local_files 0
+storage/attachments files 152
+```
+
+逐栏目结果：
+
+```text
+建设工程企业资质行政审批专栏-公告 success discovered=10 new=0 attachment_success=35 attachment_failed=0 duration=224s
+陕西建筑施工公告 success discovered=20 new=0 attachment_success=0 attachment_failed=0 duration=8s
+政策发布 success discovered=10 new=0 attachment_success=12 attachment_failed=0 duration=110s
+住房和城乡建设部行政规范性文件库 success discovered=10 new=0 attachment_success=29 attachment_failed=0 duration=195s
+建设工程企业资质行政审批专栏-部门规章 success discovered=3 new=0 attachment_success=6 attachment_failed=0 duration=50s
+建设工程企业资质行政审批专栏-资质标准 success discovered=7 new=0 attachment_success=9 attachment_failed=0 duration=88s
+建设工程企业资质行政审批专栏-政策文件 success discovered=10 new=0 attachment_success=1 attachment_failed=0 duration=59s
+建设工程企业资质行政审批专栏-审查意见公示 success discovered=10 new=0 attachment_success=29 attachment_failed=0 duration=201s
+建设工程企业资质行政审批专栏-通报 success discovered=10 new=0 attachment_success=0 attachment_failed=0 duration=55s
+工程建设项目审批制度改革工作-政策文件 success discovered=10 new=0 attachment_success=11 attachment_failed=0 duration=115s
+公告公示 success discovered=10 new=0 attachment_success=7 attachment_failed=0 duration=86s
+省厅文件 success discovered=10 new=0 attachment_success=13 attachment_failed=0 duration=111s
+陕西资质查询 success discovered=20 new=20 attachment_success=0 attachment_failed=0 duration=14s
+```
+
+后台 HTTP 验收：
+
+```text
+GET /api/health          200
+POST /login              303 -> /
+GET /                    200 工作台
+GET /sites               200 网站栏目
+GET /announcements       200 抓取信息
+GET /attachments         200 附件管理
+GET /changes             200 变化记录
+GET /crawl-runs          200 抓取任务
+GET /notifications       200 通知日志
+GET /settings            200 系统配置
+GET /attachments/1/download      200 size=20992
+GET /attachments/download-all    200 size=19278974
+POST /sections/1/validate        200 测试抓取成功，解析到 10 条
+GET /crawl-runs/49               200 success，附件成功，通知状态
+```
+
+本轮结论：
+
+- 本机抓取、解析、入库、变化记录、附件下载、本地归档、后台查询、附件下载和验收报告链路已通过。
+- 当前 `.env` 未配置真实 `OPENCLAW_WEBHOOK_URL`，因此本轮不证明真实企微群通知。
+- 当前仍使用默认 `ADMIN_PASSWORD` 与 `APP_SECRET_KEY`，正式交付前必须修改。
+
 ## 后台页面验证
 
 已启动本地服务并验证以下页面返回 200：
