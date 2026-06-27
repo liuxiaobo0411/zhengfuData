@@ -316,6 +316,7 @@ def save_record(
         )
         db.add(announcement)
     announcement.run_id = run.id
+    announcement.title = record.title
     announcement.final_url = final_url
     announcement.raw_published_at = record.raw_published_at
     announcement.published_at = parse_date_text(record.raw_published_at)

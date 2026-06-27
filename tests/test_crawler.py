@@ -15,7 +15,7 @@ from app.models import (
     Site,
     SiteSection,
 )
-from app.services.crawler.parser import extract_unitbuild_requests
+from app.services.crawler.parser import extract_unitbuild_requests, parse_json_page
 from app.services.crawler.runner import (
     crawl_section,
     identity_for,
@@ -374,9 +374,27 @@ def test_crawl_section_saves_json_api_rows(tmp_path, monkeypatch):
     assert run.status == "success"
     with SessionLocal() as db:
         announcement = db.query(Announcement).one()
-        assert announcement.title == "资质增项公告"
+        assert announcement.title == "测试企业 - 资质增项公告"
         assert announcement.snapshot_path.endswith(".json")
         assert "测试企业" in announcement.content
+
+
+def test_parse_json_page_combines_enterprise_notice_columns_for_publicity_rows():
+    section = SiteSection(
+        name="陕西公告",
+        url="https://example.gov.cn/api",
+        crawler_strategy="json_api",
+        max_items_per_run=20,
+    )
+    text = (
+        '{"rows":[{"fid":"1","fentName":"陕西测试建筑工程有限公司",'
+        '"fmanageTypeName":" 增项申请 ","fappContent":"专业承包钢结构工程二级",'
+        '"ftime":"2026-06-27 03:24:31"}]}'
+    )
+
+    records = parse_json_page(text, "https://example.gov.cn/api", section)
+
+    assert records[0].title == "陕西测试建筑工程有限公司 - 增项申请 - 专业承包钢结构工程二级"
 
 
 def test_crawl_section_saves_qualification_query_json_rows(tmp_path, monkeypatch):

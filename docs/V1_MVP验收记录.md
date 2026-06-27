@@ -27,12 +27,12 @@
 
 - 3 个站点。
 - 14 个栏目。
-- 13 个启用栏目。
-- 1 个待适配动态查询页面，默认不启用。
+- 14 个启用栏目。
+- 陕西资质增项公告查询页面已通过公开 JSON 接口接入。
 
-待适配页面：
+新增接口适配：
 
-- 陕西资质增项公告查询页面：`https://qiye.sxxzsp.cn:29086/affiche`
+- 陕西资质增项公告查询页面：`https://qiye.sxxzsp.cn:29086/api/portal/announcement/publicityList?pageSize=20&pageNum=1&fupdeptid=6101&fsystemid=101&fentName=`
 
 已通过 JSON 接口接入：
 
@@ -713,7 +713,6 @@ pytest                       48 passed, 1 warning
 ## 后续验收事项
 
 - 在 Windows 电脑按 `docs/Windows本地部署说明.md` 完成安装、自检、启动、导入、抓取和附件下载验证。
-- 针对资质增项公告查询页面补 Playwright 或接口适配器。
 
 ## 2026-06-27 附件下载超时修复后全量复验
 
@@ -769,3 +768,31 @@ pytest                       48 passed, 1 warning
 - 附件下载超时修复后，完整 13 个启用栏目可自然完成，不再卡在附件下载阶段。
 - OpenClaw 企微通知链路此前当天已成功发送，通知日志 `notification=7 status=success`。
 - 本轮为了避免重复打扰企微群，没有再次发送日报。
+
+## 2026-06-27 陕西资质增项公告接口适配
+
+本轮补充完成此前待适配的陕西资质增项公告查询页面。
+
+接口来源：
+
+- 页面地址：`https://qiye.sxxzsp.cn:29086/affiche`。
+- 前端实际调用接口：`/api/portal/announcement/publicityList`。
+- 当前配置地址：`https://qiye.sxxzsp.cn:29086/api/portal/announcement/publicityList?pageSize=20&pageNum=1&fupdeptid=6101&fsystemid=101&fentName=`。
+- 策略：`json_api`。
+- 状态：已启用。
+
+验证结果：
+
+- `.venv/bin/zhengfudata import-sites --file configs/sites.yaml`：`imported sites=3 sections=14`。
+- 数据库启用栏目数：14。
+- `.venv/bin/zhengfudata validate-sources`：`summary total=14 success=14 failed=0`。
+- 新增栏目来源验证：`section=14 records=20 strategy=json_api name=陕西资质增项公告查询页面`。
+- 新增栏目样例标题：`陕西京玖安建筑工程有限公司 - 资质换领 - 专业承包建筑机电安装工程三级`。
+- `.venv/bin/zhengfudata crawl-section 14`：`status=success new_items=20`。
+- 复跑 `.venv/bin/zhengfudata crawl-section 14`：`status=success new_items=0`，去重正常。
+- `.venv/bin/zhengfudata run-daily-crawl --no-notify`：`daily sections=14 success=14 partial=0 failed=0`。
+
+标题规则补充：
+
+- 陕西公告类 JSON 行包含企业名称、申请事项和申请内容时，后台标题使用 `企业名称 - 申请事项 - 申请内容`。
+- 该规则比单独使用申请内容更接近原系统表格展示，便于后台列表识别企业。

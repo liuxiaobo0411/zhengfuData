@@ -72,10 +72,7 @@ def parse_json_page(text: str, base_url: str, section: SiteSection) -> list[Pars
     for index, row in enumerate(rows):
         if not isinstance(row, dict):
             continue
-        title = first_json_value(
-            row,
-            ["title", "name", "fappContent", "fentName", "fname", "content", "noticeTitle"],
-        )
+        title = json_row_title(row)
         if not title:
             continue
         source_url = first_json_value(row, ["url", "source_url", "link", "detailUrl"])
@@ -131,6 +128,22 @@ def first_json_value(row: dict[str, object], keys: list[str]) -> str | None:
         if value is not None and str(value).strip():
             return str(value).strip()
     return None
+
+
+def json_row_title(row: dict[str, object]) -> str | None:
+    if enterprise := first_json_value(row, ["fentName"]):
+        parts = [
+            enterprise,
+            first_json_value(row, ["fmanageTypeName"]),
+            first_json_value(row, ["fappContent"]),
+        ]
+        title = " - ".join(normalize_text(part) for part in parts if part)
+        if title:
+            return title
+    return first_json_value(
+        row,
+        ["title", "name", "fappContent", "fentName", "fname", "content", "noticeTitle"],
+    )
 
 
 def parse_configured_list(
