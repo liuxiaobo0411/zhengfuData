@@ -1,5 +1,4 @@
-Set-StrictMode -Version Latest
-$ErrorActionPreference = "Stop"
+. "$PSScriptRoot\_bootstrap.ps1"
 
 $ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 Set-Location $ProjectRoot

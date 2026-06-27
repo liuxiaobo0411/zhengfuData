@@ -4,6 +4,12 @@ from app.config import BASE_DIR
 
 
 def test_windows_deployment_scripts_exist_and_use_project_relative_paths():
+    bootstrap = BASE_DIR / "scripts" / "windows" / "_bootstrap.ps1"
+    bootstrap_content = bootstrap.read_text(encoding="utf-8")
+    assert "PYTHONUTF8" in bootstrap_content
+    assert "PYTHONIOENCODING" in bootstrap_content
+    assert "OutputEncoding" in bootstrap_content
+
     scripts = [
         BASE_DIR / "scripts" / "windows" / "setup.ps1",
         BASE_DIR / "scripts" / "windows" / "run-server.ps1",
@@ -21,6 +27,7 @@ def test_windows_deployment_scripts_exist_and_use_project_relative_paths():
         content = script.read_text(encoding="utf-8")
         assert "Resolve-Path" in content
         assert "$PSScriptRoot" in content
+        assert '. "$PSScriptRoot\\_bootstrap.ps1"' in content
 
 
 def test_windows_deployment_doc_references_scripts_and_acceptance_steps():

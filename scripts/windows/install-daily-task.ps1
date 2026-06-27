@@ -3,8 +3,7 @@ param(
     [string]$DailyTime = "09:00"
 )
 
-Set-StrictMode -Version Latest
-$ErrorActionPreference = "Stop"
+. "$PSScriptRoot\_bootstrap.ps1"
 
 $ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $ScriptPath = Join-Path $ProjectRoot "scripts\windows\run-daily-crawl.ps1"
