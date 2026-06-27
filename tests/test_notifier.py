@@ -68,6 +68,73 @@ def test_build_daily_report_payload_summarizes_runs(tmp_path):
     assert payload["detail_url"] == "http://localhost:8000/crawl-runs/1"
 
 
+def test_build_daily_report_payload_can_summarize_cross_day_run_batch(tmp_path):
+    setup_db(tmp_path)
+
+    with SessionLocal() as db:
+        before_midnight = CrawlRun(
+            run_no="scheduled-before-midnight",
+            run_type="scheduled",
+            status="success",
+            started_at=datetime(2026, 6, 21, 23, 50),
+            finished_at=datetime(2026, 6, 21, 23, 59),
+            discovered_items=10,
+            new_items=1,
+            attachment_success_count=3,
+        )
+        after_midnight = CrawlRun(
+            run_no="scheduled-after-midnight",
+            run_type="scheduled",
+            status="success",
+            started_at=datetime(2026, 6, 22, 0, 5),
+            finished_at=datetime(2026, 6, 22, 0, 10),
+            discovered_items=20,
+            new_items=2,
+            content_changed_items=4,
+            attachment_success_count=5,
+        )
+        db.add_all([before_midnight, after_midnight])
+        db.flush()
+        db.add_all(
+            [
+                ChangeLog(
+                    run_id=before_midnight.id,
+                    change_type="new_announcement",
+                    title="跨日前新增公告",
+                ),
+                ChangeLog(
+                    run_id=after_midnight.id,
+                    change_type="content_changed",
+                    title="跨日后正文变化",
+                ),
+            ]
+        )
+        run_ids = [before_midnight.id, after_midnight.id]
+        db.commit()
+
+    with SessionLocal() as db:
+        natural_day_payload = build_daily_report_payload(
+            db,
+            settings=Settings(APP_PUBLIC_BASE_URL="http://localhost:8000"),
+            now=datetime(2026, 6, 22, 0, 30),
+        )
+        batch_payload = build_daily_report_payload(
+            db,
+            settings=Settings(APP_PUBLIC_BASE_URL="http://localhost:8000"),
+            now=datetime(2026, 6, 22, 0, 30),
+            run_ids=run_ids,
+        )
+
+    assert natural_day_payload["runs"] == 1
+    assert natural_day_payload["new_items"] == 2
+    assert batch_payload["runs"] == 2
+    assert batch_payload["new_items"] == 3
+    assert batch_payload["content_changed_items"] == 4
+    assert batch_payload["attachment_success"] == 8
+    assert "跨日前新增公告" in batch_payload["markdown"]
+    assert "跨日后正文变化" in batch_payload["markdown"]
+
+
 def test_send_daily_report_records_missing_webhook_failure(tmp_path):
     setup_db(tmp_path)
     seed_run()

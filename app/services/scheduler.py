@@ -62,7 +62,11 @@ def run_daily_crawl(
             if settings.kb_enable_attachment_parse
             else None
         )
-        notification = send_daily_report(db, settings=settings) if notify else None
+        notification = (
+            send_daily_report(db, settings=settings, run_ids=[run.id for run in runs])
+            if notify
+            else None
+        )
 
     return DailyCrawlResult(
         section_ids=section_ids,

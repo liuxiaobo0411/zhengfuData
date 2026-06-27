@@ -97,13 +97,14 @@ def test_run_daily_crawl_crawls_enabled_sections_and_sends_report(tmp_path, monk
         db.commit()
         return run
 
-    def fake_send_daily_report(db, settings):
+    def fake_send_daily_report(db, settings, run_ids):
         log = NotificationLog(
             provider="openclaw",
             event_type="daily_crawl_report",
             status="success",
             target_type=settings.wecom_notify_target_type,
         )
+        assert run_ids == [1]
         db.add(log)
         db.commit()
         return log

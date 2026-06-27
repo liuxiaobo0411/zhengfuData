@@ -67,29 +67,30 @@ def build_daily_report_payload(
     db: Session,
     settings: Settings | None = None,
     now: datetime | None = None,
+    run_ids: list[int] | None = None,
 ) -> dict[str, Any]:
     settings = settings or get_settings()
     now = now or datetime.now()
     day_start = datetime.combine(now.date(), time.min)
-    runs = list(
-        db.scalars(
-            select(CrawlRun)
-            .where(CrawlRun.started_at >= day_start)
-            .order_by(CrawlRun.started_at.desc(), CrawlRun.id.desc())
-        )
-    )
+    runs_query = select(CrawlRun).order_by(CrawlRun.started_at.desc(), CrawlRun.id.desc())
+    if run_ids is not None:
+        runs_query = runs_query.where(CrawlRun.id.in_(run_ids))
+    else:
+        runs_query = runs_query.where(CrawlRun.started_at >= day_start)
+    runs = list(db.scalars(runs_query))
     latest_run = runs[0] if runs else None
-    top_changes = db.scalars(
-        select(ChangeLog)
-        .where(ChangeLog.created_at >= day_start)
-        .order_by(ChangeLog.created_at.desc(), ChangeLog.id.desc())
-        .limit(10)
-    ).all()
-    failure_count = db.scalar(
-        select(func.count(ChangeLog.id))
-        .where(ChangeLog.created_at >= day_start)
-        .where(ChangeLog.change_type.in_(["crawl_failed", "attachment_failed"]))
+    changes_query = select(ChangeLog).order_by(ChangeLog.created_at.desc(), ChangeLog.id.desc())
+    failures_query = select(func.count(ChangeLog.id)).where(
+        ChangeLog.change_type.in_(["crawl_failed", "attachment_failed"])
     )
+    if run_ids is not None:
+        changes_query = changes_query.where(ChangeLog.run_id.in_(run_ids))
+        failures_query = failures_query.where(ChangeLog.run_id.in_(run_ids))
+    else:
+        changes_query = changes_query.where(ChangeLog.created_at >= day_start)
+        failures_query = failures_query.where(ChangeLog.created_at >= day_start)
+    top_changes = db.scalars(changes_query.limit(10)).all()
+    failure_count = db.scalar(failures_query)
     totals = {
         "runs": len(runs),
         "success_runs": sum(1 for run in runs if run.status == "success"),
@@ -169,10 +170,19 @@ def send_daily_report(
     db: Session,
     settings: Settings | None = None,
     now: datetime | None = None,
+    run_ids: list[int] | None = None,
 ) -> NotificationLog:
     settings = settings or get_settings()
-    payload = build_daily_report_payload(db, settings=settings, now=now)
-    latest_run = db.scalar(select(CrawlRun).order_by(CrawlRun.id.desc()))
+    payload = build_daily_report_payload(db, settings=settings, now=now, run_ids=run_ids)
+    latest_run = (
+        db.scalar(
+            select(CrawlRun)
+            .where(CrawlRun.id.in_(run_ids))
+            .order_by(CrawlRun.started_at.desc(), CrawlRun.id.desc())
+        )
+        if run_ids is not None
+        else db.scalar(select(CrawlRun).order_by(CrawlRun.id.desc()))
+    )
     log = NotificationLog(
         run_id=latest_run.id if latest_run else None,
         provider="openclaw",
