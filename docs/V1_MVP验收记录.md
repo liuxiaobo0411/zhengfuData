@@ -714,3 +714,58 @@ pytest                       48 passed, 1 warning
 
 - 在 Windows 电脑按 `docs/Windows本地部署说明.md` 完成安装、自检、启动、导入、抓取和附件下载验证。
 - 针对资质增项公告查询页面补 Playwright 或接口适配器。
+
+## 2026-06-27 附件下载超时修复后全量复验
+
+本轮复验基于本地 `main` 分支提交 `ca52d49 fix: bound attachment download retries`，本地工作区干净。
+
+修复背景：
+
+- 2026-06-27 真实每日抓取时，部分附件下载在 TLS 握手或 curl fallback 阶段等待过久。
+- 已新增 `CRAWLER_ATTACHMENT_TIMEOUT_SECONDS=10`，附件下载使用独立超时。
+- 显式传入附件下载 timeout 时，不再继承栏目列表页的 `http_with_retry` 重试和退避等待。
+
+质量门结果：
+
+- `.venv/bin/python3 -m pytest`：95 passed，1 个第三方 `StarletteDeprecationWarning`。
+- `.venv/bin/python3 -m ruff format --check .`：通过，57 个文件已格式化。
+- `.venv/bin/python3 -m ruff check .`：通过。
+- `.venv/bin/zhengfudata doctor`：`ok=8 warn=0 fail=0`。
+
+受控抓取验证：
+
+- 命令：`.venv/bin/zhengfudata run-daily-crawl --limit 4 --no-notify`。
+- 输出：`daily sections=4 success=4 partial=0 failed=0`。
+- 目的：覆盖此前容易拖慢的前 4 个栏目，验证附件下载超时修复后任务可自然结束。
+
+全量抓取验证：
+
+- 命令：`.venv/bin/zhengfudata run-daily-crawl --no-notify`。
+- 输出：`daily sections=13 success=13 partial=0 failed=0`。
+- 本轮抓取时间：2026-06-27 21:54:51 至 2026-06-27 22:07:02。
+- 本轮批次数：13。
+- 本轮成功批次：13。
+- 本轮失败批次：0。
+- 本轮发现条目：140。
+- 本轮新增条目：0。
+- 本轮正文变化：7。
+- 本轮附件下载成功：152。
+- 本轮附件下载失败：0。
+- 本轮使用 `--no-notify`，避免重复向企微群发送日报。
+
+当日累计抓取结果：
+
+- 抓取任务数：41。
+- 成功栏目数：41。
+- 失败栏目数：0。
+- 发现条目：490。
+- 新增条目：51。
+- 正文变化：13。
+- 附件下载成功：538。
+- 附件下载失败：0。
+
+当前结论：
+
+- 附件下载超时修复后，完整 13 个启用栏目可自然完成，不再卡在附件下载阶段。
+- OpenClaw 企微通知链路此前当天已成功发送，通知日志 `notification=7 status=success`。
+- 本轮为了避免重复打扰企微群，没有再次发送日报。
