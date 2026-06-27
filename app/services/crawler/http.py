@@ -109,6 +109,8 @@ def add_query_params(url: str, params: dict[str, str]) -> str:
 def fetch_url_with_curl(url: str, section: SiteSection, timeout: int) -> FetchedPage:
     headers = section_headers(section)
     request_url = normalize_request_url(url)
+    request_timeout = max(1, int(timeout))
+    connect_timeout = min(15, request_timeout)
     with tempfile.NamedTemporaryFile(delete=False) as body_file:
         body_path = Path(body_file.name)
     try:
@@ -120,7 +122,9 @@ def fetch_url_with_curl(url: str, section: SiteSection, timeout: int) -> Fetched
             "--silent",
             "--show-error",
             "--max-time",
-            str(timeout),
+            str(request_timeout),
+            "--connect-timeout",
+            str(connect_timeout),
             "-o",
             str(body_path),
             "-w",
@@ -137,6 +141,7 @@ def fetch_url_with_curl(url: str, section: SiteSection, timeout: int) -> Fetched
             check=True,
             capture_output=True,
             text=True,
+            timeout=request_timeout + 5,
         )
         output_lines = result.stdout.splitlines()
         final_url = output_lines[0] if output_lines else url

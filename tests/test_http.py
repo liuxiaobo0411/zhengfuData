@@ -5,7 +5,7 @@ from urllib.parse import parse_qs, urlsplit
 import httpx
 
 from app.models import SiteSection
-from app.services.crawler.http import fetch_url, normalize_request_url
+from app.services.crawler.http import fetch_url, fetch_url_with_curl, normalize_request_url
 from app.services.crawler.types import FetchedPage
 
 
@@ -65,3 +65,42 @@ def test_fetch_url_waits_with_backoff_between_retry_attempts(monkeypatch):
 
     assert page.text == "ok"
     assert sleeps == [2, 4]
+
+
+def test_fetch_url_with_curl_sets_process_and_connect_timeouts(monkeypatch, tmp_path):
+    section = SiteSection(
+        name="测试栏目",
+        url="https://example.gov.cn/list.html",
+        request_timeout=60,
+    )
+    captured: dict[str, object] = {}
+
+    def fake_run(command, check, capture_output, text, timeout):
+        output_path = command[command.index("-o") + 1]
+        tmp_path.joinpath("seen").write_text(output_path, encoding="utf-8")
+        with open(output_path, "wb") as file:
+            file.write(b"ok")
+        captured.update(
+            {
+                "command": command,
+                "check": check,
+                "capture_output": capture_output,
+                "text": text,
+                "timeout": timeout,
+            }
+        )
+
+        class Result:
+            stdout = "https://example.gov.cn/file.pdf\napplication/pdf"
+
+        return Result()
+
+    monkeypatch.setattr("app.services.crawler.http.subprocess.run", fake_run)
+
+    page = fetch_url_with_curl("https://example.gov.cn/file.pdf", section, timeout=60)
+
+    command = captured["command"]
+    assert page.body == b"ok"
+    assert captured["timeout"] == 65
+    assert command[command.index("--max-time") + 1] == "60"
+    assert command[command.index("--connect-timeout") + 1] == "15"

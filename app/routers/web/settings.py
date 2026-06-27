@@ -80,6 +80,10 @@ def windows_script_states() -> list[dict[str, str | bool]]:
         "validate-sources.ps1",
         "run-daily-crawl.ps1",
         "install-daily-task.ps1",
+        "doctor.ps1",
+        "acceptance-check.ps1",
+        "v2-acceptance-check.ps1",
+        "export-acceptance-report.ps1",
     ]
     root = BASE_DIR / "scripts" / "windows"
     return [{"name": name, "exists": (root / name).exists()} for name in names]

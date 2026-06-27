@@ -201,6 +201,8 @@ def check_windows_scripts() -> DoctorCheck:
         "export-acceptance-report.ps1",
         "install-daily-task.ps1",
         "doctor.ps1",
+        "acceptance-check.ps1",
+        "v2-acceptance-check.ps1",
     ]
     missing = [
         script for script in scripts if not (BASE_DIR / "scripts" / "windows" / script).exists()

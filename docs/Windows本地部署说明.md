@@ -91,6 +91,14 @@ scripts\windows\acceptance-check.ps1 -SourceLimit 2
 
 该脚本会依次执行部署自检、来源抽样验证，并导出 V1 验收报告。
 
+验证 V2 知识库能力时运行：
+
+```powershell
+scripts\windows\v2-acceptance-check.ps1
+```
+
+该脚本会检查附件解析、知识库索引、后台/API 查询和 OpenClaw 问答入口是否可用。
+
 ## 验证来源配置
 
 先验证前 2 个启用栏目：
@@ -208,6 +216,7 @@ storage\snapshots
 - `scripts\windows\setup.ps1` 成功。
 - `scripts\windows\doctor.ps1` 无 `FAIL`。
 - `scripts\windows\acceptance-check.ps1 -SourceLimit 2` 成功。
+- `scripts\windows\v2-acceptance-check.ps1` 成功。
 - `scripts\windows\validate-sources.ps1 -Limit 2` 成功。
 - 后台可以登录。
 - 后台网站栏目页可以对单个栏目执行“测试抓取”，并展示成功或失败原因。
