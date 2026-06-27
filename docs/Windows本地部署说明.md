@@ -155,6 +155,18 @@ scripts\windows\run-daily-crawl.ps1
 scripts\windows\run-daily-crawl.ps1 -NoNotify
 ```
 
+如果验收报告或附件管理页出现失败附件，可以批量重试：
+
+```powershell
+scripts\windows\retry-failed-attachments.ps1 -Timeout 60
+```
+
+只重试前 5 个失败附件：
+
+```powershell
+scripts\windows\retry-failed-attachments.ps1 -Limit 5 -Timeout 60
+```
+
 ## 导出验收报告
 
 ```powershell
@@ -218,6 +230,7 @@ storage\snapshots
 - `scripts\windows\acceptance-check.ps1 -SourceLimit 2` 成功。
 - `scripts\windows\v2-acceptance-check.ps1` 成功。
 - `scripts\windows\validate-sources.ps1 -Limit 2` 成功。
+- 如存在失败附件，`scripts\windows\retry-failed-attachments.ps1 -Timeout 60` 可恢复或输出失败原因。
 - 后台可以登录。
 - 后台网站栏目页可以对单个栏目执行“测试抓取”，并展示成功或失败原因。
 - `scripts\windows\run-daily-crawl.ps1 -Limit 2` 成功。

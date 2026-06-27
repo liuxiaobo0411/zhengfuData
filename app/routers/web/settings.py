@@ -79,6 +79,7 @@ def windows_script_states() -> list[dict[str, str | bool]]:
         "run-server.ps1",
         "validate-sources.ps1",
         "run-daily-crawl.ps1",
+        "retry-failed-attachments.ps1",
         "install-daily-task.ps1",
         "doctor.ps1",
         "acceptance-check.ps1",

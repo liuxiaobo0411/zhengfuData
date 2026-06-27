@@ -14,6 +14,7 @@ def test_windows_deployment_scripts_exist_and_use_project_relative_paths():
         BASE_DIR / "scripts" / "windows" / "setup.ps1",
         BASE_DIR / "scripts" / "windows" / "run-server.ps1",
         BASE_DIR / "scripts" / "windows" / "run-daily-crawl.ps1",
+        BASE_DIR / "scripts" / "windows" / "retry-failed-attachments.ps1",
         BASE_DIR / "scripts" / "windows" / "validate-sources.ps1",
         BASE_DIR / "scripts" / "windows" / "export-acceptance-report.ps1",
         BASE_DIR / "scripts" / "windows" / "doctor.ps1",
@@ -36,6 +37,7 @@ def test_windows_deployment_doc_references_scripts_and_acceptance_steps():
     assert "scripts\\windows\\setup.ps1" in doc
     assert "scripts\\windows\\run-server.ps1" in doc
     assert "scripts\\windows\\run-daily-crawl.ps1" in doc
+    assert "scripts\\windows\\retry-failed-attachments.ps1" in doc
     assert "scripts\\windows\\validate-sources.ps1" in doc
     assert "scripts\\windows\\export-acceptance-report.ps1" in doc
     assert "scripts\\windows\\doctor.ps1" in doc

@@ -6,6 +6,7 @@ import app.cli as cli
 import app.models  # noqa: F401
 from app.config import get_settings
 from app.database import Base, configure_database
+from app.models import Announcement, Attachment, Site, SiteSection
 from app.services.kb import ParseSummary
 from app.services.source_validator import SourceValidationResult, SourceValidationSummary
 
@@ -203,3 +204,92 @@ def test_run_daily_prints_attachment_parse_summary(tmp_path, monkeypatch, capsys
     output = capsys.readouterr().out
     assert "daily sections=1 success=1 partial=0 failed=0" in output
     assert "parse total=3 success=2 failed=0 unsupported=1" in output
+
+
+def test_retry_failed_attachments_retries_failed_rows_with_timeout(
+    tmp_path,
+    monkeypatch,
+    capsys,
+):
+    setup_db(tmp_path, monkeypatch)
+    with cli.SessionLocal() as db:
+        site = Site(name="测试政府网站", slug="test-gov", homepage_url="https://example.gov.cn")
+        db.add(site)
+        db.flush()
+        section = SiteSection(site_id=site.id, name="公告", url="https://example.gov.cn/list")
+        db.add(section)
+        db.flush()
+        announcement = Announcement(
+            site_id=site.id,
+            section_id=section.id,
+            identity_key="a",
+            identity_strategy="test",
+            title="公告",
+            item_type="qualification_notice",
+            source_url="https://example.gov.cn/a",
+        )
+        db.add(announcement)
+        db.flush()
+        db.add_all(
+            [
+                Attachment(
+                    announcement_id=announcement.id,
+                    site_id=site.id,
+                    attachment_key="failed-1",
+                    name="失败1.pdf",
+                    safe_name="failed-1.pdf",
+                    source_url="https://example.gov.cn/failed-1.pdf",
+                    download_status="failed",
+                ),
+                Attachment(
+                    announcement_id=announcement.id,
+                    site_id=site.id,
+                    attachment_key="failed-2",
+                    name="失败2.pdf",
+                    safe_name="failed-2.pdf",
+                    source_url="https://example.gov.cn/failed-2.pdf",
+                    download_status="failed",
+                ),
+                Attachment(
+                    announcement_id=announcement.id,
+                    site_id=site.id,
+                    attachment_key="ok",
+                    name="成功.pdf",
+                    safe_name="ok.pdf",
+                    source_url="https://example.gov.cn/ok.pdf",
+                    download_status="success",
+                ),
+            ]
+        )
+        db.commit()
+
+    calls = []
+
+    def fake_retry_attachment_download(db, attachment_id, triggered_by, settings):
+        calls.append(
+            {
+                "attachment_id": attachment_id,
+                "triggered_by": triggered_by,
+                "timeout": settings.crawler_attachment_timeout_seconds,
+            }
+        )
+        attachment = db.get(Attachment, attachment_id)
+        attachment.download_status = "success"
+        attachment.failure_reason = None
+        db.commit()
+        return attachment
+
+    monkeypatch.setattr(cli, "retry_attachment_download", fake_retry_attachment_download)
+
+    cli.retry_failed_attachments(limit=1, timeout=60)
+
+    output = capsys.readouterr().out
+    assert "attachment=1 status=success" in output
+    assert "retry_failed_attachments total=1 success=1 failed=0" in output
+    assert calls == [
+        {
+            "attachment_id": 1,
+            "triggered_by": "cli_retry_failed_attachments",
+            "timeout": 60,
+        }
+    ]

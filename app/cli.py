@@ -6,8 +6,9 @@ from pathlib import Path
 
 from app.config import get_settings, resolve_project_path
 from app.database import SessionLocal
+from app.models import Attachment
 from app.services.acceptance_report import export_acceptance_report
-from app.services.crawler import crawl_section
+from app.services.crawler import crawl_section, retry_attachment_download
 from app.services.kb import (
     SEARCH_ENTITY_TYPES,
     ask_knowledge,
@@ -57,6 +58,10 @@ def main() -> None:
     parse_attachments_parser = subparsers.add_parser("parse-attachments")
     parse_attachments_parser.add_argument("--limit", type=int, default=20)
 
+    retry_attachments_parser = subparsers.add_parser("retry-failed-attachments")
+    retry_attachments_parser.add_argument("--limit", type=int, default=0)
+    retry_attachments_parser.add_argument("--timeout", type=int, default=0)
+
     parse_attachment_parser = subparsers.add_parser("parse-attachment")
     parse_attachment_parser.add_argument("attachment_id", type=int)
 
@@ -97,6 +102,8 @@ def main() -> None:
         send_report()
     elif args.command == "parse-attachments":
         parse_attachment_batch(args.limit)
+    elif args.command == "retry-failed-attachments":
+        retry_failed_attachments(args.limit, args.timeout)
     elif args.command == "parse-attachment":
         parse_attachment_one(args.attachment_id)
     elif args.command == "rebuild-search-index":
@@ -184,6 +191,41 @@ def parse_attachment_batch(limit: int) -> None:
         f"kb document_texts={stats['document_texts']} parsed_success={stats['parsed_success']} "
         f"search_index={stats['search_index']}"
     )
+
+
+def retry_failed_attachments(limit: int, timeout: int) -> None:
+    settings = get_settings()
+    if timeout > 0:
+        settings = settings.model_copy(update={"crawler_attachment_timeout_seconds": timeout})
+
+    success = 0
+    failed = 0
+    with SessionLocal() as db:
+        query = (
+            db.query(Attachment.id)
+            .filter(Attachment.download_status == "failed")
+            .order_by(Attachment.id)
+        )
+        if limit > 0:
+            query = query.limit(limit)
+        attachment_ids = [row[0] for row in query.all()]
+
+        for attachment_id in attachment_ids:
+            attachment = retry_attachment_download(
+                db,
+                attachment_id,
+                triggered_by="cli_retry_failed_attachments",
+                settings=settings,
+            )
+            status = attachment.download_status if attachment else "missing"
+            reason = (attachment.failure_reason or "") if attachment else "attachment not found"
+            if status == "success":
+                success += 1
+            else:
+                failed += 1
+            print(f"attachment={attachment_id} status={status} reason={reason}")
+
+    print(f"retry_failed_attachments total={len(attachment_ids)} success={success} failed={failed}")
 
 
 def parse_attachment_one(attachment_id: int) -> None:

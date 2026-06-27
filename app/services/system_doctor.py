@@ -197,6 +197,7 @@ def check_windows_scripts() -> DoctorCheck:
         "setup.ps1",
         "run-server.ps1",
         "run-daily-crawl.ps1",
+        "retry-failed-attachments.ps1",
         "validate-sources.ps1",
         "export-acceptance-report.ps1",
         "install-daily-task.ps1",
