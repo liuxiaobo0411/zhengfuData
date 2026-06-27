@@ -37,3 +37,25 @@ jobs:
 
       - name: Test
         run: python -m pytest
+
+  windows-smoke:
+    name: Windows deployment smoke
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Run Windows setup script
+        shell: pwsh
+        run: scripts\windows\setup.ps1 -PythonCommand python
+
+      - name: Run Windows doctor script
+        shell: pwsh
+        run: scripts\windows\doctor.ps1
