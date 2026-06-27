@@ -70,6 +70,11 @@ def render_acceptance_report(
     enabled_section_count = count_rows(db, SiteSection.id, SiteSection.enabled.is_(True))
     announcement_count = count_rows(db, Announcement.id)
     attachment_count = count_rows(db, Attachment.id)
+    current_failed_attachment_count = count_rows(
+        db,
+        Attachment.id,
+        Attachment.download_status == "failed",
+    )
     attachment_version_count = count_rows(db, AttachmentVersion.id)
     run_count = count_rows(db, CrawlRun.id)
     notification_count = count_rows(db, NotificationLog.id)
@@ -177,9 +182,23 @@ def render_acceptance_report(
     for label, path in backend_checkpoints():
         lines.append(f"- {label}：`{settings.app_public_base_url.rstrip('/')}{path}`")
 
-    lines.extend(["", "## 失败来源与处理建议", ""])
+    lines.extend(["", "## 当前阻塞问题", ""])
+    latest_notification = recent_notifications[0] if recent_notifications else None
+    current_blockers: list[str] = []
+    if current_failed_attachment_count:
+        current_blockers.append(f"失败附件 {current_failed_attachment_count} 个")
+    if doctor_report.failed_count:
+        current_blockers.append(f"部署自检 FAIL {doctor_report.failed_count} 项")
+    if latest_notification and latest_notification.status == "failed":
+        current_blockers.append(f"最新通知失败：#{latest_notification.id}")
+    if current_blockers:
+        lines.extend(f"- {item}" for item in current_blockers)
+    else:
+        lines.append("- 当前没有阻塞验收的失败附件、部署自检 FAIL 或最新通知失败。")
+
+    lines.extend(["", "## 历史失败记录与处理建议", ""])
     if not failed_runs and not failed_attachments and not failed_notifications:
-        lines.append("- 当前没有失败任务、失败附件或失败通知。")
+        lines.append("- 暂无历史失败任务、失败附件或失败通知。")
     else:
         if failed_runs:
             lines.append("")
@@ -219,7 +238,7 @@ def render_acceptance_report(
             f"- 是否已有附件记录：{'是' if attachment_count > 0 else '否'}",
             f"- 是否已有通知日志：{'是' if notification_count > 0 else '否'}",
             f"- {enabled_section_count} 个启用栏目的完整每日任务："
-            f"{format_full_daily_summary(full_daily_summary)}",
+            f"{format_full_daily_summary(full_daily_summary, current_failed_attachment_count)}",
             "",
             "## 后续待验收",
             "",
@@ -227,7 +246,7 @@ def render_acceptance_report(
             "- 真实 OpenClaw webhook 企微群日报发送。",
         ]
     )
-    if not full_daily_summary_passed(full_daily_summary):
+    if not full_daily_summary_passed(full_daily_summary, current_failed_attachment_count):
         lines.append(f"- {enabled_section_count} 个启用栏目的完整每日任务验收。")
     lines.append("- 动态查询页面 Playwright 或接口适配。")
     return "\n".join(lines) + "\n"
@@ -282,10 +301,20 @@ def section_id_from_run_no(run_no: str) -> int | None:
         return None
 
 
-def format_full_daily_summary(summary: FullDailyCrawlSummary | None) -> str:
+def format_full_daily_summary(
+    summary: FullDailyCrawlSummary | None,
+    current_failed_attachment_count: int = 0,
+) -> str:
     if summary is None:
         return "待验收"
-    state = "已完成" if full_daily_summary_passed(summary) else "已执行但有失败"
+    if full_daily_summary_passed(summary, current_failed_attachment_count):
+        state = (
+            "已完成（失败附件已重试恢复）"
+            if summary.partial_sections > 0 or summary.attachment_failed_count > 0
+            else "已完成"
+        )
+    else:
+        state = "已执行但有失败"
     return (
         f"{state} success={summary.success_sections} partial={summary.partial_sections} "
         f"failed={summary.failed_sections} "
@@ -294,13 +323,19 @@ def format_full_daily_summary(summary: FullDailyCrawlSummary | None) -> str:
     )
 
 
-def full_daily_summary_passed(summary: FullDailyCrawlSummary | None) -> bool:
+def full_daily_summary_passed(
+    summary: FullDailyCrawlSummary | None,
+    current_failed_attachment_count: int = 0,
+) -> bool:
     if summary is None:
         return False
+    all_sections_finished = (
+        summary.success_sections + summary.partial_sections == summary.total_sections
+    )
     return (
-        summary.success_sections == summary.total_sections
-        and summary.partial_sections == 0
+        all_sections_finished
         and summary.failed_sections == 0
+        and current_failed_attachment_count == 0
     )
 
 

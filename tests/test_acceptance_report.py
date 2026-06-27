@@ -150,15 +150,16 @@ def test_render_acceptance_report_summarizes_database(tmp_path):
     assert "附件版本：1" in report
     assert "OpenClaw 通知：Webhook 模式 / OPENCLAW_WEBHOOK_URL 已配置" in report
     assert "scheduled-test-1" in report
-    assert "1 个启用栏目的完整每日任务：已完成" in report
+    assert "1 个启用栏目的完整每日任务：已执行但有失败" in report
     assert "partial=0" in report
-    assert "1 个启用栏目的完整每日任务验收。" not in report
+    assert "1 个启用栏目的完整每日任务验收。" in report
     assert "后台页面验收入口" in report
     assert "部署自检摘要" in report
     assert "OK database_schema" in report
     assert "OK security" in report
     assert "公告列表：`http://127.0.0.1:8000/announcements`" in report
-    assert "失败来源与处理建议" in report
+    assert "当前阻塞问题" in report
+    assert "历史失败记录与处理建议" in report
     assert "失败附件" in report
     assert "附件管理页点击重试" in report
     assert "OPENCLAW_WEBHOOK_URL 未配置" in report
@@ -235,22 +236,46 @@ def test_render_acceptance_report_marks_partial_success_as_pending(tmp_path):
         )
         db.add(site)
         db.flush()
-        db.add(
-            SiteSection(
-                site_id=site.id,
-                name="公告栏目",
-                url="https://example.gov.cn/list.html",
-                enabled=True,
-            )
+        section = SiteSection(
+            site_id=site.id,
+            name="公告栏目",
+            url="https://example.gov.cn/list.html",
+            enabled=True,
         )
+        db.add(section)
+        db.flush()
+        run = CrawlRun(
+            run_no="scheduled-test-1",
+            run_type="scheduled",
+            status="partial_success",
+            triggered_by="cli_daily",
+            discovered_items=1,
+            attachment_failed_count=1,
+        )
+        db.add(run)
+        db.flush()
+        announcement = Announcement(
+            site_id=site.id,
+            section_id=section.id,
+            run_id=run.id,
+            identity_key="abc",
+            identity_strategy="test",
+            title="资质公告",
+            item_type="qualification_notice",
+            source_url="https://example.gov.cn/a.html",
+        )
+        db.add(announcement)
+        db.flush()
         db.add(
-            CrawlRun(
-                run_no="scheduled-test-1",
-                run_type="scheduled",
-                status="partial_success",
-                triggered_by="cli_daily",
-                discovered_items=1,
-                attachment_failed_count=1,
+            Attachment(
+                announcement_id=announcement.id,
+                site_id=site.id,
+                attachment_key="failed-att",
+                name="失败附件",
+                safe_name="failed.pdf",
+                source_url="https://example.gov.cn/failed.pdf",
+                download_status="failed",
+                failure_reason="timeout",
             )
         )
         db.commit()
@@ -265,6 +290,76 @@ def test_render_acceptance_report_marks_partial_success_as_pending(tmp_path):
     assert "1 个启用栏目的完整每日任务：已执行但有失败" in report
     assert "partial=1 failed=0" in report
     assert "1 个启用栏目的完整每日任务验收。" in report
+
+
+def test_render_acceptance_report_passes_recovered_attachment_failures(tmp_path):
+    setup_db(tmp_path)
+    with SessionLocal() as db:
+        site = Site(
+            name="测试站点",
+            slug="test-site",
+            homepage_url="https://example.gov.cn",
+            enabled=True,
+        )
+        db.add(site)
+        db.flush()
+        section = SiteSection(
+            site_id=site.id,
+            name="公告栏目",
+            url="https://example.gov.cn/list.html",
+            enabled=True,
+        )
+        db.add(section)
+        db.flush()
+        run = CrawlRun(
+            run_no="scheduled-test-1",
+            run_type="scheduled",
+            status="partial_success",
+            triggered_by="cli_daily",
+            discovered_items=1,
+            attachment_success_count=0,
+            attachment_failed_count=1,
+        )
+        db.add(run)
+        db.flush()
+        announcement = Announcement(
+            site_id=site.id,
+            section_id=section.id,
+            run_id=run.id,
+            identity_key="abc",
+            identity_strategy="test",
+            title="资质公告",
+            item_type="qualification_notice",
+            source_url="https://example.gov.cn/a.html",
+        )
+        db.add(announcement)
+        db.flush()
+        db.add(
+            Attachment(
+                announcement_id=announcement.id,
+                site_id=site.id,
+                run_id=run.id,
+                attachment_key="att",
+                name="已恢复附件",
+                safe_name="a.pdf",
+                source_url="https://example.gov.cn/a.pdf",
+                download_status="success",
+                local_path="attachments/test/a.pdf",
+                file_hash="hash",
+            )
+        )
+        db.commit()
+
+    with SessionLocal() as db:
+        report = render_acceptance_report(
+            db,
+            settings=Settings(APP_STORAGE_ROOT=tmp_path / "storage"),
+            now=datetime(2026, 6, 21, 12, 0),
+        )
+
+    assert "当前没有阻塞验收的失败附件" in report
+    assert "1 个启用栏目的完整每日任务：已完成（失败附件已重试恢复）" in report
+    assert "1 个启用栏目的完整每日任务验收。" not in report
 
 
 def test_export_acceptance_report_writes_markdown_file(tmp_path):
