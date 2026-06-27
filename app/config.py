@@ -50,6 +50,10 @@ class Settings(BaseSettings):
     app_public_base_url: str = Field(default="http://127.0.0.1:8000", alias="APP_PUBLIC_BASE_URL")
     wecom_notify_target_type: str = Field(default="direct", alias="WECOM_NOTIFY_TARGET_TYPE")
     wecom_notify_target_id: str = Field(default="", alias="WECOM_NOTIFY_TARGET_ID")
+    crawler_attachment_timeout_seconds: int = Field(
+        default=10,
+        alias="CRAWLER_ATTACHMENT_TIMEOUT_SECONDS",
+    )
     kb_enable_attachment_parse: bool = Field(default=True, alias="KB_ENABLE_ATTACHMENT_PARSE")
     kb_parse_batch_limit: int = Field(default=20, alias="KB_PARSE_BATCH_LIMIT")
     kb_search_default_limit: int = Field(default=10, alias="KB_SEARCH_DEFAULT_LIMIT")

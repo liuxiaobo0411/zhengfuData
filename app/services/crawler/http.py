@@ -33,7 +33,9 @@ def section_headers(section: SiteSection) -> dict[str, str]:
 
 def fetch_url(url: str, section: SiteSection, timeout: int | None = None) -> FetchedPage:
     request_url = normalize_request_url(url)
-    retries = max(0, section.retry_times if section.crawler_strategy == "http_with_retry" else 0)
+    retries = 0
+    if timeout is None and section.crawler_strategy == "http_with_retry":
+        retries = max(0, section.retry_times)
     headers = section_headers(section)
     last_error: Exception | None = None
     for attempt in range(retries + 1):

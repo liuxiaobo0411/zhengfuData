@@ -67,6 +67,42 @@ def test_fetch_url_waits_with_backoff_between_retry_attempts(monkeypatch):
     assert sleeps == [2, 4]
 
 
+def test_fetch_url_skips_section_retries_when_explicit_timeout_is_passed(monkeypatch):
+    section = SiteSection(
+        name="测试栏目",
+        url="https://example.gov.cn/list.html",
+        crawler_strategy="http_with_retry",
+        request_timeout=5,
+        retry_times=2,
+        request_interval_seconds=2,
+    )
+    sleeps: list[int] = []
+
+    def fake_get(*args, **kwargs):
+        raise httpx.ConnectError("timeout")
+
+    def fake_sleep(seconds: int):
+        sleeps.append(seconds)
+
+    def fake_curl(url: str, section: SiteSection, timeout: int):
+        return FetchedPage(
+            url=url,
+            final_url=url,
+            body=b"ok",
+            text="ok",
+            content_type="text/html",
+        )
+
+    monkeypatch.setattr("app.services.crawler.http.httpx.get", fake_get)
+    monkeypatch.setattr("app.services.crawler.http.time.sleep", fake_sleep)
+    monkeypatch.setattr("app.services.crawler.http.fetch_url_with_curl", fake_curl)
+
+    page = fetch_url("https://example.gov.cn/file.pdf", section, timeout=20)
+
+    assert page.text == "ok"
+    assert sleeps == []
+
+
 def test_fetch_url_with_curl_sets_process_and_connect_timeouts(monkeypatch, tmp_path):
     section = SiteSection(
         name="测试栏目",

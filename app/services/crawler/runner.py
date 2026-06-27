@@ -212,6 +212,7 @@ def retry_attachment_download(
         ParsedAttachment(name=attachment.name, url=attachment.source_url),
         section,
         storage.root,
+        settings,
     )
     run.status = "success" if result["success"] else "failed"
     run.success_sections = 1 if result["success"] else 0
@@ -390,6 +391,7 @@ def save_record(
                 parsed_attachment,
                 section,
                 storage_root,
+                settings,
             )
             attachment_added += int(attachment_result["is_new"])
             attachment_changed += int(attachment_result["changed"])
@@ -417,6 +419,7 @@ def save_attachment(
     parsed_attachment: ParsedAttachment,
     section: SiteSection,
     storage_root: Path,
+    settings: Settings,
 ) -> dict[str, bool]:
     key = identity_for(parsed_attachment.url)
     attachment = db.scalar(
@@ -457,7 +460,11 @@ def save_attachment(
     attachment.run_id = run.id
     attachment.last_seen_at = now
     try:
-        page = fetch_url(parsed_attachment.url, section, timeout=max(60, section.request_timeout))
+        page = fetch_url(
+            parsed_attachment.url,
+            section,
+            timeout=max(1, settings.crawler_attachment_timeout_seconds),
+        )
         filename = attachment_filename(parsed_attachment, page)
         new_hash = sha256_bytes(page.body)
         old_hash = attachment.file_hash
