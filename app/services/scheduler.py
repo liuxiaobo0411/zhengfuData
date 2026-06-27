@@ -13,6 +13,7 @@ from app.config import Settings, get_settings
 from app.database import SessionLocal
 from app.models import CrawlRun, NotificationLog, Site, SiteSection
 from app.services.crawler import crawl_section
+from app.services.kb import ParseSummary, parse_attachments
 from app.services.notifier import send_daily_report
 
 
@@ -21,6 +22,7 @@ class DailyCrawlResult:
     section_ids: list[int]
     runs: list[CrawlRun]
     notification: NotificationLog | None
+    parse_summary: ParseSummary | None = None
 
     @property
     def success_count(self) -> int:
@@ -55,9 +57,19 @@ def run_daily_crawl(
             crawl_section(db, section_id, triggered_by=triggered_by, settings=settings)
             for section_id in section_ids
         ]
+        parse_summary = (
+            parse_attachments(db, limit=settings.kb_parse_batch_limit, settings=settings)
+            if settings.kb_enable_attachment_parse
+            else None
+        )
         notification = send_daily_report(db, settings=settings) if notify else None
 
-    return DailyCrawlResult(section_ids=section_ids, runs=runs, notification=notification)
+    return DailyCrawlResult(
+        section_ids=section_ids,
+        runs=runs,
+        notification=notification,
+        parse_summary=parse_summary,
+    )
 
 
 def enabled_section_ids(db: Session) -> list[int]:

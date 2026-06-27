@@ -5,9 +5,10 @@ from datetime import datetime
 import app.models  # noqa: F401
 from app.config import Settings
 from app.database import Base, SessionLocal, configure_database
-from app.models import Announcement, Attachment, AttachmentVersion, Site, SiteSection
+from app.models import Announcement, Attachment, AttachmentVersion, SearchIndex, Site, SiteSection
 from app.services.kb import (
     ask_knowledge,
+    format_openclaw_answer,
     parse_attachment,
     parse_attachments,
     rebuild_search_index,
@@ -173,9 +174,66 @@ def test_rebuild_search_index_and_ask(tmp_path):
         parse_attachment(db, attachment_id, settings=Settings(APP_STORAGE_ROOT=storage))
         count = rebuild_search_index(db)
         results = search_knowledge(db, "建筑业企业资质", limit=5)
-        answer = ask_knowledge(db, "资质核准", limit=5)
+        answer = ask_knowledge(db, "资质核准", limit=5, base_url="http://localhost:8000")
+        openclaw_text = format_openclaw_answer(
+            db,
+            "资质核准",
+            limit=5,
+            base_url="http://localhost:8000",
+        )
 
     assert count >= 2
     assert any(item.entity_type == "announcement" for item in results)
     assert answer["answer_type"] == "search_summary"
     assert answer["items"]
+    assert answer["items"][0]["backend_url"].startswith("http://localhost:8000/")
+    assert "后台：http://localhost:8000/" in openclaw_text
+
+
+def test_search_knowledge_filters_by_entity_type_and_site(tmp_path):
+    setup_db(tmp_path)
+    with SessionLocal() as db:
+        db.add_all(
+            [
+                SearchIndex(
+                    entity_type="announcement",
+                    entity_id=1,
+                    title="建筑业企业资质延续公告",
+                    body="建筑业企业资质延续",
+                    site_name="住房城乡建设部",
+                    section_name="资质公告",
+                    published_at=datetime(2026, 6, 22, 9, 0),
+                ),
+                SearchIndex(
+                    entity_type="attachment",
+                    entity_id=2,
+                    title="陕西资质延续名单.xlsx",
+                    body="建筑业企业资质延续",
+                    site_name="陕西省住房和城乡建设厅",
+                    section_name="公告公示",
+                    published_at=datetime(2026, 6, 24, 9, 0),
+                ),
+            ]
+        )
+        db.commit()
+
+        announcement_results = search_knowledge(
+            db,
+            "资质延续",
+            entity_type="announcement",
+        )
+        site_results = search_knowledge(
+            db,
+            "资质延续",
+            site_name="陕西省住房和城乡建设厅",
+        )
+        date_results = search_knowledge(
+            db,
+            "资质延续",
+            published_from=datetime(2026, 6, 23),
+            published_to=datetime(2026, 6, 25),
+        )
+
+    assert [item.entity_type for item in announcement_results] == ["announcement"]
+    assert [item.site_name for item in site_results] == ["陕西省住房和城乡建设厅"]
+    assert [item.title for item in date_results] == ["陕西资质延续名单.xlsx"]

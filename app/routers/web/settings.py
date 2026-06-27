@@ -11,6 +11,7 @@ from app.config import BASE_DIR, get_settings
 from app.database import SessionLocal
 from app.models import Site, SiteSection
 from app.routers.web.security import require_user
+from app.services.notifier import notification_config_state
 from app.services.scheduler import scheduler_status
 from app.services.storage import prepare_storage
 
@@ -26,6 +27,7 @@ def settings_page(request: Request):
 
     settings = get_settings()
     storage = prepare_storage(settings)
+    notification_state = notification_config_state(settings)
     with SessionLocal() as db:
         site_count = db.scalar(select(func.count(Site.id))) or 0
         enabled_section_count = (
@@ -43,6 +45,7 @@ def settings_page(request: Request):
             "storage_info": storage_info(storage.root),
             "site_count": site_count,
             "enabled_section_count": enabled_section_count,
+            "notification_state": notification_state,
             "openclaw_webhook_state": secret_state(settings.openclaw_webhook_url),
             "admin_password_state": secret_state(settings.admin_password),
             "app_secret_state": secret_state(settings.app_secret_key),

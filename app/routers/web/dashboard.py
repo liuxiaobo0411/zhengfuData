@@ -12,6 +12,7 @@ from app.config import BASE_DIR, get_settings
 from app.database import SessionLocal
 from app.models import Announcement, Attachment, ChangeLog, CrawlRun, Site, SiteSection
 from app.routers.web.security import require_user
+from app.services.notifier import notification_config_state
 from app.services.scheduler import scheduler_status
 from app.services.storage import prepare_storage
 
@@ -67,7 +68,7 @@ def dashboard(request: Request):
         today_failure_count = sum(run.status == "failed" for run in today_runs) + sum(
             run.attachment_failed_count for run in today_runs
         )
-    openclaw_configured = bool(settings.openclaw_webhook_url)
+    notification_state = notification_config_state(settings)
 
     context = {
         "request": request,
@@ -76,7 +77,7 @@ def dashboard(request: Request):
         "settings": settings,
         "storage": storage,
         "scheduler": scheduler_status(settings),
-        "openclaw_configured": openclaw_configured,
+        "notification_state": notification_state,
         "recent_changes": recent_changes,
         "metrics": [
             {"label": "政府网站", "value": str(site_count), "hint": "已配置"},

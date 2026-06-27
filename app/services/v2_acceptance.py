@@ -148,10 +148,29 @@ def check_api_and_web(settings: Settings) -> list[V2AcceptanceCheck]:
     checks: list[V2AcceptanceCheck] = []
     search_response = client.post("/api/kb/search", json={"query": "资质", "limit": 5})
     checks.append(status_check("api_kb_search", search_response.status_code, 200))
+    filtered_search_response = client.post(
+        "/api/kb/search",
+        json={"query": "资质", "limit": 5, "entity_type": "announcement"},
+    )
+    checks.append(status_check("api_kb_search_filters", filtered_search_response.status_code, 200))
+    invalid_filter_response = client.post(
+        "/api/kb/search",
+        json={"query": "资质", "entity_type": "invalid"},
+    )
+    checks.append(
+        status_check("api_kb_search_invalid_filter", invalid_filter_response.status_code, 422)
+    )
     ask_response = client.post("/api/kb/ask", json={"question": "资质", "limit": 5})
     checks.append(status_check("api_kb_ask", ask_response.status_code, 200))
     openclaw_response = client.post("/api/openclaw/kb/ask", json={"text": "资质", "limit": 5})
     checks.append(status_check("api_openclaw_kb_ask", openclaw_response.status_code, 200))
+    openclaw_text = ""
+    if openclaw_response.status_code == 200:
+        openclaw_text = openclaw_response.json().get("text", "")
+    if settings.app_public_base_url in openclaw_text:
+        checks.append(V2AcceptanceCheck("api_openclaw_backend_url", "ok", "返回完整后台链接"))
+    else:
+        checks.append(V2AcceptanceCheck("api_openclaw_backend_url", "fail", "未返回完整后台链接"))
     client.post(
         "/login",
         data={"username": settings.admin_username, "password": settings.admin_password},

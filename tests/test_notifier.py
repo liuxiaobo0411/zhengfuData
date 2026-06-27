@@ -6,7 +6,12 @@ import app.models  # noqa: F401
 from app.config import Settings
 from app.database import Base, SessionLocal, configure_database
 from app.models import ChangeLog, CrawlRun, NotificationLog
-from app.services.notifier import build_daily_report_payload, retry_notification, send_daily_report
+from app.services.notifier import (
+    build_daily_report_payload,
+    notification_config_state,
+    retry_notification,
+    send_daily_report,
+)
 
 
 def setup_db(tmp_path):
@@ -78,6 +83,28 @@ def test_send_daily_report_records_missing_webhook_failure(tmp_path):
     assert "OPENCLAW_WEBHOOK_URL" in log.failure_reason
     with SessionLocal() as db:
         assert db.query(NotificationLog).count() == 1
+
+
+def test_notification_config_state_supports_webhook_and_cli_modes():
+    webhook_state = notification_config_state(
+        Settings(OPENCLAW_NOTIFY_MODE="webhook", OPENCLAW_WEBHOOK_URL="https://openclaw.local")
+    )
+    assert webhook_state.configured is True
+    assert webhook_state.mode == "webhook"
+    assert "OPENCLAW_WEBHOOK_URL 已配置" in webhook_state.detail
+
+    cli_state = notification_config_state(
+        Settings(OPENCLAW_NOTIFY_MODE="cli", WECOM_NOTIFY_TARGET_ID="group:wr123")
+    )
+    assert cli_state.configured is True
+    assert cli_state.mode == "cli"
+    assert "企微目标已配置" in cli_state.detail
+
+    missing_cli_state = notification_config_state(
+        Settings(OPENCLAW_NOTIFY_MODE="cli", WECOM_NOTIFY_TARGET_ID="")
+    )
+    assert missing_cli_state.configured is False
+    assert "WECOM_NOTIFY_TARGET_ID" in missing_cli_state.detail
 
 
 def test_send_daily_report_posts_to_openclaw(tmp_path, monkeypatch):

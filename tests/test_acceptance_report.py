@@ -137,6 +137,7 @@ def test_render_acceptance_report_summarizes_database(tmp_path):
                 APP_STORAGE_ROOT=tmp_path / "storage",
                 APP_SECRET_KEY="test-secret-key",
                 ADMIN_PASSWORD="test-password",
+                OPENCLAW_NOTIFY_MODE="webhook",
                 OPENCLAW_WEBHOOK_URL="http://openclaw.local/webhook",
             ),
             now=datetime(2026, 6, 21, 12, 0),
@@ -147,7 +148,7 @@ def test_render_acceptance_report_summarizes_database(tmp_path):
     assert "归档公告：1" in report
     assert "附件记录：2" in report
     assert "附件版本：1" in report
-    assert "OpenClaw webhook：已配置" in report
+    assert "OpenClaw 通知：Webhook 模式 / OPENCLAW_WEBHOOK_URL 已配置" in report
     assert "scheduled-test-1" in report
     assert "1 个启用栏目的完整每日任务：已完成" in report
     assert "partial=0" in report

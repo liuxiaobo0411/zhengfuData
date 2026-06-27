@@ -9,6 +9,7 @@ from app.config import Settings
 from app.database import Base, SessionLocal, configure_database
 from app.models import CrawlRun, NotificationLog, Site, SiteSection
 from app.services import scheduler
+from app.services.kb import ParseSummary
 
 
 def setup_db(tmp_path):
@@ -107,11 +108,16 @@ def test_run_daily_crawl_crawls_enabled_sections_and_sends_report(tmp_path, monk
         db.commit()
         return log
 
+    def fake_parse_attachments(db, limit, settings):
+        assert limit == 7
+        return ParseSummary(total=2, success=1, failed=0, unsupported=1)
+
     monkeypatch.setattr(scheduler, "crawl_section", fake_crawl_section)
     monkeypatch.setattr(scheduler, "send_daily_report", fake_send_daily_report)
+    monkeypatch.setattr(scheduler, "parse_attachments", fake_parse_attachments)
 
     result = scheduler.run_daily_crawl(
-        settings=Settings(APP_TIMEZONE="Asia/Shanghai"),
+        settings=Settings(APP_TIMEZONE="Asia/Shanghai", KB_PARSE_BATCH_LIMIT=7),
         notify=True,
         triggered_by="scheduled",
     )
@@ -120,7 +126,45 @@ def test_run_daily_crawl_crawls_enabled_sections_and_sends_report(tmp_path, monk
     assert result.success_count == 1
     assert result.failed_count == 0
     assert result.notification.status == "success"
+    assert result.parse_summary == ParseSummary(total=2, success=1, failed=0, unsupported=1)
     assert crawled == [(1, "scheduled", "Asia/Shanghai")]
+
+
+def test_run_daily_crawl_can_skip_attachment_parse(tmp_path, monkeypatch):
+    setup_db(tmp_path)
+    seed_sections()
+    parsed = False
+
+    def fake_crawl_section(db, section_id, triggered_by, settings):
+        run = CrawlRun(
+            run_no=f"test-{section_id}",
+            run_type="manual",
+            status="success",
+            started_at=datetime(2026, 6, 21, 9, 0),
+            finished_at=datetime(2026, 6, 21, 9, 1),
+            total_sections=1,
+            success_sections=1,
+        )
+        db.add(run)
+        db.commit()
+        return run
+
+    def fake_parse_attachments(db, limit, settings):
+        nonlocal parsed
+        parsed = True
+        return ParseSummary(total=0, success=0, failed=0, unsupported=0)
+
+    monkeypatch.setattr(scheduler, "crawl_section", fake_crawl_section)
+    monkeypatch.setattr(scheduler, "parse_attachments", fake_parse_attachments)
+
+    result = scheduler.run_daily_crawl(
+        settings=Settings(KB_ENABLE_ATTACHMENT_PARSE=False),
+        notify=False,
+        triggered_by="scheduled",
+    )
+
+    assert result.parse_summary is None
+    assert parsed is False
 
 
 def test_start_scheduler_respects_enabled_flag():

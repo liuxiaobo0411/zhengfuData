@@ -322,6 +322,12 @@ zhengfudata kb-search "建筑业企业资质延续"
 zhengfudata kb-ask "最近建筑业企业资质延续公告有哪些？"
 ```
 
+`kb-search` 支持按类型、来源网站和发布时间范围筛选：
+
+```bash
+zhengfudata kb-search "资质延续" --entity-type attachment --site-name "陕西省住房和城乡建设厅" --published-from 2026-06-23 --published-to 2026-06-25
+```
+
 一键执行 V2 知识库验收检查：
 
 ```bash
@@ -367,6 +373,13 @@ WECOM_NOTIFY_TARGET_ID=企微群chatid
 
 ```bash
 zhengfudata run-daily-crawl
+```
+
+默认情况下，完整每日抓取会在抓取完成后按 `KB_PARSE_BATCH_LIMIT` 自动解析一批已下载附件，
+让新附件内容尽快进入本地知识库。若只想抓取和通知，不自动解析附件，可在 `.env` 中设置：
+
+```env
+KB_ENABLE_ATTACHMENT_PARSE=false
 ```
 
 只抓取前 2 个启用栏目并发送日报：

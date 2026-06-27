@@ -10,7 +10,7 @@
   </div>
   <div class="topbar-actions">
     <span class="status-pill {{ 'success' if app_secret_state == '已配置' else 'warning' }}">密钥{{ app_secret_state }}</span>
-    <span class="status-pill {{ 'success' if openclaw_webhook_state == '已配置' else 'warning' }}">OpenClaw {{ openclaw_webhook_state }}</span>
+    <span class="status-pill {{ 'success' if notification_state.configured else 'warning' }}">OpenClaw {{ notification_state.state }}</span>
   </div>
 </header>
 
@@ -33,8 +33,8 @@
     </article>
     <article class="metric-card">
       <span>通知配置</span>
-      <strong>{{ 'OK' if openclaw_webhook_state == '已配置' else '-' }}</strong>
-      <em>{{ openclaw_webhook_state }}</em>
+      <strong>{{ 'OK' if notification_state.configured else '-' }}</strong>
+      <em>{{ notification_state.mode }}</em>
     </article>
   </section>
 
@@ -106,6 +106,8 @@
         <span>企微通知</span>
       </div>
       <dl class="kv-list">
+        <dt>状态</dt>
+        <dd>{{ notification_state.detail }}</dd>
         <dt>OPENCLAW_WEBHOOK_URL</dt>
         <dd>{{ openclaw_webhook_state }}</dd>
         <dt>OPENCLAW_NOTIFY_MODE</dt>

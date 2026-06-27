@@ -24,6 +24,7 @@ from app.models import (
 
 PARSER_VERSION = "v1"
 SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".xlsx", ".xlsm"}
+SEARCH_ENTITY_TYPES = {"announcement", "attachment"}
 
 
 @dataclass(frozen=True)
@@ -224,6 +225,10 @@ def search_knowledge(
     db: Session,
     query: str,
     limit: int = 10,
+    entity_type: str | None = None,
+    site_name: str | None = None,
+    published_from: datetime | None = None,
+    published_to: datetime | None = None,
 ) -> list[KnowledgeSearchResult]:
     terms = [term.strip() for term in query.split() if term.strip()]
     if not terms and query.strip():
@@ -232,6 +237,14 @@ def search_knowledge(
         return []
 
     statement = select(SearchIndex)
+    if entity_type:
+        statement = statement.where(SearchIndex.entity_type == entity_type)
+    if site_name:
+        statement = statement.where(SearchIndex.site_name == site_name)
+    if published_from:
+        statement = statement.where(SearchIndex.published_at >= published_from)
+    if published_to:
+        statement = statement.where(SearchIndex.published_at <= published_to)
     for term in terms:
         pattern = f"%{term}%"
         statement = statement.where(
@@ -250,19 +263,29 @@ def search_knowledge(
     return results[:limit]
 
 
-def ask_knowledge(db: Session, question: str, limit: int = 5) -> dict:
+def ask_knowledge(
+    db: Session,
+    question: str,
+    limit: int = 5,
+    base_url: str | None = None,
+) -> dict:
     items = search_knowledge(db, question, limit=limit)
     answer = f"找到 {len(items)} 条相关信息，请以原文和附件为准。"
     return {
         "question": question,
         "answer_type": "search_summary",
         "answer": answer,
-        "items": [search_result_to_dict(item) for item in items],
+        "items": [search_result_to_dict(item, base_url=base_url) for item in items],
     }
 
 
-def format_openclaw_answer(db: Session, text: str, limit: int = 5) -> str:
-    result = ask_knowledge(db, text, limit=limit)
+def format_openclaw_answer(
+    db: Session,
+    text: str,
+    limit: int = 5,
+    base_url: str | None = None,
+) -> str:
+    result = ask_knowledge(db, text, limit=limit, base_url=base_url)
     items = result["items"]
     if not items:
         return f"没有找到与“{text}”直接相关的归档信息。"

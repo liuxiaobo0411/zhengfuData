@@ -17,6 +17,7 @@ from app.models import (
     Site,
     SiteSection,
 )
+from app.services.notifier import notification_config_state
 from app.services.storage import prepare_storage
 from app.services.system_doctor import run_system_doctor
 
@@ -107,6 +108,7 @@ def render_acceptance_report(
     ).all()
     full_daily_summary = latest_full_daily_summary(db, enabled_section_count)
     doctor_report = run_system_doctor(db, settings=settings)
+    notification_state = notification_config_state(settings)
     lines = [
         "# V1 MVP 自动验收报告",
         "",
@@ -124,7 +126,7 @@ def render_acceptance_report(
         f"- 政府网站：{site_count}",
         f"- 栏目总数：{section_count}",
         f"- 启用栏目：{enabled_section_count}",
-        f"- OpenClaw webhook：{secret_state(settings.openclaw_webhook_url)}",
+        f"- OpenClaw 通知：{notification_state.detail}",
         f"- 每日调度：{'启用' if settings.app_scheduler_enabled else '未启用'} "
         f"{settings.app_scheduler_daily_time} {settings.app_timezone}",
         "",

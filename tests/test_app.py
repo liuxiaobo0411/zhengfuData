@@ -1,3 +1,4 @@
+from datetime import datetime
 from io import BytesIO
 from zipfile import ZipFile
 
@@ -72,6 +73,18 @@ def test_login_and_dashboard_page_loads(tmp_path):
     assert "正式抓取模块接入后" not in dashboard_response.text
 
 
+def test_dashboard_marks_openclaw_cli_mode_configured(tmp_path, monkeypatch):
+    monkeypatch.setenv("OPENCLAW_NOTIFY_MODE", "cli")
+    monkeypatch.setenv("WECOM_NOTIFY_TARGET_ID", "wr123")
+    client = make_client(tmp_path, monkeypatch)
+
+    login(client)
+    dashboard_response = client.get("/")
+
+    assert dashboard_response.status_code == 200
+    assert "OpenClaw 已配置" in dashboard_response.text
+
+
 def test_settings_page_requires_login_and_masks_secrets(tmp_path, monkeypatch):
     client = make_client(tmp_path, monkeypatch)
 
@@ -89,6 +102,32 @@ def test_settings_page_requires_login_and_masks_secrets(tmp_path, monkeypatch):
     assert "running timeout" in settings_response.text
     assert "Windows 脚本" in settings_response.text
     assert "change-me" not in settings_response.text
+
+
+def test_settings_page_shows_openclaw_cli_state(tmp_path, monkeypatch):
+    monkeypatch.setenv("OPENCLAW_NOTIFY_MODE", "cli")
+    monkeypatch.setenv("WECOM_NOTIFY_TARGET_ID", "wr123")
+    client = make_client(tmp_path, monkeypatch)
+
+    login(client)
+    settings_response = client.get("/settings")
+
+    assert settings_response.status_code == 200
+    assert "OpenClaw 已配置" in settings_response.text
+    assert "CLI 模式 / 企微目标已配置" in settings_response.text
+
+
+def test_settings_page_shows_missing_openclaw_cli_target(tmp_path, monkeypatch):
+    monkeypatch.setenv("OPENCLAW_NOTIFY_MODE", "cli")
+    monkeypatch.setenv("WECOM_NOTIFY_TARGET_ID", "")
+    client = make_client(tmp_path, monkeypatch)
+
+    login(client)
+    settings_response = client.get("/settings")
+
+    assert settings_response.status_code == 200
+    assert "OpenClaw 未配置" in settings_response.text
+    assert "CLI 模式缺少 WECOM_NOTIFY_TARGET_ID" in settings_response.text
 
 
 def test_site_and_section_can_be_created(tmp_path):
@@ -664,22 +703,81 @@ def test_kb_api_and_search_page(tmp_path):
                 backend_path="/announcements/1",
                 site_name="住房城乡建设部",
                 section_name="资质公告",
+                published_at=datetime(2026, 6, 22, 9, 0),
+            )
+        )
+        db.add(
+            SearchIndex(
+                entity_type="attachment",
+                entity_id=2,
+                title="陕西资质延续名单.xlsx",
+                body="建筑业企业资质延续名单",
+                source_url="https://js.shaanxi.gov.cn/a.xlsx",
+                backend_path="/attachments/2/download",
+                site_name="陕西省住房和城乡建设厅",
+                section_name="公告公示",
+                published_at=datetime(2026, 6, 24, 9, 0),
             )
         )
         db.commit()
 
     response = client.post("/api/kb/search", json={"query": "资质延续"})
     assert response.status_code == 200
-    assert response.json()["total"] == 1
-    assert response.json()["items"][0]["title"] == "建筑业企业资质延续公告"
+    assert response.json()["total"] == 2
+    assert {item["title"] for item in response.json()["items"]} == {
+        "建筑业企业资质延续公告",
+        "陕西资质延续名单.xlsx",
+    }
+
+    filtered_response = client.post(
+        "/api/kb/search",
+        json={
+            "query": "资质延续",
+            "entity_type": "attachment",
+            "site_name": "陕西省住房和城乡建设厅",
+        },
+    )
+    assert filtered_response.status_code == 200
+    assert filtered_response.json()["total"] == 1
+    assert filtered_response.json()["items"][0]["title"] == "陕西资质延续名单.xlsx"
+
+    date_filtered_response = client.post(
+        "/api/kb/search",
+        json={
+            "query": "资质延续",
+            "published_from": "2026-06-23",
+            "published_to": "2026-06-25",
+        },
+    )
+    assert date_filtered_response.status_code == 200
+    assert date_filtered_response.json()["total"] == 1
+    assert date_filtered_response.json()["items"][0]["title"] == "陕西资质延续名单.xlsx"
+
+    invalid_type_response = client.post(
+        "/api/kb/search",
+        json={"query": "资质延续", "entity_type": "unknown"},
+    )
+    assert invalid_type_response.status_code == 422
+
+    invalid_date_range_response = client.post(
+        "/api/kb/search",
+        json={
+            "query": "资质延续",
+            "published_from": "2026-06-25",
+            "published_to": "2026-06-23",
+        },
+    )
+    assert invalid_date_range_response.status_code == 422
 
     ask_response = client.post("/api/kb/ask", json={"question": "资质延续"})
     assert ask_response.status_code == 200
     assert ask_response.json()["answer_type"] == "search_summary"
+    assert ask_response.json()["items"][0]["backend_url"].startswith("http://127.0.0.1:8000/")
 
     openclaw_response = client.post("/api/openclaw/kb/ask", json={"text": "资质延续"})
     assert openclaw_response.status_code == 200
     assert "建筑业企业资质延续公告" in openclaw_response.json()["text"]
+    assert "后台：http://127.0.0.1:8000/" in openclaw_response.json()["text"]
 
     anonymous_page = client.get("/kb/search", follow_redirects=False)
     assert anonymous_page.status_code == 303
@@ -690,6 +788,26 @@ def test_kb_api_and_search_page(tmp_path):
     assert page.status_code == 200
     assert "知识库检索" in page.text
     assert "建筑业企业资质延续公告" in page.text
+    assert "陕西省住房和城乡建设厅" in page.text
+
+    filtered_page = client.get(
+        "/kb/search?q=资质延续&entity_type=attachment&site_name=陕西省住房和城乡建设厅"
+    )
+    assert filtered_page.status_code == 200
+    assert "陕西资质延续名单.xlsx" in filtered_page.text
+    assert "建筑业企业资质延续公告" not in filtered_page.text
+
+    date_filtered_page = client.get(
+        "/kb/search?q=资质延续&published_from=2026-06-23&published_to=2026-06-25"
+    )
+    assert date_filtered_page.status_code == 200
+    assert "陕西资质延续名单.xlsx" in date_filtered_page.text
+    assert "建筑业企业资质延续公告" not in date_filtered_page.text
+
+    invalid_type_page = client.get("/kb/search?q=资质延续&entity_type=unknown")
+    assert invalid_type_page.status_code == 200
+    assert 'value="announcement" selected' not in invalid_type_page.text
+    assert 'value="attachment" selected' not in invalid_type_page.text
 
 
 def test_web_attachment_parse_action_requires_login(tmp_path, monkeypatch):

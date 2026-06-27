@@ -9,8 +9,8 @@
       <p>查看今日抓取、归档、附件和通知状态。</p>
     </div>
     <div class="topbar-actions">
-      <span class="status-pill {{ 'success' if openclaw_configured else 'warning' }}">
-        OpenClaw {{ '已配置' if openclaw_configured else '未配置' }}
+      <span class="status-pill {{ 'success' if notification_state.configured else 'warning' }}">
+        OpenClaw {{ notification_state.state }}
       </span>
       <span class="status-pill {{ 'success' if scheduler.running else 'warning' }}">
         定时抓取{{ '运行中' if scheduler.running else '未启用' }}

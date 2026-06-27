@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+from dataclasses import dataclass
 from datetime import datetime, time
 from typing import Any
 
@@ -11,6 +12,55 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
 from app.models import ChangeLog, CrawlRun, NotificationLog
+
+
+@dataclass(frozen=True)
+class NotificationConfigState:
+    configured: bool
+    state: str
+    mode: str
+    detail: str
+
+
+def notification_config_state(settings: Settings) -> NotificationConfigState:
+    mode = settings.openclaw_notify_mode.lower()
+    if mode == "cli":
+        target = openclaw_cli_target(settings.wecom_notify_target_id)
+        if target:
+            return NotificationConfigState(
+                configured=True,
+                state="已配置",
+                mode="cli",
+                detail="CLI 模式 / 企微目标已配置",
+            )
+        return NotificationConfigState(
+            configured=False,
+            state="未配置",
+            mode="cli",
+            detail="CLI 模式缺少 WECOM_NOTIFY_TARGET_ID",
+        )
+
+    if mode == "webhook":
+        if settings.openclaw_webhook_url:
+            return NotificationConfigState(
+                configured=True,
+                state="已配置",
+                mode="webhook",
+                detail="Webhook 模式 / OPENCLAW_WEBHOOK_URL 已配置",
+            )
+        return NotificationConfigState(
+            configured=False,
+            state="未配置",
+            mode="webhook",
+            detail="Webhook 模式缺少 OPENCLAW_WEBHOOK_URL",
+        )
+
+    return NotificationConfigState(
+        configured=False,
+        state="未配置",
+        mode=mode,
+        detail=f"未知通知模式：{settings.openclaw_notify_mode}",
+    )
 
 
 def build_daily_report_payload(

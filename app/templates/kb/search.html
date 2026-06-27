@@ -28,6 +28,23 @@
           <option value="attachment" {% if entity_type == "attachment" %}selected{% endif %}>附件</option>
         </select>
       </label>
+      <label>
+        <span>来源网站</span>
+        <select name="site_name">
+          <option value="">全部</option>
+          {% for name in site_names %}
+          <option value="{{ name }}" {% if site_name == name %}selected{% endif %}>{{ name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        <span>发布时间从</span>
+        <input name="published_from" type="date" value="{{ published_from }}">
+      </label>
+      <label>
+        <span>发布时间到</span>
+        <input name="published_to" type="date" value="{{ published_to }}">
+      </label>
     </div>
     <button type="submit">检索</button>
   </form>

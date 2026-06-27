@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, time
 from pathlib import Path
 
 from app.config import get_settings, resolve_project_path
@@ -8,6 +9,7 @@ from app.database import SessionLocal
 from app.services.acceptance_report import export_acceptance_report
 from app.services.crawler import crawl_section
 from app.services.kb import (
+    SEARCH_ENTITY_TYPES,
     ask_knowledge,
     kb_stats,
     parse_attachment,
@@ -64,6 +66,10 @@ def main() -> None:
     kb_search_parser = subparsers.add_parser("kb-search")
     kb_search_parser.add_argument("query")
     kb_search_parser.add_argument("--limit", type=int, default=10)
+    kb_search_parser.add_argument("--entity-type", default="")
+    kb_search_parser.add_argument("--site-name", default="")
+    kb_search_parser.add_argument("--published-from", default="")
+    kb_search_parser.add_argument("--published-to", default="")
 
     kb_ask_parser = subparsers.add_parser("kb-ask")
     kb_ask_parser.add_argument("question")
@@ -97,7 +103,14 @@ def main() -> None:
     elif args.command == "rebuild-search-index":
         rebuild_index()
     elif args.command == "kb-search":
-        kb_search(args.query, args.limit)
+        kb_search(
+            args.query,
+            args.limit,
+            entity_type=args.entity_type,
+            site_name=args.site_name,
+            published_from=args.published_from,
+            published_to=args.published_to,
+        )
     elif args.command == "kb-ask":
         kb_ask(args.question, args.limit)
     elif args.command == "v2-acceptance-check":
@@ -141,6 +154,12 @@ def run_daily(limit: int, notify: bool) -> None:
         f"daily sections={len(result.section_ids)} success={result.success_count} "
         f"partial={result.partial_count} failed={result.failed_count}"
     )
+    if result.parse_summary:
+        print(
+            f"parse total={result.parse_summary.total} success={result.parse_summary.success} "
+            f"failed={result.parse_summary.failed} "
+            f"unsupported={result.parse_summary.unsupported}"
+        )
     if result.notification:
         print(
             f"notification={result.notification.id} status={result.notification.status} "
@@ -184,9 +203,35 @@ def rebuild_index() -> None:
     print(f"rebuild_search_index count={count} total={stats['search_index']}")
 
 
-def kb_search(query: str, limit: int) -> None:
+def kb_search(
+    query: str,
+    limit: int,
+    *,
+    entity_type: str = "",
+    site_name: str = "",
+    published_from: str = "",
+    published_to: str = "",
+) -> None:
+    entity_type_filter = parse_entity_type(entity_type)
+    published_from_filter = parse_date_start(published_from)
+    published_to_filter = parse_date_end(published_to)
+    if (
+        published_from_filter
+        and published_to_filter
+        and published_from_filter > published_to_filter
+    ):
+        raise SystemExit("published-from 不能晚于 published-to")
+
     with SessionLocal() as db:
-        results = search_knowledge(db, query, limit=limit)
+        results = search_knowledge(
+            db,
+            query,
+            limit=limit,
+            entity_type=entity_type_filter,
+            site_name=site_name or None,
+            published_from=published_from_filter,
+            published_to=published_to_filter,
+        )
     for result in results:
         print(
             f"{result.entity_type}#{result.entity_id} score={result.score} "
@@ -197,6 +242,34 @@ def kb_search(query: str, limit: int) -> None:
         if result.source_url:
             print(f"  source={result.source_url}")
     print(f"summary total={len(results)}")
+
+
+def parse_entity_type(value: str) -> str | None:
+    if not value:
+        return None
+    if value not in SEARCH_ENTITY_TYPES:
+        allowed = ", ".join(sorted(SEARCH_ENTITY_TYPES))
+        raise SystemExit(f"entity-type 仅支持：{allowed}")
+    return value
+
+
+def parse_date_start(value: str) -> datetime | None:
+    parsed = parse_cli_date(value)
+    return datetime.combine(parsed, time.min) if parsed else None
+
+
+def parse_date_end(value: str) -> datetime | None:
+    parsed = parse_cli_date(value)
+    return datetime.combine(parsed, time.max) if parsed else None
+
+
+def parse_cli_date(value: str):
+    if not value:
+        return None
+    try:
+        return datetime.strptime(value, "%Y-%m-%d").date()
+    except ValueError as exc:
+        raise SystemExit(f"日期格式应为 YYYY-MM-DD：{value}") from exc
 
 
 def kb_ask(question: str, limit: int) -> None:
