@@ -36,7 +36,9 @@ def seed_acceptance_data():
             site_id=site.id,
             name="公告栏目",
             url="https://example.gov.cn/list.html",
+            crawler_strategy="json_api",
             enabled=True,
+            last_status="success",
         )
         db.add(section)
         db.flush()
@@ -111,16 +113,18 @@ def seed_acceptance_data():
                 run_id=run.id,
                 provider="openclaw",
                 event_type="daily_crawl_report",
-                status="success",
+                status="failed",
+                failure_reason="OPENCLAW_WEBHOOK_URL 未配置",
             )
         )
+        db.flush()
         db.add(
             NotificationLog(
                 run_id=run.id,
                 provider="openclaw",
                 event_type="daily_crawl_report",
-                status="failed",
-                failure_reason="OPENCLAW_WEBHOOK_URL 未配置",
+                status="success",
+                sent_at=datetime(2026, 6, 21, 12, 1),
             )
         )
         db.commit()
@@ -163,6 +167,11 @@ def test_render_acceptance_report_summarizes_database(tmp_path):
     assert "失败附件" in report
     assert "附件管理页点击重试" in report
     assert "OPENCLAW_WEBHOOK_URL 未配置" in report
+    assert "验收证据" in report
+    assert "企微日报发送：已验证" in report
+    assert "动态/接口查询页面适配：已验证 1 个" in report
+    assert "真实企微群日报发送。" not in report
+    assert "动态查询页面 Playwright 或接口适配。" not in report
 
 
 def test_render_acceptance_report_keeps_failed_full_daily_in_pending(tmp_path):
@@ -360,6 +369,44 @@ def test_render_acceptance_report_passes_recovered_attachment_failures(tmp_path)
     assert "当前没有阻塞验收的失败附件" in report
     assert "1 个启用栏目的完整每日任务：已完成（失败附件已重试恢复）" in report
     assert "1 个启用栏目的完整每日任务验收。" not in report
+
+
+def test_render_acceptance_report_keeps_missing_notification_and_dynamic_adapter_pending(
+    tmp_path,
+):
+    setup_db(tmp_path)
+    with SessionLocal() as db:
+        site = Site(
+            name="测试站点",
+            slug="test-site",
+            homepage_url="https://example.gov.cn",
+            enabled=True,
+        )
+        db.add(site)
+        db.flush()
+        db.add(
+            SiteSection(
+                site_id=site.id,
+                name="公告栏目",
+                url="https://example.gov.cn/list.html",
+                crawler_strategy="http_with_retry",
+                enabled=True,
+                last_status="success",
+            )
+        )
+        db.commit()
+
+    with SessionLocal() as db:
+        report = render_acceptance_report(
+            db,
+            settings=Settings(APP_STORAGE_ROOT=tmp_path / "storage"),
+            now=datetime(2026, 6, 21, 12, 0),
+        )
+
+    assert "企微日报发送：待验证" in report
+    assert "动态/接口查询页面适配：待验证" in report
+    assert "真实企微群日报发送。" in report
+    assert "动态查询页面 Playwright 或接口适配。" in report
 
 
 def test_export_acceptance_report_writes_markdown_file(tmp_path):

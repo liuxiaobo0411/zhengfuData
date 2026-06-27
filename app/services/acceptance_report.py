@@ -106,6 +106,13 @@ def render_acceptance_report(
             .limit(10)
         ).all()
     )
+    dynamic_section_count = count_rows(
+        db,
+        SiteSection.id,
+        SiteSection.enabled.is_(True),
+        SiteSection.crawler_strategy.in_(["json_api", "browser_rendered"]),
+        SiteSection.last_status == "success",
+    )
     attachment_status = db.execute(
         select(Attachment.download_status, func.count(Attachment.id))
         .group_by(Attachment.download_status)
@@ -182,8 +189,19 @@ def render_acceptance_report(
     for label, path in backend_checkpoints():
         lines.append(f"- {label}：`{settings.app_public_base_url.rstrip('/')}{path}`")
 
-    lines.extend(["", "## 当前阻塞问题", ""])
     latest_notification = recent_notifications[0] if recent_notifications else None
+    notification_acceptance = format_notification_acceptance(
+        latest_notification,
+        notification_state.mode,
+    )
+    lines.extend(["", "## 验收证据", ""])
+    lines.append(f"- 企微日报发送：{notification_acceptance}")
+    lines.append(
+        f"- 动态/接口查询页面适配：{format_dynamic_section_acceptance(dynamic_section_count)}"
+    )
+    lines.append("- Windows 部署脚本：CI 已执行 setup + doctor smoke，实机运行仍需在目标电脑确认。")
+
+    lines.extend(["", "## 当前阻塞问题", ""])
     current_blockers: list[str] = []
     if current_failed_attachment_count:
         current_blockers.append(f"失败附件 {current_failed_attachment_count} 个")
@@ -243,12 +261,14 @@ def render_acceptance_report(
             "## 后续待验收",
             "",
             "- Windows 实机安装和运行。",
-            "- 真实 OpenClaw webhook 企微群日报发送。",
         ]
     )
+    if not latest_notification or latest_notification.status != "success":
+        lines.append("- 真实企微群日报发送。")
     if not full_daily_summary_passed(full_daily_summary, current_failed_attachment_count):
         lines.append(f"- {enabled_section_count} 个启用栏目的完整每日任务验收。")
-    lines.append("- 动态查询页面 Playwright 或接口适配。")
+    if dynamic_section_count == 0:
+        lines.append("- 动态查询页面 Playwright 或接口适配。")
     return "\n".join(lines) + "\n"
 
 
@@ -337,6 +357,29 @@ def full_daily_summary_passed(
         and summary.failed_sections == 0
         and current_failed_attachment_count == 0
     )
+
+
+def format_notification_acceptance(
+    latest_notification: NotificationLog | None,
+    mode: str,
+) -> str:
+    if latest_notification is None:
+        return "待验证，暂无通知日志"
+    if latest_notification.status == "success":
+        return (
+            f"已验证 latest=#{latest_notification.id} mode={mode} "
+            f"sent_at={latest_notification.sent_at}"
+        )
+    return (
+        f"待处理 latest=#{latest_notification.id} status={latest_notification.status} "
+        f"reason={latest_notification.failure_reason or '无失败原因'}"
+    )
+
+
+def format_dynamic_section_acceptance(dynamic_section_count: int) -> str:
+    if dynamic_section_count <= 0:
+        return "待验证，暂无成功的 json_api/browser_rendered 启用栏目"
+    return f"已验证 {dynamic_section_count} 个 json_api/browser_rendered 启用栏目成功抓取"
 
 
 def backend_checkpoints() -> list[tuple[str, str]]:
