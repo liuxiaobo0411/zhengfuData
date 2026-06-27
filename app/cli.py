@@ -22,7 +22,6 @@ from app.services.scheduler import run_daily_crawl
 from app.services.site_importer import import_sites_from_yaml
 from app.services.source_validator import validate_enabled_sources
 from app.services.system_doctor import format_doctor_report, run_system_doctor
-from app.services.v2_acceptance import format_v2_acceptance_report, run_v2_acceptance_check
 
 
 def main() -> None:
@@ -348,6 +347,8 @@ def acceptance_check(source_limit: int, skip_source_validation: bool = False) ->
 
 
 def v2_acceptance_check() -> None:
+    from app.services.v2_acceptance import format_v2_acceptance_report, run_v2_acceptance_check
+
     with SessionLocal() as db:
         report = run_v2_acceptance_check(db, settings=get_settings())
     print(format_v2_acceptance_report(report))
