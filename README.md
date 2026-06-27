@@ -263,7 +263,7 @@ ruff format --check .
 pytest
 ```
 
-GitHub 已配置 CI，推送到 `main` 或创建 PR 时会在 Python 3.11 和 3.12 上自动运行同一组质量门。
+GitHub 已配置 CI，推送到 `main` 或创建 PR 时会在 Ubuntu / Windows 的 Python 3.11 和 3.12 上自动运行同一组质量门。
 
 涉及数据库结构变更时，还需要运行：
 
