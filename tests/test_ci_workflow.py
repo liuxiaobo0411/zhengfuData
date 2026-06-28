@@ -19,3 +19,18 @@ def test_ci_workflow_covers_windows_smoke_and_test_matrix():
     commands = [step.get("run", "") for step in smoke["steps"]]
     assert "scripts\\windows\\setup.ps1 -PythonCommand python" in commands
     assert "scripts\\windows\\doctor.ps1" in commands
+    assert (
+        "scripts\\windows\\run-local-acceptance.ps1 -SkipSourceValidation -SkipDailyCrawl -SkipV2"
+    ) in commands
+
+    ubuntu_smoke = workflow["jobs"]["ubuntu-smoke"]
+    assert ubuntu_smoke["runs-on"] == "ubuntu-latest"
+    ubuntu_commands = [step.get("run", "") for step in ubuntu_smoke["steps"]]
+    assert any("python -m alembic upgrade head" in command for command in ubuntu_commands)
+    assert any(
+        "python -m app.cli import-sites --file configs/sites.yaml" in command
+        for command in ubuntu_commands
+    )
+    assert (
+        "scripts/run-local-acceptance.sh --skip-source-validation --skip-daily-crawl --skip-v2"
+    ) in ubuntu_commands

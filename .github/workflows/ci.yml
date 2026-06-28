@@ -63,3 +63,29 @@ jobs:
       - name: Run Windows local acceptance script
         shell: pwsh
         run: scripts\windows\run-local-acceptance.ps1 -SkipSourceValidation -SkipDailyCrawl -SkipV2
+
+  ubuntu-smoke:
+    name: Ubuntu local acceptance smoke
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: python -m pip install -e ".[dev]"
+
+      - name: Prepare local database
+        run: |
+          mkdir -p data storage
+          python -m alembic upgrade head
+          python -m app.cli import-sites --file configs/sites.yaml
+
+      - name: Run local acceptance script
+        run: scripts/run-local-acceptance.sh --skip-source-validation --skip-daily-crawl --skip-v2

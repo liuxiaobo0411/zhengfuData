@@ -72,3 +72,15 @@ def test_ci_runs_windows_local_acceptance_script_in_light_mode():
     assert "-SkipSourceValidation" in workflow
     assert "-SkipDailyCrawl" in workflow
     assert "-SkipV2" in workflow
+
+
+def test_unix_local_acceptance_script_wraps_cross_platform_cli():
+    script = (BASE_DIR / "scripts" / "run-local-acceptance.sh").read_text(encoding="utf-8")
+
+    assert "local-acceptance-check" in script
+    assert "--source-limit" in script
+    assert "--daily-limit" in script
+    assert "--skip-source-validation" in script
+    assert "--skip-daily-crawl" in script
+    assert "--skip-v2" in script
+    assert 'PYTHON_BIN="$PROJECT_ROOT/.venv/bin/python"' in script

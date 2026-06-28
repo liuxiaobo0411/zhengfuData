@@ -218,6 +218,12 @@ alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
+执行本机交付验收：
+
+```bash
+scripts/run-local-acceptance.sh --source-limit 2 --daily-limit 2
+```
+
 如需启用 `browser_rendered` 动态页面策略，额外安装：
 
 ```bash
@@ -264,7 +270,7 @@ ruff format --check .
 pytest
 ```
 
-GitHub 已配置 CI，推送到 `main` 或创建 PR 时会在 Ubuntu / Windows 的 Python 3.11 和 3.12 上自动运行同一组质量门，并在 Windows 上执行 setup、doctor 和本机验收脚本轻量模式。
+GitHub 已配置 CI，推送到 `main` 或创建 PR 时会在 Ubuntu / Windows 的 Python 3.11 和 3.12 上自动运行同一组质量门，并分别在 Windows 和 Ubuntu 上执行本机验收脚本轻量模式。
 
 涉及数据库结构变更时，还需要运行：
 
@@ -316,6 +322,12 @@ zhengfudata acceptance-check --source-limit 2
 
 ```bash
 zhengfudata local-acceptance-check --source-limit 2 --daily-limit 2
+```
+
+macOS / Linux 也可以使用脚本封装：
+
+```bash
+scripts/run-local-acceptance.sh --source-limit 2 --daily-limit 2
 ```
 
 只验证部署、配置和报告导出时，可跳过依赖外部网站或 V2 数据的步骤：
