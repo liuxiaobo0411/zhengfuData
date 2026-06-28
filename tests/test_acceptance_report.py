@@ -170,8 +170,10 @@ def test_render_acceptance_report_summarizes_database(tmp_path):
     assert "验收证据" in report
     assert "企微日报发送：已验证" in report
     assert "动态/接口查询页面适配：已验证 1 个" in report
-    assert "CI 已执行 setup、doctor 和本机验收脚本轻量模式" in report
+    assert "CI 已在 Windows 执行 setup、doctor 和轻量验收" in report
+    assert "已在 Ubuntu 执行迁移、站点导入和轻量验收" in report
     assert "scripts/windows/run-local-acceptance.ps1" in report
+    assert "scripts/run-local-acceptance.sh" in report
     assert "真实企微群日报发送。" not in report
     assert "动态查询页面 Playwright 或接口适配。" not in report
 

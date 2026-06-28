@@ -200,8 +200,10 @@ def render_acceptance_report(
         f"- 动态/接口查询页面适配：{format_dynamic_section_acceptance(dynamic_section_count)}"
     )
     lines.append(
-        "- Windows 部署脚本：CI 已执行 setup、doctor 和本机验收脚本轻量模式；"
-        "`scripts/windows/run-local-acceptance.ps1` 可用于目标电脑本机验收。"
+        "- 本机验收脚本：CI 已在 Windows 执行 setup、doctor 和轻量验收；"
+        "已在 Ubuntu 执行迁移、站点导入和轻量验收；"
+        "`scripts/windows/run-local-acceptance.ps1` 与 "
+        "`scripts/run-local-acceptance.sh` 可用于目标电脑本机验收。"
     )
 
     lines.extend(["", "## 当前阻塞问题", ""])
