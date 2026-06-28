@@ -54,13 +54,13 @@ def test_windows_local_acceptance_script_runs_required_steps():
         encoding="utf-8"
     )
 
-    assert '"doctor"' in script
+    assert '"local-acceptance-check"' in script
+    assert "--source-limit" in script
+    assert "--daily-limit" in script
     assert "SkipSourceValidation" in script
-    assert '"validate-sources"' in script
-    assert '"run-daily-crawl"' in script
-    assert '"--no-notify"' in script
-    assert '"v2-acceptance-check"' in script
-    assert '"export-acceptance-report"' in script
+    assert "--skip-source-validation" in script
+    assert "--skip-daily-crawl" in script
+    assert "--skip-v2" in script
     assert "$LASTEXITCODE" in script
 
 

@@ -9,6 +9,7 @@ from app.database import Base, configure_database
 from app.models import Announcement, Attachment, Site, SiteSection
 from app.services.kb import ParseSummary
 from app.services.source_validator import SourceValidationResult, SourceValidationSummary
+from app.services.v2_acceptance import V2AcceptanceCheck, V2AcceptanceReport
 
 
 def setup_db(tmp_path, monkeypatch):
@@ -60,6 +61,79 @@ def test_acceptance_check_fails_when_source_validation_fails(tmp_path, monkeypat
     output = capsys.readouterr().out
     assert "FAIL section=1" in output
     assert "failed=1" in output
+
+
+def test_local_acceptance_check_can_skip_external_steps(tmp_path, monkeypatch, capsys):
+    setup_db(tmp_path, monkeypatch)
+
+    cli.local_acceptance_check(
+        source_limit=2,
+        daily_limit=2,
+        skip_source_validation=True,
+        skip_daily_crawl=True,
+        skip_v2=True,
+    )
+
+    output = capsys.readouterr().out
+    assert "local_acceptance_check=start" in output
+    assert "系统自检结果" in output
+    assert "source_validation=skipped" in output
+    assert "daily_crawl=skipped" in output
+    assert "v2_acceptance=skipped" in output
+    assert "acceptance_report=" in output
+    assert "local_acceptance_check=passed" in output
+
+
+def test_local_acceptance_check_runs_daily_and_v2(tmp_path, monkeypatch, capsys):
+    setup_db(tmp_path, monkeypatch)
+
+    def fake_validate_enabled_sources(limit: int = 0):
+        assert limit == 3
+        return SourceValidationSummary(
+            results=[
+                SourceValidationResult(
+                    section_id=1,
+                    section_name="成功栏目",
+                    strategy="http_with_retry",
+                    status="success",
+                    record_count=2,
+                    sample_title="资质公告",
+                )
+            ]
+        )
+
+    class DailyResult:
+        section_ids = [1, 2]
+        success_count = 2
+        partial_count = 0
+        failed_count = 0
+        parse_summary = ParseSummary(total=4, success=3, failed=0, unsupported=1)
+
+    def fake_run_daily_crawl(settings, limit, notify, triggered_by):
+        assert limit == 4
+        assert notify is False
+        assert triggered_by == "cli_daily"
+        return DailyResult()
+
+    def fake_run_v2_acceptance_check(db, settings):
+        return V2AcceptanceReport(
+            checks=[V2AcceptanceCheck("tables", "ok", "document_texts 和 search_index 已存在")],
+            path=str(tmp_path / "storage" / "exports" / "v2.md"),
+        )
+
+    monkeypatch.setattr(cli, "validate_enabled_sources", fake_validate_enabled_sources)
+    monkeypatch.setattr(cli, "run_daily_crawl", fake_run_daily_crawl)
+    monkeypatch.setattr(cli, "run_v2_acceptance_check", fake_run_v2_acceptance_check)
+
+    cli.local_acceptance_check(source_limit=3, daily_limit=4)
+
+    output = capsys.readouterr().out
+    assert "OK section=1" in output
+    assert "daily sections=2 success=2 partial=0 failed=0" in output
+    assert "parse total=4 success=3 failed=0 unsupported=1" in output
+    assert "[OK] tables" in output
+    assert "summary ok=1 fail=0" in output
+    assert "local_acceptance_check=passed" in output
 
 
 def test_kb_search_prints_results(tmp_path, monkeypatch, capsys):

@@ -111,6 +111,12 @@ scripts\windows\run-local-acceptance.ps1 -SourceLimit 2 -DailyLimit 2
 scripts\windows\run-local-acceptance.ps1 -SkipSourceValidation -SkipDailyCrawl -SkipV2
 ```
 
+该 PowerShell 脚本是跨平台 CLI 的 Windows 封装；同一流程也可以直接运行：
+
+```powershell
+.venv\Scripts\python.exe -m app.cli local-acceptance-check --source-limit 2 --daily-limit 2
+```
+
 ## 验证来源配置
 
 先验证前 2 个启用栏目：

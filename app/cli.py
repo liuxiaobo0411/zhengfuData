@@ -52,6 +52,13 @@ def main() -> None:
     acceptance_parser.add_argument("--source-limit", type=int, default=2)
     acceptance_parser.add_argument("--skip-source-validation", action="store_true")
 
+    local_acceptance_parser = subparsers.add_parser("local-acceptance-check")
+    local_acceptance_parser.add_argument("--source-limit", type=int, default=2)
+    local_acceptance_parser.add_argument("--daily-limit", type=int, default=2)
+    local_acceptance_parser.add_argument("--skip-source-validation", action="store_true")
+    local_acceptance_parser.add_argument("--skip-daily-crawl", action="store_true")
+    local_acceptance_parser.add_argument("--skip-v2", action="store_true")
+
     subparsers.add_parser("doctor")
     subparsers.add_parser("send-daily-report")
 
@@ -96,6 +103,14 @@ def main() -> None:
         export_report(Path(args.output) if args.output else None)
     elif args.command == "acceptance-check":
         acceptance_check(args.source_limit, skip_source_validation=args.skip_source_validation)
+    elif args.command == "local-acceptance-check":
+        local_acceptance_check(
+            source_limit=args.source_limit,
+            daily_limit=args.daily_limit,
+            skip_source_validation=args.skip_source_validation,
+            skip_daily_crawl=args.skip_daily_crawl,
+            skip_v2=args.skip_v2,
+        )
     elif args.command == "doctor":
         doctor()
     elif args.command == "send-daily-report":
@@ -388,9 +403,87 @@ def acceptance_check(source_limit: int, skip_source_validation: bool = False) ->
         raise SystemExit(1)
 
 
-def v2_acceptance_check() -> None:
-    from app.services.v2_acceptance import format_v2_acceptance_report, run_v2_acceptance_check
+def local_acceptance_check(
+    source_limit: int,
+    daily_limit: int,
+    *,
+    skip_source_validation: bool = False,
+    skip_daily_crawl: bool = False,
+    skip_v2: bool = False,
+) -> None:
+    settings = get_settings()
+    failed = False
 
+    print("local_acceptance_check=start")
+    with SessionLocal() as db:
+        doctor_report = run_system_doctor(db, settings=settings)
+    print(format_doctor_report(doctor_report))
+    if doctor_report.failed_count:
+        failed = True
+
+    if skip_source_validation:
+        print("source_validation=skipped")
+    else:
+        summary = validate_enabled_sources(limit=source_limit)
+        print_source_validation_summary(summary)
+        if summary.failed_count:
+            failed = True
+
+    if skip_daily_crawl:
+        print("daily_crawl=skipped")
+    else:
+        daily_result = run_daily_crawl(
+            settings=settings,
+            limit=daily_limit,
+            notify=False,
+            triggered_by="cli_daily",
+        )
+        print(
+            f"daily sections={len(daily_result.section_ids)} "
+            f"success={daily_result.success_count} "
+            f"partial={daily_result.partial_count} failed={daily_result.failed_count}"
+        )
+        if daily_result.parse_summary:
+            print(
+                f"parse total={daily_result.parse_summary.total} "
+                f"success={daily_result.parse_summary.success} "
+                f"failed={daily_result.parse_summary.failed} "
+                f"unsupported={daily_result.parse_summary.unsupported}"
+            )
+        if daily_result.failed_count:
+            failed = True
+
+    if skip_v2:
+        print("v2_acceptance=skipped")
+    else:
+        with SessionLocal() as db:
+            v2_report = run_v2_acceptance_check(db, settings=settings)
+        print(format_v2_acceptance_report(v2_report))
+        if v2_report.failed_count:
+            failed = True
+
+    with SessionLocal() as db:
+        acceptance_report = export_acceptance_report(db, settings=settings)
+    print(f"acceptance_report={acceptance_report.path}")
+
+    if failed:
+        raise SystemExit(1)
+    print("local_acceptance_check=passed")
+
+
+def run_v2_acceptance_check(db, settings):
+    from app.services import v2_acceptance
+
+    return v2_acceptance.run_v2_acceptance_check(db, settings=settings)
+
+
+def format_v2_acceptance_report(report) -> str:
+    from app.services import v2_acceptance
+
+    return v2_acceptance.format_v2_acceptance_report(report)
+
+
+def v2_acceptance_check() -> None:
     with SessionLocal() as db:
         report = run_v2_acceptance_check(db, settings=get_settings())
     print(format_v2_acceptance_report(report))

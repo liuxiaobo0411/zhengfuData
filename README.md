@@ -91,6 +91,7 @@ M6 已开始推进：
 - 可通过 `zhengfudata export-acceptance-report` 导出 V1 自动验收报告，包含部署自检摘要、后台入口、失败来源和处理建议。
 - 可通过 `zhengfudata doctor` 做部署自检，检查数据库核心表、默认密码和密钥、storage、来源配置、OpenClaw 和 Windows 脚本状态。
 - 可通过 `zhengfudata acceptance-check` 一键执行部署自检、来源抽样验证和验收报告导出。
+- 可通过 `zhengfudata local-acceptance-check` 跨平台执行本机交付验收，串联部署自检、来源抽样、每日抓取抽样、V2 验收和验收报告导出。
 
 已有设计文档位于 `docs/` 目录：
 
@@ -263,7 +264,7 @@ ruff format --check .
 pytest
 ```
 
-GitHub 已配置 CI，推送到 `main` 或创建 PR 时会在 Ubuntu / Windows 的 Python 3.11 和 3.12 上自动运行同一组质量门，并在 Windows 上执行一次部署脚本 smoke。
+GitHub 已配置 CI，推送到 `main` 或创建 PR 时会在 Ubuntu / Windows 的 Python 3.11 和 3.12 上自动运行同一组质量门，并在 Windows 上执行 setup、doctor 和本机验收脚本轻量模式。
 
 涉及数据库结构变更时，还需要运行：
 
@@ -309,6 +310,18 @@ zhengfudata export-acceptance-report
 
 ```bash
 zhengfudata acceptance-check --source-limit 2
+```
+
+执行跨平台本机交付验收：
+
+```bash
+zhengfudata local-acceptance-check --source-limit 2 --daily-limit 2
+```
+
+只验证部署、配置和报告导出时，可跳过依赖外部网站或 V2 数据的步骤：
+
+```bash
+zhengfudata local-acceptance-check --skip-source-validation --skip-daily-crawl --skip-v2
 ```
 
 解析已下载附件并构建本地知识库：

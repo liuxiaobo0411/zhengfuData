@@ -1,12 +1,17 @@
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass
 from datetime import datetime
 
-from fastapi.testclient import TestClient
 from openpyxl import Workbook
 from sqlalchemy import inspect, select
 from sqlalchemy.orm import Session
+from starlette.exceptions import StarletteDeprecationWarning
+
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", category=StarletteDeprecationWarning)
+    from fastapi.testclient import TestClient
 
 from app.config import Settings
 from app.main import create_app
