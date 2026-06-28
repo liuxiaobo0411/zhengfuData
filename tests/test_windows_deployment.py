@@ -19,6 +19,7 @@ def test_windows_deployment_scripts_exist_and_use_project_relative_paths():
         BASE_DIR / "scripts" / "windows" / "validate-sources.ps1",
         BASE_DIR / "scripts" / "windows" / "export-acceptance-report.ps1",
         BASE_DIR / "scripts" / "windows" / "export-deployment-package.ps1",
+        BASE_DIR / "scripts" / "windows" / "verify-deployment-package.ps1",
         BASE_DIR / "scripts" / "windows" / "doctor.ps1",
         BASE_DIR / "scripts" / "windows" / "acceptance-check.ps1",
         BASE_DIR / "scripts" / "windows" / "v2-acceptance-check.ps1",
@@ -44,6 +45,7 @@ def test_windows_deployment_doc_references_scripts_and_acceptance_steps():
     assert "scripts\\windows\\validate-sources.ps1" in doc
     assert "scripts\\windows\\export-acceptance-report.ps1" in doc
     assert "scripts\\windows\\export-deployment-package.ps1" in doc
+    assert "scripts\\windows\\verify-deployment-package.ps1" in doc
     assert "scripts\\windows\\doctor.ps1" in doc
     assert "scripts\\windows\\acceptance-check.ps1" in doc
     assert "scripts\\windows\\v2-acceptance-check.ps1" in doc
@@ -77,6 +79,23 @@ def test_ci_runs_windows_local_acceptance_script_in_light_mode():
     assert "Export Windows deployment package" in workflow
     assert "scripts\\windows\\export-deployment-package.ps1" in workflow
     assert "ci_windows_deployment.zip" in workflow
+    assert "Verify exported Windows deployment package" in workflow
+    assert "scripts\\windows\\verify-deployment-package.ps1" in workflow
+
+
+def test_windows_deployment_package_verifier_checks_clean_package_and_runs_acceptance():
+    script = (BASE_DIR / "scripts" / "windows" / "verify-deployment-package.ps1").read_text(
+        encoding="utf-8"
+    )
+
+    assert "Expand-Archive" in script
+    assert "DEPLOYMENT_PACKAGE_MANIFEST.txt" in script
+    assert '"scripts\\windows\\setup.ps1"' in script
+    assert '"scripts\\windows\\doctor.ps1"' in script
+    assert '"scripts\\windows\\run-local-acceptance.ps1"' in script
+    assert ".env" in script
+    assert "storage" in script
+    assert ".venv" in script
 
 
 def test_unix_local_acceptance_script_wraps_cross_platform_cli():

@@ -90,6 +90,14 @@ scripts\windows\export-deployment-package.ps1 -Output exports
 scripts\windows\export-deployment-package.ps1 -Output exports\zhengfudata_windows.zip
 ```
 
+导出后可在当前机器先模拟目标电脑解压安装验收：
+
+```powershell
+scripts\windows\verify-deployment-package.ps1 -PackagePath exports\zhengfudata_windows.zip -PythonCommand python
+```
+
+该命令会把 zip 解压到临时目录，确认包内没有 `.env`、`data`、`storage`、`.venv`、`.git` 等本机状态，然后在解压目录运行初始化、自检和轻量本机验收。
+
 跨平台 CLI 等价命令：
 
 ```powershell
@@ -274,6 +282,7 @@ storage\snapshots
 
 - `scripts\windows\setup.ps1` 成功。
 - 如从开发机迁移，`scripts\windows\export-deployment-package.ps1` 可生成部署包，目标 Windows 电脑可正常解压。
+- `scripts\windows\verify-deployment-package.ps1 -PackagePath <部署包.zip> -PythonCommand python` 可在临时目录完成解压安装验收。
 - `scripts\windows\doctor.ps1` 无 `FAIL`。
 - `scripts\windows\acceptance-check.ps1 -SourceLimit 2` 成功。
 - `scripts\windows\run-local-acceptance.ps1 -SourceLimit 2 -DailyLimit 2` 成功。

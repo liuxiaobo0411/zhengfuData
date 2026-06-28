@@ -26,6 +26,11 @@ def test_ci_workflow_covers_windows_smoke_and_test_matrix():
         "scripts\\windows\\export-deployment-package.ps1 -Output exports\\ci_windows_deployment.zip"
         in commands
     )
+    assert any(
+        "scripts\\windows\\verify-deployment-package.ps1" in command
+        and "exports\\ci_windows_deployment.zip" in command
+        for command in commands
+    )
 
     ubuntu_smoke = workflow["jobs"]["ubuntu-smoke"]
     assert ubuntu_smoke["runs-on"] == "ubuntu-latest"

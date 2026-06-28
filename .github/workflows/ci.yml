@@ -68,6 +68,10 @@ jobs:
         shell: pwsh
         run: scripts\windows\export-deployment-package.ps1 -Output exports\ci_windows_deployment.zip
 
+      - name: Verify exported Windows deployment package
+        shell: pwsh
+        run: scripts\windows\verify-deployment-package.ps1 -PackagePath exports\ci_windows_deployment.zip -PythonCommand python -WorkRoot "$env:RUNNER_TEMP\zhengfudata-package-check"
+
   ubuntu-smoke:
     name: Ubuntu local acceptance smoke
     runs-on: ubuntu-latest
