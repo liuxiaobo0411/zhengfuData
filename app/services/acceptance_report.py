@@ -199,7 +199,10 @@ def render_acceptance_report(
     lines.append(
         f"- 动态/接口查询页面适配：{format_dynamic_section_acceptance(dynamic_section_count)}"
     )
-    lines.append("- Windows 部署脚本：CI 已执行 setup + doctor smoke，实机运行仍需在目标电脑确认。")
+    lines.append(
+        "- Windows 部署脚本：CI 已执行 setup + doctor smoke；"
+        "`scripts/windows/run-local-acceptance.ps1` 可用于目标电脑本机验收。"
+    )
 
     lines.extend(["", "## 当前阻塞问题", ""])
     current_blockers: list[str] = []
