@@ -74,6 +74,9 @@ def test_ci_runs_windows_local_acceptance_script_in_light_mode():
     assert "-SkipSourceValidation" in workflow
     assert "-SkipDailyCrawl" in workflow
     assert "-SkipV2" in workflow
+    assert "Export Windows deployment package" in workflow
+    assert "scripts\\windows\\export-deployment-package.ps1" in workflow
+    assert "ci_windows_deployment.zip" in workflow
 
 
 def test_unix_local_acceptance_script_wraps_cross_platform_cli():

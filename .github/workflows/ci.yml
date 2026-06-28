@@ -64,6 +64,10 @@ jobs:
         shell: pwsh
         run: scripts\windows\run-local-acceptance.ps1 -SkipSourceValidation -SkipDailyCrawl -SkipV2
 
+      - name: Export Windows deployment package
+        shell: pwsh
+        run: scripts\windows\export-deployment-package.ps1 -Output exports\ci_windows_deployment.zip
+
   ubuntu-smoke:
     name: Ubuntu local acceptance smoke
     runs-on: ubuntu-latest
@@ -89,3 +93,6 @@ jobs:
 
       - name: Run local acceptance script
         run: scripts/run-local-acceptance.sh --skip-source-validation --skip-daily-crawl --skip-v2
+
+      - name: Export deployment package
+        run: scripts/export-deployment-package.sh --output /tmp/zhengfudata_ci_deployment.zip

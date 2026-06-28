@@ -22,6 +22,10 @@ def test_ci_workflow_covers_windows_smoke_and_test_matrix():
     assert (
         "scripts\\windows\\run-local-acceptance.ps1 -SkipSourceValidation -SkipDailyCrawl -SkipV2"
     ) in commands
+    assert (
+        "scripts\\windows\\export-deployment-package.ps1 -Output exports\\ci_windows_deployment.zip"
+        in commands
+    )
 
     ubuntu_smoke = workflow["jobs"]["ubuntu-smoke"]
     assert ubuntu_smoke["runs-on"] == "ubuntu-latest"
@@ -34,3 +38,7 @@ def test_ci_workflow_covers_windows_smoke_and_test_matrix():
     assert (
         "scripts/run-local-acceptance.sh --skip-source-validation --skip-daily-crawl --skip-v2"
     ) in ubuntu_commands
+    assert (
+        "scripts/export-deployment-package.sh --output /tmp/zhengfudata_ci_deployment.zip"
+        in ubuntu_commands
+    )

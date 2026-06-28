@@ -128,6 +128,8 @@ def archive_name(path: Path) -> str:
 def manifest_text(files: list[Path]) -> str:
     lines = [
         "zhengfudata Windows deployment package",
+        f"generated_at={datetime.now().isoformat(timespec='seconds')}",
+        f"file_count={len(files) + 1}",
         "",
         "解压后先阅读 README.md 和 docs/Windows本地部署说明.md。",
         "初始化命令：scripts\\windows\\setup.ps1",

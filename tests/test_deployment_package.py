@@ -29,6 +29,12 @@ def test_export_deployment_package_contains_deployable_files_and_excludes_local_
     assert not any(name.startswith("zhengfudata/storage/") for name in names)
     assert not any(name.endswith(".pyc") for name in names)
 
+    with ZipFile(package.path) as archive:
+        manifest = archive.read("zhengfudata/DEPLOYMENT_PACKAGE_MANIFEST.txt").decode("utf-8")
+    assert "generated_at=" in manifest
+    assert f"file_count={package.file_count}" in manifest
+    assert "本包不包含 .env、data、storage、.venv、.git 或本机缓存。" in manifest
+
 
 def test_export_deployment_package_accepts_output_directory(tmp_path):
     output_dir = tmp_path / "exports"
