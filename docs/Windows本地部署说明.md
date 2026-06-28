@@ -75,6 +75,35 @@ WECOM_NOTIFY_TARGET_ID=企微群chatid
 OpenClaw CLI 企业微信通道发送群消息时使用裸 `chatid`；如果误填 `group:` 或
 `chat:` 前缀，应用会在调用 CLI 前自动剥离前缀。
 
+## 从开发机导出部署包
+
+如果要把当前项目复制到另一台 Windows 电脑上运行，建议先在开发机或已有项目目录导出干净部署包：
+
+```powershell
+scripts\windows\export-deployment-package.ps1
+```
+
+也可以指定输出目录或 zip 文件：
+
+```powershell
+scripts\windows\export-deployment-package.ps1 -Output exports
+scripts\windows\export-deployment-package.ps1 -Output exports\zhengfudata_windows.zip
+```
+
+跨平台 CLI 等价命令：
+
+```powershell
+.venv\Scripts\python.exe -m app.cli export-deployment-package
+```
+
+部署包默认输出到：
+
+```text
+storage\exports\
+```
+
+部署包只包含应用代码、迁移、配置模板、站点配置、脚本和文档，不包含 `.env`、`data`、`storage`、`.venv`、`.git` 或本机缓存。复制到目标 Windows 电脑后，解压 zip，进入解压后的 `zhengfudata` 目录，再执行本文“初始化”和“运行部署自检”步骤。
+
 ## 运行部署自检
 
 ```powershell
@@ -244,6 +273,7 @@ storage\snapshots
 在 Windows 机器上至少完成：
 
 - `scripts\windows\setup.ps1` 成功。
+- 如从开发机迁移，`scripts\windows\export-deployment-package.ps1` 可生成部署包，目标 Windows 电脑可正常解压。
 - `scripts\windows\doctor.ps1` 无 `FAIL`。
 - `scripts\windows\acceptance-check.ps1 -SourceLimit 2` 成功。
 - `scripts\windows\run-local-acceptance.ps1 -SourceLimit 2 -DailyLimit 2` 成功。

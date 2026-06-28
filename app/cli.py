@@ -9,6 +9,7 @@ from app.database import SessionLocal
 from app.models import Attachment
 from app.services.acceptance_report import export_acceptance_report
 from app.services.crawler import crawl_section, retry_attachment_download
+from app.services.deployment_package import export_deployment_package
 from app.services.kb import (
     SEARCH_ENTITY_TYPES,
     ask_knowledge,
@@ -47,6 +48,9 @@ def main() -> None:
 
     report_parser = subparsers.add_parser("export-acceptance-report")
     report_parser.add_argument("--output", default="")
+
+    deployment_package_parser = subparsers.add_parser("export-deployment-package")
+    deployment_package_parser.add_argument("--output", default="")
 
     acceptance_parser = subparsers.add_parser("acceptance-check")
     acceptance_parser.add_argument("--source-limit", type=int, default=2)
@@ -101,6 +105,8 @@ def main() -> None:
         validate_sources(args.limit)
     elif args.command == "export-acceptance-report":
         export_report(Path(args.output) if args.output else None)
+    elif args.command == "export-deployment-package":
+        export_deploy_package(Path(args.output) if args.output else None)
     elif args.command == "acceptance-check":
         acceptance_check(args.source_limit, skip_source_validation=args.skip_source_validation)
     elif args.command == "local-acceptance-check":
@@ -369,6 +375,14 @@ def export_report(output_path: Path | None) -> None:
     with SessionLocal() as db:
         report = export_acceptance_report(db, settings=get_settings(), output_path=target)
     print(f"acceptance_report={report.path}")
+
+
+def export_deploy_package(output_path: Path | None) -> None:
+    package = export_deployment_package(output_path=output_path)
+    print(
+        f"deployment_package={package.path} "
+        f"files={package.file_count} size_bytes={package.size_bytes}"
+    )
 
 
 def doctor() -> None:

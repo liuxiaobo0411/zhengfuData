@@ -136,6 +136,18 @@ def test_local_acceptance_check_runs_daily_and_v2(tmp_path, monkeypatch, capsys)
     assert "local_acceptance_check=passed" in output
 
 
+def test_export_deploy_package_prints_zip_summary(tmp_path, capsys):
+    output_path = tmp_path / "package.zip"
+
+    cli.export_deploy_package(output_path)
+
+    output = capsys.readouterr().out
+    assert f"deployment_package={output_path}" in output
+    assert "files=" in output
+    assert "size_bytes=" in output
+    assert output_path.exists()
+
+
 def test_kb_search_prints_results(tmp_path, monkeypatch, capsys):
     setup_db(tmp_path, monkeypatch)
 

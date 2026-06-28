@@ -18,6 +18,7 @@ def test_windows_deployment_scripts_exist_and_use_project_relative_paths():
         BASE_DIR / "scripts" / "windows" / "retry-failed-attachments.ps1",
         BASE_DIR / "scripts" / "windows" / "validate-sources.ps1",
         BASE_DIR / "scripts" / "windows" / "export-acceptance-report.ps1",
+        BASE_DIR / "scripts" / "windows" / "export-deployment-package.ps1",
         BASE_DIR / "scripts" / "windows" / "doctor.ps1",
         BASE_DIR / "scripts" / "windows" / "acceptance-check.ps1",
         BASE_DIR / "scripts" / "windows" / "v2-acceptance-check.ps1",
@@ -42,6 +43,7 @@ def test_windows_deployment_doc_references_scripts_and_acceptance_steps():
     assert "scripts\\windows\\retry-failed-attachments.ps1" in doc
     assert "scripts\\windows\\validate-sources.ps1" in doc
     assert "scripts\\windows\\export-acceptance-report.ps1" in doc
+    assert "scripts\\windows\\export-deployment-package.ps1" in doc
     assert "scripts\\windows\\doctor.ps1" in doc
     assert "scripts\\windows\\acceptance-check.ps1" in doc
     assert "scripts\\windows\\v2-acceptance-check.ps1" in doc
@@ -83,4 +85,12 @@ def test_unix_local_acceptance_script_wraps_cross_platform_cli():
     assert "--skip-source-validation" in script
     assert "--skip-daily-crawl" in script
     assert "--skip-v2" in script
+    assert 'PYTHON_BIN="$PROJECT_ROOT/.venv/bin/python"' in script
+
+
+def test_unix_deployment_package_script_wraps_cross_platform_cli():
+    script = (BASE_DIR / "scripts" / "export-deployment-package.sh").read_text(encoding="utf-8")
+
+    assert "export-deployment-package" in script
+    assert "--output" in script
     assert 'PYTHON_BIN="$PROJECT_ROOT/.venv/bin/python"' in script

@@ -224,6 +224,12 @@ uvicorn app.main:app --reload
 scripts/run-local-acceptance.sh --source-limit 2 --daily-limit 2
 ```
 
+导出可复制到目标 Windows 电脑的部署包：
+
+```bash
+scripts/export-deployment-package.sh
+```
+
 如需启用 `browser_rendered` 动态页面策略，额外安装：
 
 ```bash
@@ -259,6 +265,12 @@ scripts\windows\run-daily-crawl.ps1 -Limit 2
 ```
 
 完整说明见 [Windows 本地部署说明](./docs/Windows本地部署说明.md)。
+
+如需在当前机器生成一个干净的 Windows 部署 zip 包：
+
+```powershell
+scripts\windows\export-deployment-package.ps1
+```
 
 ## 开发验证
 
@@ -328,6 +340,12 @@ macOS / Linux 也可以使用脚本封装：
 
 ```bash
 scripts/run-local-acceptance.sh --source-limit 2 --daily-limit 2
+```
+
+导出部署包：
+
+```bash
+zhengfudata export-deployment-package
 ```
 
 只验证部署、配置和报告导出时，可跳过依赖外部网站或 V2 数据的步骤：
