@@ -72,6 +72,7 @@ def test_local_acceptance_check_can_skip_external_steps(tmp_path, monkeypatch, c
         skip_source_validation=True,
         skip_daily_crawl=True,
         skip_v2=True,
+        skip_v3=True,
     )
 
     output = capsys.readouterr().out
@@ -80,8 +81,20 @@ def test_local_acceptance_check_can_skip_external_steps(tmp_path, monkeypatch, c
     assert "source_validation=skipped" in output
     assert "daily_crawl=skipped" in output
     assert "v2_acceptance=skipped" in output
+    assert "v3_acceptance=skipped" in output
     assert "acceptance_report=" in output
     assert "local_acceptance_check=passed" in output
+
+
+def test_v3_acceptance_check_prints_summary(tmp_path, monkeypatch, capsys):
+    setup_db(tmp_path, monkeypatch)
+
+    cli.v3_acceptance_check()
+
+    output = capsys.readouterr().out
+    assert "V3.1 验收结果" in output
+    assert "[OK] tables" in output
+    assert "summary ok=3 fail=0" in output
 
 
 def test_local_acceptance_check_runs_daily_and_v2(tmp_path, monkeypatch, capsys):

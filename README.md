@@ -6,7 +6,7 @@
 
 ## 当前状态
 
-截至 2026-06-28，V1 MVP 和 V2 轻量本地知识库 MVP 已完成本机闭环开发与自动验收：本地 `zhengfudata doctor` 为 `ok=9 warn=0 fail=0`，最新 GitHub CI 已通过 Ubuntu / Windows Python 3.11 / 3.12 测试矩阵，并分别执行 Windows 与 Ubuntu 轻量本机验收脚本。当前剩余外部验收重点是目标 Windows 电脑实机安装运行、更多政府网站适配，以及后续 OpenClaw 入站问答和资质报告生成增强。
+截至 2026-06-28，V1 MVP 和 V2 轻量本地知识库 MVP 已完成本机闭环开发与自动验收：本地 `zhengfudata doctor` 为 `ok=9 warn=0 fail=0`，最新 GitHub CI 已通过 Ubuntu / Windows Python 3.11 / 3.12 测试矩阵，并分别执行 Windows 与 Ubuntu 轻量本机验收脚本。V3.1 已开始落地资质标准库和企业档案本地 MVP，用于支撑后续资质条件匹配和报告生成。当前剩余外部验收重点是目标 Windows 电脑实机安装运行、更多政府网站适配，以及后续 OpenClaw 入站问答和资质报告生成增强。
 
 M0 项目底座已具备：
 
@@ -93,10 +93,20 @@ M6 已开始推进：
 - 可通过 `zhengfudata acceptance-check` 一键执行部署自检、来源抽样验证和验收报告导出。
 - 可通过 `zhengfudata local-acceptance-check` 跨平台执行本机交付验收，串联部署自检、来源抽样、每日抓取抽样、V2 验收和验收报告导出。
 
+V3.1 已进入第一轮实现：
+
+- 后台新增 `资质标准` 页面，可维护标准编码、名称、类别、等级、来源文件和来源地址。
+- 后台新增资质标准详情页，可维护资产、人员、业绩、设备等结构化条件。
+- 后台新增 `企业档案` 页面，可维护企业基础资料。
+- 企业详情页可维护已有资质、人员证书和项目业绩。
+- 可通过 `zhengfudata v3-acceptance-check` 验证 V3.1 表结构、样例写入读取和验收报告导出。
+- 可通过 `zhengfudata local-acceptance-check` 串联 V3.1 本地验收，可用 `--skip-v3` 跳过。
+
 已有设计文档位于 `docs/` 目录：
 
 - [V1 MVP 详细设计](./docs/建筑资质公开信息监测与归档系统_V1_MVP详细设计.md)
 - [V2 详细设计](./docs/建筑资质公开信息监测与归档系统_V2_详细设计.md)
+- [V3.1 详细设计](./docs/建筑资质公开信息监测与归档系统_V3_1详细设计.md)
 - [前端 UI 详细设计](./docs/建筑资质公开信息监测与归档系统_前端UI详细设计.md)
 - [UI 视觉哲学](./docs/建筑资质公开信息监测与归档系统_UI视觉哲学.md)
 - [V1 MVP 验收记录](./docs/V1_MVP验收记录.md)

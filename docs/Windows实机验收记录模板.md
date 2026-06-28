@@ -111,6 +111,12 @@ scripts\windows\run-local-acceptance.ps1 -SourceLimit 2 -DailyLimit 2
 storage\exports\
 ```
 
+单独验证 V3.1 资质标准库和企业档案：
+
+```powershell
+scripts\windows\v3-acceptance-check.ps1
+```
+
 ## 来源和抓取验收
 
 来源抽样验证：
@@ -165,6 +171,8 @@ http://127.0.0.1:8000/
 | 网站栏目 | 通过 / 不通过 |  |
 | 系统配置 | 通过 / 不通过 |  |
 | 知识库检索 | 通过 / 不通过 |  |
+| 资质标准 | 通过 / 不通过 |  |
+| 企业档案 | 通过 / 不通过 |  |
 
 ## OpenClaw / 企微通知验收
 

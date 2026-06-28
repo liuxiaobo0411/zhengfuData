@@ -15,6 +15,7 @@ from app.routers.web.dashboard import router as dashboard_router
 from app.routers.web.kb import router as kb_web_router
 from app.routers.web.settings import router as settings_router
 from app.routers.web.sites import router as sites_router
+from app.routers.web.v3 import router as v3_router
 from app.services.crawler.runner import mark_stale_running_runs
 from app.services.scheduler import start_scheduler, stop_scheduler
 from app.services.storage import prepare_storage
@@ -49,6 +50,7 @@ def create_app() -> FastAPI:
     app.include_router(kb_web_router)
     app.include_router(settings_router)
     app.include_router(sites_router)
+    app.include_router(v3_router)
     return app
 
 

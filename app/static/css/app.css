@@ -667,6 +667,25 @@ a {
   grid-template-columns: 130px minmax(260px, 1.1fr) minmax(220px, 0.9fr) minmax(160px, 0.6fr) 110px;
 }
 
+.standard-table .table-head,
+.standard-table .table-row {
+  grid-template-columns: minmax(220px, 1fr) minmax(130px, 0.5fr) minmax(150px, 0.6fr) minmax(180px, 0.8fr);
+}
+
+.enterprise-table .table-head,
+.enterprise-table .table-row {
+  grid-template-columns: minmax(240px, 1fr) minmax(100px, 0.4fr) minmax(160px, 0.6fr) 90px;
+}
+
+.profile-table .table-head,
+.profile-table .table-row,
+.personnel-table .table-head,
+.personnel-table .table-row,
+.project-table .table-head,
+.project-table .table-row {
+  grid-template-columns: minmax(220px, 1fr) minmax(220px, 0.9fr) minmax(150px, 0.55fr) minmax(160px, 0.6fr);
+}
+
 .table-head {
   color: var(--muted);
   font-size: 12px;
@@ -840,4 +859,21 @@ a {
 
 .compact-metrics {
   padding: 0;
+}
+
+.compact-filter {
+  margin-bottom: 18px;
+}
+
+.compact-filter label {
+  flex: 1;
+}
+
+.form-grid.single {
+  grid-template-columns: 1fr;
+}
+
+.enterprise-meta {
+  grid-template-columns: 120px minmax(0, 1fr);
+  margin-bottom: 0;
 }

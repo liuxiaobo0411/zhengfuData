@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}资质标准 - 建筑资质公开信息监测与归档系统{% endblock %}
+
+{% block content %}
+<header class="topbar">
+  <div>
+    <h1>资质标准</h1>
+    <p>维护资质类别、等级、来源文件和结构化条件。</p>
+  </div>
+  <div class="topbar-actions">
+    <span class="status-pill success">{{ stats.qualification_standards }} 个标准</span>
+    <span class="status-pill warning">{{ stats.qualification_standard_conditions }} 条条件</span>
+  </div>
+</header>
+
+<section class="content-grid">
+  <form class="panel form-panel" method="post" action="/qualification-standards">
+    <div class="panel-title">
+      <h2>新增标准</h2>
+      <span>V3.1 标准库</span>
+    </div>
+    {% if error %}
+    <div class="form-error">{{ error }}</div>
+    {% endif %}
+    <div class="form-grid">
+      <label>
+        <span>标准编码</span>
+        <input name="code" required placeholder="JZSG-ZCB-2">
+      </label>
+      <label>
+        <span>标准名称</span>
+        <input name="name" required placeholder="建筑工程施工总承包二级">
+      </label>
+      <label>
+        <span>资质类别</span>
+        <input name="category" placeholder="施工总承包">
+      </label>
+      <label>
+        <span>等级</span>
+        <input name="level" placeholder="二级">
+      </label>
+      <label>
+        <span>适用地区</span>
+        <input name="region" placeholder="国家">
+      </label>
+      <label>
+        <span>主管单位</span>
+        <input name="authority">
+      </label>
+      <label>
+        <span>版本</span>
+        <input name="version">
+      </label>
+      <label>
+        <span>生效日期</span>
+        <input name="effective_date" type="date">
+      </label>
+      <label class="wide">
+        <span>来源地址</span>
+        <input name="source_url" type="url">
+      </label>
+      <label class="wide">
+        <span>来源文件标题</span>
+        <input name="source_document_title">
+      </label>
+      <label class="wide">
+        <span>摘要</span>
+        <textarea name="summary" rows="3"></textarea>
+      </label>
+      <label class="wide">
+        <span>备注</span>
+        <textarea name="remark" rows="2"></textarea>
+      </label>
+    </div>
+    <button type="submit">保存标准</button>
+  </form>
+
+  <section class="panel table-panel">
+    <div class="panel-title">
+      <h2>标准列表</h2>
+      <span>资质标准结构化归档</span>
+    </div>
+    <form class="filter-panel compact-filter" method="get" action="/qualification-standards">
+      <label>
+        <span>搜索</span>
+        <input name="q" value="{{ q }}" placeholder="编码 / 名称 / 类别">
+      </label>
+      <button type="submit">查询</button>
+    </form>
+    {% if standards %}
+    <div class="data-table standard-table">
+      <div class="table-head">
+        <span>标准</span>
+        <span>类别等级</span>
+        <span>主管单位</span>
+        <span>来源</span>
+      </div>
+      {% for standard in standards %}
+      <div class="table-row">
+        <div>
+          <strong><a href="/qualification-standards/{{ standard.id }}">{{ standard.name }}</a></strong>
+          <span>{{ standard.code }} · {{ standard.status }}</span>
+        </div>
+        <span>{{ standard.category or "-" }} · {{ standard.level or "-" }}</span>
+        <span>{{ standard.authority or "-" }}</span>
+        {% if standard.source_url %}
+        <a href="{{ standard.source_url }}" target="_blank" rel="noreferrer">{{ standard.source_url }}</a>
+        {% else %}
+        <span>-</span>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">暂无资质标准</div>
+    {% endif %}
+  </section>
+</section>
+{% endblock %}

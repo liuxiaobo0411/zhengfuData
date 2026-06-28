@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+
+{% block title %}{{ enterprise.name }} - 企业档案{% endblock %}
+
+{% block content %}
+<header class="topbar">
+  <div>
+    <h1>{{ enterprise.name }}</h1>
+    <p>{{ enterprise.region or "未设置地区" }} · {{ enterprise.unified_social_credit_code or "未填写统一社会信用代码" }}</p>
+  </div>
+  <div class="topbar-actions">
+    <a class="button-link" href="/enterprises">返回企业档案</a>
+  </div>
+</header>
+
+<section class="content-stack">
+  {% if error %}
+  <div class="form-error">{{ error }}</div>
+  {% endif %}
+
+  <section class="panel">
+    <div class="panel-title">
+      <h2>基础信息</h2>
+      <span>企业本地资料</span>
+    </div>
+    <dl class="meta-grid enterprise-meta">
+      <dt>法定代表人</dt>
+      <dd>{{ enterprise.legal_representative or "-" }}</dd>
+      <dt>注册资本</dt>
+      <dd>{{ enterprise.registered_capital or "-" }}</dd>
+      <dt>联系人</dt>
+      <dd>{{ enterprise.contact_name or "-" }} {{ enterprise.contact_phone or "" }}</dd>
+      <dt>地址</dt>
+      <dd>{{ enterprise.address or "-" }}</dd>
+      <dt>备注</dt>
+      <dd>{{ enterprise.remark or "-" }}</dd>
+    </dl>
+  </section>
+
+  <section class="panel">
+    <div class="panel-title">
+      <h2>已有资质</h2>
+      <span>{{ enterprise.qualifications|length }} 条</span>
+    </div>
+    {% if enterprise.qualifications %}
+    <div class="data-table profile-table">
+      <div class="table-head">
+        <span>资质</span>
+        <span>证书</span>
+        <span>有效期</span>
+        <span>备注</span>
+      </div>
+      {% for item in enterprise.qualifications %}
+      <div class="table-row">
+        <div>
+          <strong>{{ item.qualification_name }}</strong>
+          <span>{{ item.category or "-" }} · {{ item.level or "-" }}</span>
+        </div>
+        <span>{{ item.certificate_no or "-" }} · {{ item.issuing_authority or "-" }}</span>
+        <span>
+          {{ item.valid_from.strftime("%Y-%m-%d") if item.valid_from else "-" }}
+          至
+          {{ item.valid_to.strftime("%Y-%m-%d") if item.valid_to else "-" }}
+        </span>
+        <span>{{ item.remark or "-" }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state compact">暂无已有资质</div>
+    {% endif %}
+  </section>
+
+  <form class="panel" method="post" action="/enterprises/{{ enterprise.id }}/qualifications">
+    <div class="panel-title">
+      <h2>新增资质</h2>
+      <span>企业证书</span>
+    </div>
+    <div class="form-grid">
+      <label>
+        <span>关联标准</span>
+        <select name="standard_id">
+          <option value="">不关联</option>
+          {% for standard in standards %}
+          <option value="{{ standard.id }}">{{ standard.name }} · {{ standard.code }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        <span>资质名称</span>
+        <input name="qualification_name" required>
+      </label>
+      <label>
+        <span>类别</span>
+        <input name="category">
+      </label>
+      <label>
+        <span>等级</span>
+        <input name="level">
+      </label>
+      <label>
+        <span>证书编号</span>
+        <input name="certificate_no">
+      </label>
+      <label>
+        <span>发证机关</span>
+        <input name="issuing_authority">
+      </label>
+      <label>
+        <span>有效期开始</span>
+        <input name="valid_from" type="date">
+      </label>
+      <label>
+        <span>有效期结束</span>
+        <input name="valid_to" type="date">
+      </label>
+      <label class="wide">
+        <span>备注</span>
+        <textarea name="remark" rows="2"></textarea>
+      </label>
+    </div>
+    <button type="submit">保存资质</button>
+  </form>
+
+  <section class="panel">
+    <div class="panel-title">
+      <h2>人员证书</h2>
+      <span>{{ enterprise.personnel|length }} 人</span>
+    </div>
+    {% if enterprise.personnel %}
+    <div class="data-table personnel-table">
+      <div class="table-head">
+        <span>人员</span>
+        <span>证书</span>
+        <span>专业等级</span>
+        <span>有效期</span>
+      </div>
+      {% for item in enterprise.personnel %}
+      <div class="table-row">
+        <div>
+          <strong>{{ item.name }}</strong>
+          <span>{{ item.id_number_masked or "-" }} · {{ item.role_type or "-" }}</span>
+        </div>
+        <span>{{ item.certificate_name or "-" }} · {{ item.certificate_no or "-" }}</span>
+        <span>{{ item.specialty or "-" }} · {{ item.level or "-" }}</span>
+        <span>{{ item.valid_to.strftime("%Y-%m-%d") if item.valid_to else "-" }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state compact">暂无人员证书</div>
+    {% endif %}
+  </section>
+
+  <form class="panel" method="post" action="/enterprises/{{ enterprise.id }}/personnel">
+    <div class="panel-title">
+      <h2>新增人员</h2>
+      <span>人员证书</span>
+    </div>
+    <div class="form-grid">
+      <label>
+        <span>姓名</span>
+        <input name="name" required>
+      </label>
+      <label>
+        <span>证件号脱敏</span>
+        <input name="id_number_masked" placeholder="310***********001X">
+      </label>
+      <label>
+        <span>人员类型</span>
+        <input name="role_type" placeholder="注册建造师">
+      </label>
+      <label>
+        <span>证书名称</span>
+        <input name="certificate_name">
+      </label>
+      <label>
+        <span>证书编号</span>
+        <input name="certificate_no">
+      </label>
+      <label>
+        <span>专业</span>
+        <input name="specialty">
+      </label>
+      <label>
+        <span>等级</span>
+        <input name="level">
+      </label>
+      <label>
+        <span>有效期至</span>
+        <input name="valid_to" type="date">
+      </label>
+      <label class="wide">
+        <span>备注</span>
+        <textarea name="remark" rows="2"></textarea>
+      </label>
+    </div>
+    <button type="submit">保存人员</button>
+  </form>
+
+  <section class="panel">
+    <div class="panel-title">
+      <h2>项目业绩</h2>
+      <span>{{ enterprise.projects|length }} 条</span>
+    </div>
+    {% if enterprise.projects %}
+    <div class="data-table project-table">
+      <div class="table-head">
+        <span>项目</span>
+        <span>类型金额</span>
+        <span>角色</span>
+        <span>来源</span>
+      </div>
+      {% for item in enterprise.projects %}
+      <div class="table-row">
+        <div>
+          <strong>{{ item.name }}</strong>
+          <span>{{ item.completed_at.strftime("%Y-%m-%d") if item.completed_at else "-" }}</span>
+        </div>
+        <span>{{ item.project_type or "-" }} · {{ item.contract_amount or "-" }}</span>
+        <span>{{ item.role or "-" }}</span>
+        <span>{{ item.source_document or item.remark or "-" }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state compact">暂无项目业绩</div>
+    {% endif %}
+  </section>
+
+  <form class="panel" method="post" action="/enterprises/{{ enterprise.id }}/projects">
+    <div class="panel-title">
+      <h2>新增项目</h2>
+      <span>企业业绩</span>
+    </div>
+    <div class="form-grid">
+      <label>
+        <span>项目名称</span>
+        <input name="name" required>
+      </label>
+      <label>
+        <span>项目类型</span>
+        <input name="project_type">
+      </label>
+      <label>
+        <span>合同金额</span>
+        <input name="contract_amount">
+      </label>
+      <label>
+        <span>完成日期</span>
+        <input name="completed_at" type="date">
+      </label>
+      <label>
+        <span>企业角色</span>
+        <input name="role">
+      </label>
+      <label>
+        <span>来源文件</span>
+        <input name="source_document">
+      </label>
+      <label class="wide">
+        <span>备注</span>
+        <textarea name="remark" rows="2"></textarea>
+      </label>
+    </div>
+    <button type="submit">保存项目</button>
+  </form>
+</section>
+{% endblock %}

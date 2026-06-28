@@ -140,16 +140,24 @@ scripts\windows\v2-acceptance-check.ps1
 
 该脚本会检查附件解析、知识库索引、后台/API 查询和 OpenClaw 问答入口是否可用。
 
+验证 V3.1 资质标准库和企业档案能力时运行：
+
+```powershell
+scripts\windows\v3-acceptance-check.ps1
+```
+
+该脚本会检查 V3.1 数据表，并写入/读取一组本地验收样例，包括资质标准、标准条件、企业已有资质、人员证书和项目业绩。
+
 如果要在 Windows 机器上一次性完成本机交付验收，可以运行：
 
 ```powershell
 scripts\windows\run-local-acceptance.ps1 -SourceLimit 2 -DailyLimit 2
 ```
 
-该脚本会依次执行部署自检、来源抽样验证、每日抓取抽样（不发送企微通知）、V2 知识库验收，并导出验收报告。只验证部署和配置时可跳过耗时步骤：
+该脚本会依次执行部署自检、来源抽样验证、每日抓取抽样（不发送企微通知）、V2 知识库验收、V3.1 标准库与企业档案验收，并导出验收报告。只验证部署和配置时可跳过耗时步骤：
 
 ```powershell
-scripts\windows\run-local-acceptance.ps1 -SkipSourceValidation -SkipDailyCrawl -SkipV2
+scripts\windows\run-local-acceptance.ps1 -SkipSourceValidation -SkipDailyCrawl -SkipV2 -SkipV3
 ```
 
 该 PowerShell 脚本是跨平台 CLI 的 Windows 封装；同一流程也可以直接运行：

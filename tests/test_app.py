@@ -16,7 +16,13 @@ from app.models import (
     AttachmentVersion,
     ChangeLog,
     CrawlRun,
+    Enterprise,
+    EnterprisePersonnel,
+    EnterpriseProject,
+    EnterpriseQualification,
     NotificationLog,
+    QualificationStandard,
+    QualificationStandardCondition,
     SearchIndex,
     Site,
     SiteSection,
@@ -181,6 +187,143 @@ def test_site_and_section_can_be_created(tmp_path):
     with SessionLocal() as db:
         assert db.get(Site, 1).name == "住房和城乡建设部"
         assert db.get(SiteSection, 1).crawler_strategy == "http_static"
+
+
+def test_v3_standard_pages_allow_create_and_condition(tmp_path):
+    client = make_client(tmp_path)
+    login(client)
+
+    response = client.post(
+        "/qualification-standards",
+        data={
+            "code": "JZSG-ZCB-2",
+            "name": "建筑工程施工总承包二级",
+            "category": "施工总承包",
+            "level": "二级",
+            "region": "国家",
+            "authority": "住房和城乡建设主管部门",
+            "source_url": "https://example.gov.cn/standard.html",
+            "summary": "企业净资产和人员要求。",
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+
+    page = client.get("/qualification-standards")
+    assert page.status_code == 200
+    assert "建筑工程施工总承包二级" in page.text
+    assert "JZSG-ZCB-2" in page.text
+
+    condition_response = client.post(
+        "/qualification-standards/1/conditions",
+        data={
+            "condition_type": "asset",
+            "title": "净资产要求",
+            "requirement_text": "净资产 4000 万元以上。",
+            "metric_name": "净资产",
+            "metric_value": "4000",
+            "metric_unit": "万元",
+            "sort_order": "10",
+        },
+        follow_redirects=False,
+    )
+    assert condition_response.status_code == 303
+
+    detail = client.get("/qualification-standards/1")
+    assert detail.status_code == 200
+    assert "净资产要求" in detail.text
+    assert "净资产 4000 万元以上。" in detail.text
+
+    with SessionLocal() as db:
+        assert db.query(QualificationStandard).count() == 1
+        assert db.query(QualificationStandardCondition).count() == 1
+
+
+def test_v3_enterprise_pages_allow_create_and_profile_records(tmp_path):
+    client = make_client(tmp_path)
+    login(client)
+    with SessionLocal() as db:
+        db.add(
+            QualificationStandard(
+                code="JZSG-ZCB-1",
+                name="建筑工程施工总承包一级",
+                category="施工总承包",
+                level="一级",
+            )
+        )
+        db.commit()
+
+    response = client.post(
+        "/enterprises",
+        data={
+            "name": "上海测试建设有限公司",
+            "unified_social_credit_code": "91310000TEST00001X",
+            "legal_representative": "李四",
+            "region": "上海",
+            "registered_capital": "5000万元",
+            "contact_name": "王五",
+            "contact_phone": "13800000000",
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+
+    page = client.get("/enterprises")
+    assert page.status_code == 200
+    assert "上海测试建设有限公司" in page.text
+
+    qualification_response = client.post(
+        "/enterprises/1/qualifications",
+        data={
+            "standard_id": "1",
+            "qualification_name": "建筑工程施工总承包一级",
+            "category": "施工总承包",
+            "level": "一级",
+            "certificate_no": "D131TEST",
+            "issuing_authority": "住建主管部门",
+        },
+        follow_redirects=False,
+    )
+    assert qualification_response.status_code == 303
+
+    personnel_response = client.post(
+        "/enterprises/1/personnel",
+        data={
+            "name": "张三",
+            "role_type": "注册建造师",
+            "certificate_name": "一级注册建造师",
+            "certificate_no": "沪131TEST",
+            "specialty": "建筑工程",
+            "level": "一级",
+        },
+        follow_redirects=False,
+    )
+    assert personnel_response.status_code == 303
+
+    project_response = client.post(
+        "/enterprises/1/projects",
+        data={
+            "name": "测试工程项目",
+            "project_type": "房屋建筑工程",
+            "contract_amount": "1200万元",
+            "role": "施工总承包",
+            "source_document": "合同扫描件",
+        },
+        follow_redirects=False,
+    )
+    assert project_response.status_code == 303
+
+    detail = client.get("/enterprises/1")
+    assert detail.status_code == 200
+    assert "建筑工程施工总承包一级" in detail.text
+    assert "一级注册建造师" in detail.text
+    assert "测试工程项目" in detail.text
+
+    with SessionLocal() as db:
+        assert db.query(Enterprise).count() == 1
+        assert db.query(EnterpriseQualification).count() == 1
+        assert db.query(EnterprisePersonnel).count() == 1
+        assert db.query(EnterpriseProject).count() == 1
 
 
 def test_site_form_rejects_invalid_url_and_duplicate_slug(tmp_path):

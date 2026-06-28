@@ -6,6 +6,7 @@ DAILY_LIMIT=2
 SKIP_SOURCE_VALIDATION=false
 SKIP_DAILY_CRAWL=false
 SKIP_V2=false
+SKIP_V3=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -29,6 +30,10 @@ while [[ $# -gt 0 ]]; do
       SKIP_V2=true
       shift
       ;;
+    --skip-v3)
+      SKIP_V3=true
+      shift
+      ;;
     -h|--help)
       cat <<'USAGE'
 Usage: scripts/run-local-acceptance.sh [options]
@@ -39,6 +44,7 @@ Options:
   --skip-source-validation      Skip external source validation.
   --skip-daily-crawl            Skip daily crawl sample.
   --skip-v2                     Skip V2 knowledge-base acceptance.
+  --skip-v3                     Skip V3.1 qualification acceptance.
 USAGE
       exit 0
       ;;
@@ -80,6 +86,9 @@ if [[ "$SKIP_DAILY_CRAWL" == true ]]; then
 fi
 if [[ "$SKIP_V2" == true ]]; then
   ARGS+=(--skip-v2)
+fi
+if [[ "$SKIP_V3" == true ]]; then
+  ARGS+=(--skip-v3)
 fi
 
 "$PYTHON_BIN" "${ARGS[@]}"

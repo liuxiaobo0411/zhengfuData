@@ -23,6 +23,7 @@ def test_windows_deployment_scripts_exist_and_use_project_relative_paths():
         BASE_DIR / "scripts" / "windows" / "doctor.ps1",
         BASE_DIR / "scripts" / "windows" / "acceptance-check.ps1",
         BASE_DIR / "scripts" / "windows" / "v2-acceptance-check.ps1",
+        BASE_DIR / "scripts" / "windows" / "v3-acceptance-check.ps1",
         BASE_DIR / "scripts" / "windows" / "install-daily-task.ps1",
     ]
 
@@ -49,6 +50,7 @@ def test_windows_deployment_doc_references_scripts_and_acceptance_steps():
     assert "scripts\\windows\\doctor.ps1" in doc
     assert "scripts\\windows\\acceptance-check.ps1" in doc
     assert "scripts\\windows\\v2-acceptance-check.ps1" in doc
+    assert "scripts\\windows\\v3-acceptance-check.ps1" in doc
     assert "scripts\\windows\\install-daily-task.ps1" in doc
     assert "docs\\Windows实机验收记录模板.md" in doc
     assert "验收清单" in doc
@@ -64,6 +66,7 @@ def test_windows_real_machine_acceptance_template_is_actionable():
     assert "scripts\\windows\\validate-sources.ps1" in doc
     assert "scripts\\windows\\run-daily-crawl.ps1" in doc
     assert "scripts\\windows\\v2-acceptance-check.ps1" in doc
+    assert "scripts\\windows\\v3-acceptance-check.ps1" in doc
     assert "send-daily-report" in doc
     assert "最终结论" in doc
 
@@ -80,6 +83,8 @@ def test_windows_local_acceptance_script_runs_required_steps():
     assert "--skip-source-validation" in script
     assert "--skip-daily-crawl" in script
     assert "--skip-v2" in script
+    assert "SkipV3" in script
+    assert "--skip-v3" in script
     assert "$LASTEXITCODE" in script
 
 
@@ -125,6 +130,7 @@ def test_unix_local_acceptance_script_wraps_cross_platform_cli():
     assert "--skip-source-validation" in script
     assert "--skip-daily-crawl" in script
     assert "--skip-v2" in script
+    assert "--skip-v3" in script
     assert 'PYTHON_BIN="$PROJECT_ROOT/.venv/bin/python"' in script
 
 

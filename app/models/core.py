@@ -301,3 +301,151 @@ class NotificationLog(TimestampMixin, Base):
     response_body: Mapped[str | None] = mapped_column(Text)
     failure_reason: Mapped[str | None] = mapped_column(Text)
     sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class QualificationStandard(TimestampMixin, Base):
+    __tablename__ = "qualification_standards"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    code: Mapped[str] = mapped_column(String(120), unique=True, index=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    category: Mapped[str | None] = mapped_column(String(120))
+    level: Mapped[str | None] = mapped_column(String(64))
+    region: Mapped[str | None] = mapped_column(String(100))
+    authority: Mapped[str | None] = mapped_column(String(200))
+    version: Mapped[str | None] = mapped_column(String(64))
+    status: Mapped[str] = mapped_column(String(32), default="active", nullable=False)
+    source_url: Mapped[str | None] = mapped_column(String(1000))
+    source_document_title: Mapped[str | None] = mapped_column(String(500))
+    effective_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    summary: Mapped[str | None] = mapped_column(Text)
+    remark: Mapped[str | None] = mapped_column(Text)
+
+    conditions: Mapped[list[QualificationStandardCondition]] = relationship(
+        back_populates="standard",
+        cascade="all, delete-orphan",
+        order_by="QualificationStandardCondition.sort_order",
+    )
+
+
+class QualificationStandardCondition(TimestampMixin, Base):
+    __tablename__ = "qualification_standard_conditions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    standard_id: Mapped[int] = mapped_column(
+        ForeignKey("qualification_standards.id"),
+        nullable=False,
+        index=True,
+    )
+    condition_type: Mapped[str] = mapped_column(String(64), default="other", nullable=False)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    requirement_text: Mapped[str] = mapped_column(Text, nullable=False)
+    metric_name: Mapped[str | None] = mapped_column(String(120))
+    metric_value: Mapped[str | None] = mapped_column(String(120))
+    metric_unit: Mapped[str | None] = mapped_column(String(64))
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    standard: Mapped[QualificationStandard] = relationship(back_populates="conditions")
+
+
+class Enterprise(TimestampMixin, Base):
+    __tablename__ = "enterprises"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(200), unique=True, index=True, nullable=False)
+    unified_social_credit_code: Mapped[str | None] = mapped_column(
+        String(64),
+        unique=True,
+        index=True,
+    )
+    legal_representative: Mapped[str | None] = mapped_column(String(120))
+    region: Mapped[str | None] = mapped_column(String(100))
+    registered_capital: Mapped[str | None] = mapped_column(String(120))
+    contact_name: Mapped[str | None] = mapped_column(String(120))
+    contact_phone: Mapped[str | None] = mapped_column(String(120))
+    address: Mapped[str | None] = mapped_column(String(500))
+    status: Mapped[str] = mapped_column(String(32), default="active", nullable=False)
+    remark: Mapped[str | None] = mapped_column(Text)
+
+    qualifications: Mapped[list[EnterpriseQualification]] = relationship(
+        back_populates="enterprise",
+        cascade="all, delete-orphan",
+    )
+    personnel: Mapped[list[EnterprisePersonnel]] = relationship(
+        back_populates="enterprise",
+        cascade="all, delete-orphan",
+    )
+    projects: Mapped[list[EnterpriseProject]] = relationship(
+        back_populates="enterprise",
+        cascade="all, delete-orphan",
+    )
+
+
+class EnterpriseQualification(TimestampMixin, Base):
+    __tablename__ = "enterprise_qualifications"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    enterprise_id: Mapped[int] = mapped_column(
+        ForeignKey("enterprises.id"),
+        nullable=False,
+        index=True,
+    )
+    standard_id: Mapped[int | None] = mapped_column(
+        ForeignKey("qualification_standards.id"),
+        index=True,
+    )
+    qualification_name: Mapped[str] = mapped_column(String(200), nullable=False)
+    category: Mapped[str | None] = mapped_column(String(120))
+    level: Mapped[str | None] = mapped_column(String(64))
+    certificate_no: Mapped[str | None] = mapped_column(String(120))
+    issuing_authority: Mapped[str | None] = mapped_column(String(200))
+    valid_from: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    valid_to: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    status: Mapped[str] = mapped_column(String(32), default="active", nullable=False)
+    remark: Mapped[str | None] = mapped_column(Text)
+
+    enterprise: Mapped[Enterprise] = relationship(back_populates="qualifications")
+    standard: Mapped[QualificationStandard | None] = relationship()
+
+
+class EnterprisePersonnel(TimestampMixin, Base):
+    __tablename__ = "enterprise_personnel"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    enterprise_id: Mapped[int] = mapped_column(
+        ForeignKey("enterprises.id"),
+        nullable=False,
+        index=True,
+    )
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    id_number_masked: Mapped[str | None] = mapped_column(String(64))
+    role_type: Mapped[str | None] = mapped_column(String(120))
+    certificate_name: Mapped[str | None] = mapped_column(String(200))
+    certificate_no: Mapped[str | None] = mapped_column(String(120))
+    specialty: Mapped[str | None] = mapped_column(String(120))
+    level: Mapped[str | None] = mapped_column(String(64))
+    valid_to: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    status: Mapped[str] = mapped_column(String(32), default="active", nullable=False)
+    remark: Mapped[str | None] = mapped_column(Text)
+
+    enterprise: Mapped[Enterprise] = relationship(back_populates="personnel")
+
+
+class EnterpriseProject(TimestampMixin, Base):
+    __tablename__ = "enterprise_projects"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    enterprise_id: Mapped[int] = mapped_column(
+        ForeignKey("enterprises.id"),
+        nullable=False,
+        index=True,
+    )
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    project_type: Mapped[str | None] = mapped_column(String(120))
+    contract_amount: Mapped[str | None] = mapped_column(String(120))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    role: Mapped[str | None] = mapped_column(String(120))
+    source_document: Mapped[str | None] = mapped_column(String(500))
+    remark: Mapped[str | None] = mapped_column(Text)
+
+    enterprise: Mapped[Enterprise] = relationship(back_populates="projects")

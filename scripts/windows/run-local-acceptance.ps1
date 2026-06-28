@@ -3,7 +3,8 @@ param(
     [int]$DailyLimit = 2,
     [switch]$SkipSourceValidation,
     [switch]$SkipDailyCrawl,
-    [switch]$SkipV2
+    [switch]$SkipV2,
+    [switch]$SkipV3
 )
 
 . "$PSScriptRoot\_bootstrap.ps1"
@@ -33,6 +34,9 @@ if ($SkipDailyCrawl) {
 }
 if ($SkipV2) {
     $Arguments += "--skip-v2"
+}
+if ($SkipV3) {
+    $Arguments += "--skip-v3"
 }
 
 & $Python @Arguments

@@ -8,6 +8,8 @@ def test_readme_reports_current_cross_platform_acceptance_status():
 
     assert "截至 2026-06-28" in readme
     assert "V1 MVP 和 V2 轻量本地知识库 MVP 已完成" in readme
+    assert "V3.1 已开始落地资质标准库和企业档案本地 MVP" in readme
+    assert "建筑资质公开信息监测与归档系统_V3_1详细设计.md" in readme
     assert "Ubuntu / Windows Python 3.11 / 3.12" in readme
     assert "macOS/Linux 脚本状态" in readme
     assert "Windows 实机验收记录模板" in readme

@@ -62,6 +62,7 @@ def main() -> None:
     local_acceptance_parser.add_argument("--skip-source-validation", action="store_true")
     local_acceptance_parser.add_argument("--skip-daily-crawl", action="store_true")
     local_acceptance_parser.add_argument("--skip-v2", action="store_true")
+    local_acceptance_parser.add_argument("--skip-v3", action="store_true")
 
     subparsers.add_parser("doctor")
     subparsers.add_parser("send-daily-report")
@@ -91,6 +92,7 @@ def main() -> None:
     kb_ask_parser.add_argument("--limit", type=int, default=5)
 
     subparsers.add_parser("v2-acceptance-check")
+    subparsers.add_parser("v3-acceptance-check")
 
     args = parser.parse_args()
     if args.command == "import-sites":
@@ -116,6 +118,7 @@ def main() -> None:
             skip_source_validation=args.skip_source_validation,
             skip_daily_crawl=args.skip_daily_crawl,
             skip_v2=args.skip_v2,
+            skip_v3=args.skip_v3,
         )
     elif args.command == "doctor":
         doctor()
@@ -142,6 +145,8 @@ def main() -> None:
         kb_ask(args.question, args.limit)
     elif args.command == "v2-acceptance-check":
         v2_acceptance_check()
+    elif args.command == "v3-acceptance-check":
+        v3_acceptance_check()
 
 
 def import_sites(path: Path) -> None:
@@ -424,6 +429,7 @@ def local_acceptance_check(
     skip_source_validation: bool = False,
     skip_daily_crawl: bool = False,
     skip_v2: bool = False,
+    skip_v3: bool = False,
 ) -> None:
     settings = get_settings()
     failed = False
@@ -476,6 +482,15 @@ def local_acceptance_check(
         if v2_report.failed_count:
             failed = True
 
+    if skip_v3:
+        print("v3_acceptance=skipped")
+    else:
+        with SessionLocal() as db:
+            v3_report = run_v3_acceptance_check(db, settings=settings)
+        print(format_v3_acceptance_report(v3_report))
+        if v3_report.failed_count:
+            failed = True
+
     with SessionLocal() as db:
         acceptance_report = export_acceptance_report(db, settings=settings)
     print(f"acceptance_report={acceptance_report.path}")
@@ -501,6 +516,26 @@ def v2_acceptance_check() -> None:
     with SessionLocal() as db:
         report = run_v2_acceptance_check(db, settings=get_settings())
     print(format_v2_acceptance_report(report))
+    if report.failed_count:
+        raise SystemExit(1)
+
+
+def run_v3_acceptance_check(db, settings):
+    from app.services import v3_acceptance
+
+    return v3_acceptance.run_v3_acceptance_check(db, settings=settings)
+
+
+def format_v3_acceptance_report(report) -> str:
+    from app.services import v3_acceptance
+
+    return v3_acceptance.format_v3_acceptance_report(report)
+
+
+def v3_acceptance_check() -> None:
+    with SessionLocal() as db:
+        report = run_v3_acceptance_check(db, settings=get_settings())
+    print(format_v3_acceptance_report(report))
     if report.failed_count:
         raise SystemExit(1)
 

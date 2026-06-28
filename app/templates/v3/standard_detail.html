@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}{{ standard.name }} - 资质标准{% endblock %}
+
+{% block content %}
+<header class="topbar">
+  <div>
+    <h1>{{ standard.name }}</h1>
+    <p>{{ standard.code }} · {{ standard.category or "未设置类别" }} · {{ standard.level or "未设置等级" }}</p>
+  </div>
+  <div class="topbar-actions">
+    <a class="button-link" href="/qualification-standards">返回标准库</a>
+  </div>
+</header>
+
+<section class="detail-layout">
+  <main class="panel detail-main">
+    <div class="detail-title">
+      <h2>标准条件</h2>
+      <span>按资产、人员、业绩、设备等维度拆分。</span>
+    </div>
+    {% if error %}
+    <div class="form-error">{{ error }}</div>
+    {% endif %}
+    {% if standard.conditions %}
+    <div class="structured-table">
+      <div class="structured-head">
+        <span>条件</span>
+        <span>要求</span>
+      </div>
+      {% for condition in standard.conditions %}
+      <div class="structured-row">
+        <div>
+          <strong>{{ condition.title }}</strong>
+          <span>
+            {{ condition.condition_type }}
+            {% if condition.metric_name %}
+            · {{ condition.metric_name }} {{ condition.metric_value or "" }}{{ condition.metric_unit or "" }}
+            {% endif %}
+          </span>
+        </div>
+        <span>{{ condition.requirement_text }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state compact">暂无标准条件</div>
+    {% endif %}
+  </main>
+
+  <aside class="detail-side">
+    <section class="panel">
+      <div class="panel-title">
+        <h2>基础信息</h2>
+        <span>来源追溯</span>
+      </div>
+      <dl class="meta-grid">
+        <dt>地区</dt>
+        <dd>{{ standard.region or "-" }}</dd>
+        <dt>主管单位</dt>
+        <dd>{{ standard.authority or "-" }}</dd>
+        <dt>版本</dt>
+        <dd>{{ standard.version or "-" }}</dd>
+        <dt>生效日期</dt>
+        <dd>{{ standard.effective_date.strftime("%Y-%m-%d") if standard.effective_date else "-" }}</dd>
+        <dt>来源文件</dt>
+        <dd>{{ standard.source_document_title or "-" }}</dd>
+        <dt>来源地址</dt>
+        <dd>
+          {% if standard.source_url %}
+          <a href="{{ standard.source_url }}" target="_blank" rel="noreferrer">{{ standard.source_url }}</a>
+          {% else %}
+          -
+          {% endif %}
+        </dd>
+      </dl>
+      {% if standard.summary %}
+      <div class="content-box">{{ standard.summary }}</div>
+      {% endif %}
+    </section>
+
+    <form class="panel" method="post" action="/qualification-standards/{{ standard.id }}/conditions">
+      <div class="panel-title">
+        <h2>新增条件</h2>
+        <span>结构化要求</span>
+      </div>
+      <div class="form-grid single">
+        <label>
+          <span>条件类型</span>
+          <select name="condition_type">
+            {% for value, label in condition_types %}
+            <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>
+          <span>条件名称</span>
+          <input name="title" required placeholder="净资产要求">
+        </label>
+        <label>
+          <span>指标名称</span>
+          <input name="metric_name" placeholder="净资产">
+        </label>
+        <label>
+          <span>指标值</span>
+          <input name="metric_value" placeholder="4000">
+        </label>
+        <label>
+          <span>单位</span>
+          <input name="metric_unit" placeholder="万元">
+        </label>
+        <label>
+          <span>排序</span>
+          <input name="sort_order" type="number" value="0">
+        </label>
+        <label class="wide">
+          <span>要求正文</span>
+          <textarea name="requirement_text" rows="4" required></textarea>
+        </label>
+      </div>
+      <button type="submit">保存条件</button>
+    </form>
+  </aside>
+</section>
+{% endblock %}
