@@ -55,9 +55,20 @@ def test_windows_local_acceptance_script_runs_required_steps():
     )
 
     assert '"doctor"' in script
+    assert "SkipSourceValidation" in script
     assert '"validate-sources"' in script
     assert '"run-daily-crawl"' in script
     assert '"--no-notify"' in script
     assert '"v2-acceptance-check"' in script
     assert '"export-acceptance-report"' in script
     assert "$LASTEXITCODE" in script
+
+
+def test_ci_runs_windows_local_acceptance_script_in_light_mode():
+    workflow = (BASE_DIR / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+
+    assert "Run Windows local acceptance script" in workflow
+    assert "scripts\\windows\\run-local-acceptance.ps1" in workflow
+    assert "-SkipSourceValidation" in workflow
+    assert "-SkipDailyCrawl" in workflow
+    assert "-SkipV2" in workflow

@@ -1,6 +1,7 @@
 param(
     [int]$SourceLimit = 2,
     [int]$DailyLimit = 2,
+    [switch]$SkipSourceValidation,
     [switch]$SkipDailyCrawl,
     [switch]$SkipV2
 )
@@ -30,7 +31,20 @@ function Invoke-AcceptanceStep {
 }
 
 Invoke-AcceptanceStep "部署自检" @("-m", "app.cli", "doctor")
-Invoke-AcceptanceStep "来源抽样验证" @("-m", "app.cli", "validate-sources", "--limit", "$SourceLimit")
+
+if (-not $SkipSourceValidation) {
+    Invoke-AcceptanceStep "来源抽样验证" @(
+        "-m",
+        "app.cli",
+        "validate-sources",
+        "--limit",
+        "$SourceLimit"
+    )
+}
+else {
+    Write-Host ""
+    Write-Host "==> 来源抽样验证已跳过"
+}
 
 if (-not $SkipDailyCrawl) {
     Invoke-AcceptanceStep "每日抓取抽样（不发送通知）" @(

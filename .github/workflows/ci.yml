@@ -59,3 +59,7 @@ jobs:
       - name: Run Windows doctor script
         shell: pwsh
         run: scripts\windows\doctor.ps1
+
+      - name: Run Windows local acceptance script
+        shell: pwsh
+        run: scripts\windows\run-local-acceptance.ps1 -SkipSourceValidation -SkipDailyCrawl -SkipV2

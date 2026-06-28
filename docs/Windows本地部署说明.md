@@ -108,7 +108,7 @@ scripts\windows\run-local-acceptance.ps1 -SourceLimit 2 -DailyLimit 2
 该脚本会依次执行部署自检、来源抽样验证、每日抓取抽样（不发送企微通知）、V2 知识库验收，并导出验收报告。只验证部署和配置时可跳过耗时步骤：
 
 ```powershell
-scripts\windows\run-local-acceptance.ps1 -SkipDailyCrawl -SkipV2
+scripts\windows\run-local-acceptance.ps1 -SkipSourceValidation -SkipDailyCrawl -SkipV2
 ```
 
 ## 验证来源配置
