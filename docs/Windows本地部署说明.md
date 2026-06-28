@@ -98,6 +98,8 @@ scripts\windows\verify-deployment-package.ps1 -PackagePath exports\zhengfudata_w
 
 该命令会把 zip 解压到临时目录，确认包内没有 `.env`、`data`、`storage`、`.venv`、`.git` 等本机状态，然后在解压目录运行初始化、自检和轻量本机验收。
 
+项目推送到 GitHub 后，CI 会在 Windows runner 上执行同样的导出和解压安装验收。通过后可在对应 GitHub Actions 运行页面下载 `zhengfudata-windows-deployment` artifact，里面包含已验证的 `ci_windows_deployment.zip`。
+
 跨平台 CLI 等价命令：
 
 ```powershell

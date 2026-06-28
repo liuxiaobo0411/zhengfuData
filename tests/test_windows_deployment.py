@@ -81,6 +81,9 @@ def test_ci_runs_windows_local_acceptance_script_in_light_mode():
     assert "ci_windows_deployment.zip" in workflow
     assert "Verify exported Windows deployment package" in workflow
     assert "scripts\\windows\\verify-deployment-package.ps1" in workflow
+    assert "Upload verified Windows deployment package" in workflow
+    assert "actions/upload-artifact@v4" in workflow
+    assert "zhengfudata-windows-deployment" in workflow
 
 
 def test_windows_deployment_package_verifier_checks_clean_package_and_runs_acceptance():

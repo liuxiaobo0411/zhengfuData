@@ -72,6 +72,14 @@ jobs:
         shell: pwsh
         run: scripts\windows\verify-deployment-package.ps1 -PackagePath exports\ci_windows_deployment.zip -PythonCommand python -WorkRoot "$env:RUNNER_TEMP\zhengfudata-package-check"
 
+      - name: Upload verified Windows deployment package
+        uses: actions/upload-artifact@v4
+        with:
+          name: zhengfudata-windows-deployment
+          path: exports/ci_windows_deployment.zip
+          if-no-files-found: error
+          retention-days: 14
+
   ubuntu-smoke:
     name: Ubuntu local acceptance smoke
     runs-on: ubuntu-latest

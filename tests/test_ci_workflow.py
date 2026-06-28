@@ -31,6 +31,13 @@ def test_ci_workflow_covers_windows_smoke_and_test_matrix():
         and "exports\\ci_windows_deployment.zip" in command
         for command in commands
     )
+    upload_steps = [
+        step for step in smoke["steps"] if step.get("uses") == "actions/upload-artifact@v4"
+    ]
+    assert upload_steps
+    assert upload_steps[0]["with"]["name"] == "zhengfudata-windows-deployment"
+    assert upload_steps[0]["with"]["path"] == "exports/ci_windows_deployment.zip"
+    assert upload_steps[0]["with"]["if-no-files-found"] == "error"
 
     ubuntu_smoke = workflow["jobs"]["ubuntu-smoke"]
     assert ubuntu_smoke["runs-on"] == "ubuntu-latest"
