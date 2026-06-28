@@ -1,5 +1,31 @@
 # V1 MVP 验收记录
 
+## 最新结论：2026-06-28
+
+本文件保留项目从早期验证到完整闭环的历史记录。以当前最新状态为准，V1 MVP 已完成本机端到端闭环开发与自动验收，历史章节中的“未验收”“未配置”“待适配”描述仅代表当时阶段。
+
+最新自动验收报告：
+
+```text
+storage/exports/v1_acceptance_report_20260628_084040.md
+```
+
+当前有效结论：
+
+- 部署自检：`ok=9 warn=0 fail=0`。
+- 来源配置：3 个政府网站、14 个栏目、14 个启用栏目。
+- 数据归档：233 条公告、153 条附件记录、153 条附件版本。
+- 附件状态：153 个附件均为 `success`。
+- OpenClaw 企微日报：CLI 模式已配置企微目标，最新通知日志 `#10` 为 `success`。
+- 后台入口：工作台、公告、变化、附件、抓取任务、通知日志、网站栏目和系统配置页面均已纳入验收报告。
+- 完整每日任务：14 个启用栏目的完整每日任务已完成，历史失败附件已重试恢复；报告记录 `success=12 partial=2 failed=0 discovered=160 new=2 attachments=150/2`。
+- 当前阻塞：没有阻塞 V1 验收的失败附件、部署自检 FAIL 或最新通知失败。
+- 跨平台脚本：CI 已在 Windows 执行 setup、doctor 和轻量验收；已在 Ubuntu 执行迁移、站点导入和轻量验收；`scripts/windows/run-local-acceptance.ps1` 与 `scripts/run-local-acceptance.sh` 可用于目标电脑本机验收。
+
+仍需外部完成的验收：
+
+- 在目标 Windows 电脑执行实机安装、启动、导入、抓取、附件下载和 `scripts\windows\run-local-acceptance.ps1 -SourceLimit 2 -DailyLimit 2` 验收。
+
 记录日期：2026-06-21
 
 ## 环境信息

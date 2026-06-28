@@ -6,7 +6,7 @@
 
 ## 当前状态
 
-当前已进入正式开发，M0-M6 已完成第一轮核心闭环实现，后续重点是端到端验收、Windows 运行验证和更多站点适配。
+截至 2026-06-28，V1 MVP 和 V2 轻量本地知识库 MVP 已完成本机闭环开发与自动验收：本地 `zhengfudata doctor` 为 `ok=9 warn=0 fail=0`，最新 GitHub CI 已通过 Ubuntu / Windows Python 3.11 / 3.12 测试矩阵，并分别执行 Windows 与 Ubuntu 轻量本机验收脚本。当前剩余外部验收重点是目标 Windows 电脑实机安装运行、更多政府网站适配，以及后续 OpenClaw 入站问答和资质报告生成增强。
 
 M0 项目底座已具备：
 
@@ -87,9 +87,9 @@ M6 已开始推进：
 - `configs/sites.yaml` 已包含 14 个启用栏目。
 - 已补充 Windows 本地部署脚本和任务计划脚本。
 - 可通过 `zhengfudata validate-sources` 验证启用栏目列表页是否可访问和可解析。
-- 后台已提供只读系统配置页，查看运行环境、storage、调度、OpenClaw 和 Windows 脚本状态。
+- 后台已提供只读系统配置页，查看运行环境、storage、调度、OpenClaw、Windows 脚本和 macOS/Linux 脚本状态。
 - 可通过 `zhengfudata export-acceptance-report` 导出 V1 自动验收报告，包含部署自检摘要、后台入口、失败来源和处理建议。
-- 可通过 `zhengfudata doctor` 做部署自检，检查数据库核心表、默认密码和密钥、storage、来源配置、OpenClaw 和 Windows 脚本状态。
+- 可通过 `zhengfudata doctor` 做部署自检，检查数据库核心表、默认密码和密钥、storage、来源配置、OpenClaw、Windows 脚本和 macOS/Linux 脚本状态。
 - 可通过 `zhengfudata acceptance-check` 一键执行部署自检、来源抽样验证和验收报告导出。
 - 可通过 `zhengfudata local-acceptance-check` 跨平台执行本机交付验收，串联部署自检、来源抽样、每日抓取抽样、V2 验收和验收报告导出。
 
