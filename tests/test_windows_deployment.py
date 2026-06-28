@@ -14,6 +14,7 @@ def test_windows_deployment_scripts_exist_and_use_project_relative_paths():
         BASE_DIR / "scripts" / "windows" / "setup.ps1",
         BASE_DIR / "scripts" / "windows" / "run-server.ps1",
         BASE_DIR / "scripts" / "windows" / "run-daily-crawl.ps1",
+        BASE_DIR / "scripts" / "windows" / "run-local-acceptance.ps1",
         BASE_DIR / "scripts" / "windows" / "retry-failed-attachments.ps1",
         BASE_DIR / "scripts" / "windows" / "validate-sources.ps1",
         BASE_DIR / "scripts" / "windows" / "export-acceptance-report.ps1",
@@ -37,6 +38,7 @@ def test_windows_deployment_doc_references_scripts_and_acceptance_steps():
     assert "scripts\\windows\\setup.ps1" in doc
     assert "scripts\\windows\\run-server.ps1" in doc
     assert "scripts\\windows\\run-daily-crawl.ps1" in doc
+    assert "scripts\\windows\\run-local-acceptance.ps1" in doc
     assert "scripts\\windows\\retry-failed-attachments.ps1" in doc
     assert "scripts\\windows\\validate-sources.ps1" in doc
     assert "scripts\\windows\\export-acceptance-report.ps1" in doc
@@ -45,3 +47,17 @@ def test_windows_deployment_doc_references_scripts_and_acceptance_steps():
     assert "scripts\\windows\\v2-acceptance-check.ps1" in doc
     assert "scripts\\windows\\install-daily-task.ps1" in doc
     assert "验收清单" in doc
+
+
+def test_windows_local_acceptance_script_runs_required_steps():
+    script = (BASE_DIR / "scripts" / "windows" / "run-local-acceptance.ps1").read_text(
+        encoding="utf-8"
+    )
+
+    assert '"doctor"' in script
+    assert '"validate-sources"' in script
+    assert '"run-daily-crawl"' in script
+    assert '"--no-notify"' in script
+    assert '"v2-acceptance-check"' in script
+    assert '"export-acceptance-report"' in script
+    assert "$LASTEXITCODE" in script

@@ -99,6 +99,18 @@ scripts\windows\v2-acceptance-check.ps1
 
 该脚本会检查附件解析、知识库索引、后台/API 查询和 OpenClaw 问答入口是否可用。
 
+如果要在 Windows 机器上一次性完成本机交付验收，可以运行：
+
+```powershell
+scripts\windows\run-local-acceptance.ps1 -SourceLimit 2 -DailyLimit 2
+```
+
+该脚本会依次执行部署自检、来源抽样验证、每日抓取抽样（不发送企微通知）、V2 知识库验收，并导出验收报告。只验证部署和配置时可跳过耗时步骤：
+
+```powershell
+scripts\windows\run-local-acceptance.ps1 -SkipDailyCrawl -SkipV2
+```
+
 ## 验证来源配置
 
 先验证前 2 个启用栏目：
@@ -228,6 +240,7 @@ storage\snapshots
 - `scripts\windows\setup.ps1` 成功。
 - `scripts\windows\doctor.ps1` 无 `FAIL`。
 - `scripts\windows\acceptance-check.ps1 -SourceLimit 2` 成功。
+- `scripts\windows\run-local-acceptance.ps1 -SourceLimit 2 -DailyLimit 2` 成功。
 - `scripts\windows\v2-acceptance-check.ps1` 成功。
 - `scripts\windows\validate-sources.ps1 -Limit 2` 成功。
 - 如存在失败附件，`scripts\windows\retry-failed-attachments.ps1 -Timeout 60` 可恢复或输出失败原因。
