@@ -50,6 +50,7 @@ def settings_page(request: Request):
             "admin_password_state": secret_state(settings.admin_password),
             "app_secret_state": secret_state(settings.app_secret_key),
             "scripts": windows_script_states(),
+            "unix_scripts": unix_script_states(),
         },
     )
 
@@ -88,4 +89,10 @@ def windows_script_states() -> list[dict[str, str | bool]]:
         "export-acceptance-report.ps1",
     ]
     root = BASE_DIR / "scripts" / "windows"
+    return [{"name": name, "exists": (root / name).exists()} for name in names]
+
+
+def unix_script_states() -> list[dict[str, str | bool]]:
+    names = ["run-local-acceptance.sh"]
+    root = BASE_DIR / "scripts"
     return [{"name": name, "exists": (root / name).exists()} for name in names]

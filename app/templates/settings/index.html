@@ -141,6 +141,21 @@
         {% endfor %}
       </div>
     </article>
+
+    <article class="panel large">
+      <div class="panel-title">
+        <h2>macOS / Linux 脚本</h2>
+        <span>本机验收</span>
+      </div>
+      <div class="script-list">
+        {% for script in unix_scripts %}
+        <div class="script-row">
+          <strong>{{ script.name }}</strong>
+          <span class="state {{ 'on' if script.exists else 'off' }}">{{ '存在' if script.exists else '缺失' }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </article>
   </section>
 </section>
 {% endblock %}

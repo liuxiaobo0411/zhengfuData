@@ -161,6 +161,7 @@ def test_render_acceptance_report_summarizes_database(tmp_path):
     assert "部署自检摘要" in report
     assert "OK database_schema" in report
     assert "OK security" in report
+    assert "OK unix_scripts" in report
     assert "公告列表：`http://127.0.0.1:8000/announcements`" in report
     assert "当前阻塞问题" in report
     assert "历史失败记录与处理建议" in report

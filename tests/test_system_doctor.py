@@ -81,6 +81,7 @@ def test_system_doctor_passes_for_ready_local_environment(tmp_path):
         "sources",
         "openclaw",
         "windows_scripts",
+        "unix_scripts",
     }
 
 
@@ -121,6 +122,7 @@ def test_system_doctor_accepts_openclaw_cli_mode(tmp_path, monkeypatch):
     assert report.failed_count == 0
     assert report.warning_count == 0
     assert any(check.name == "openclaw" and check.status == "ok" for check in report.checks)
+    assert any(check.name == "unix_scripts" and check.status == "ok" for check in report.checks)
 
 
 def test_system_doctor_fails_when_core_tables_are_missing(tmp_path):

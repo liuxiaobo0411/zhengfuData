@@ -50,6 +50,7 @@ def run_system_doctor(
         check_imported_sources(db),
         check_openclaw(settings),
         check_windows_scripts(),
+        check_unix_scripts(),
     ]
     return DoctorReport(checks=checks)
 
@@ -212,6 +213,30 @@ def check_windows_scripts() -> DoctorCheck:
     if missing:
         return DoctorCheck("windows_scripts", "fail", f"缺少 Windows 脚本：{', '.join(missing)}")
     return DoctorCheck("windows_scripts", "ok", "Windows 部署脚本完整")
+
+
+def check_unix_scripts() -> DoctorCheck:
+    scripts = ["run-local-acceptance.sh"]
+    missing = [script for script in scripts if not (BASE_DIR / "scripts" / script).exists()]
+    if missing:
+        return DoctorCheck(
+            "unix_scripts",
+            "fail",
+            f"缺少 macOS/Linux 脚本：{', '.join(missing)}",
+        )
+
+    invalid: list[str] = []
+    for script in scripts:
+        content = (BASE_DIR / "scripts" / script).read_text(encoding="utf-8")
+        if not content.startswith("#!/usr/bin/env bash"):
+            invalid.append(script)
+    if invalid:
+        return DoctorCheck(
+            "unix_scripts",
+            "fail",
+            f"macOS/Linux 脚本缺少 bash shebang：{', '.join(invalid)}",
+        )
+    return DoctorCheck("unix_scripts", "ok", "macOS/Linux 本机验收脚本完整")
 
 
 def format_doctor_report(report: DoctorReport) -> str:

@@ -101,6 +101,8 @@ def test_settings_page_requires_login_and_masks_secrets(tmp_path, monkeypatch):
     assert "APP_DATABASE_URL" in settings_response.text
     assert "running timeout" in settings_response.text
     assert "Windows 脚本" in settings_response.text
+    assert "macOS / Linux 脚本" in settings_response.text
+    assert "run-local-acceptance.sh" in settings_response.text
     assert "change-me" not in settings_response.text
 
 
