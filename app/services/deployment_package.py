@@ -131,7 +131,7 @@ def manifest_text(files: list[Path]) -> str:
         f"generated_at={datetime.now().isoformat(timespec='seconds')}",
         f"file_count={len(files) + 1}",
         "",
-        "解压后先阅读 README.md 和 docs/Windows本地部署说明.md。",
+        "解压后先阅读 README.md、docs/Windows本地部署说明.md 和 docs/Windows实机验收记录模板.md。",
         "初始化命令：scripts\\windows\\setup.ps1",
         "本机验收：scripts\\windows\\run-local-acceptance.ps1 -SourceLimit 2 -DailyLimit 2",
         "",

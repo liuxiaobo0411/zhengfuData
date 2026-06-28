@@ -100,6 +100,8 @@ scripts\windows\verify-deployment-package.ps1 -PackagePath exports\zhengfudata_w
 
 项目推送到 GitHub 后，CI 会在 Windows runner 上执行同样的导出和解压安装验收。通过后可在对应 GitHub Actions 运行页面下载 `zhengfudata-windows-deployment` artifact，里面包含已验证的 `ci_windows_deployment.zip`。
 
+目标 Windows 电脑实机验收时，建议同步填写 `docs\Windows实机验收记录模板.md`，记录执行命令、报告路径、截图位置、问题和最终结论。
+
 跨平台 CLI 等价命令：
 
 ```powershell
@@ -288,6 +290,7 @@ storage\snapshots
 - `scripts\windows\doctor.ps1` 无 `FAIL`。
 - `scripts\windows\acceptance-check.ps1 -SourceLimit 2` 成功。
 - `scripts\windows\run-local-acceptance.ps1 -SourceLimit 2 -DailyLimit 2` 成功。
+- 填写 `docs\Windows实机验收记录模板.md`，记录命令输出、后台截图、验收报告路径和问题清单。
 - `scripts\windows\v2-acceptance-check.ps1` 成功。
 - `scripts\windows\validate-sources.ps1 -Limit 2` 成功。
 - 如存在失败附件，`scripts\windows\retry-failed-attachments.ps1 -Timeout 60` 可恢复或输出失败原因。

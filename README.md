@@ -102,6 +102,7 @@ M6 已开始推进：
 - [V1 MVP 验收记录](./docs/V1_MVP验收记录.md)
 - [V2 验收验证记录](./docs/V2_验收验证记录.md)
 - [Windows 本地部署说明](./docs/Windows本地部署说明.md)
+- [Windows 实机验收记录模板](./docs/Windows实机验收记录模板.md)
 - [工作台 Demo PNG](./docs/assets/建筑资质公开信息监测与归档系统_工作台Demo.png)
 
 原型脚本位于上一级目录：

@@ -18,6 +18,7 @@ def test_export_deployment_package_contains_deployable_files_and_excludes_local_
     assert "zhengfudata/pyproject.toml" in names
     assert "zhengfudata/alembic.ini" in names
     assert "zhengfudata/configs/sites.yaml" in names
+    assert "zhengfudata/docs/Windows实机验收记录模板.md" in names
     assert "zhengfudata/scripts/windows/setup.ps1" in names
     assert "zhengfudata/scripts/windows/run-local-acceptance.ps1" in names
     assert "zhengfudata/DEPLOYMENT_PACKAGE_MANIFEST.txt" in names
@@ -33,6 +34,7 @@ def test_export_deployment_package_contains_deployable_files_and_excludes_local_
         manifest = archive.read("zhengfudata/DEPLOYMENT_PACKAGE_MANIFEST.txt").decode("utf-8")
     assert "generated_at=" in manifest
     assert f"file_count={package.file_count}" in manifest
+    assert "docs/Windows实机验收记录模板.md" in manifest
     assert "本包不包含 .env、data、storage、.venv、.git 或本机缓存。" in manifest
 
 

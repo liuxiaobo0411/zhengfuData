@@ -50,7 +50,22 @@ def test_windows_deployment_doc_references_scripts_and_acceptance_steps():
     assert "scripts\\windows\\acceptance-check.ps1" in doc
     assert "scripts\\windows\\v2-acceptance-check.ps1" in doc
     assert "scripts\\windows\\install-daily-task.ps1" in doc
+    assert "docs\\Windows实机验收记录模板.md" in doc
     assert "验收清单" in doc
+
+
+def test_windows_real_machine_acceptance_template_is_actionable():
+    doc = Path(BASE_DIR / "docs" / "Windows实机验收记录模板.md").read_text(encoding="utf-8")
+
+    assert "Windows 实机验收记录模板" in doc
+    assert "scripts\\windows\\setup.ps1" in doc
+    assert "scripts\\windows\\doctor.ps1" in doc
+    assert "scripts\\windows\\run-local-acceptance.ps1" in doc
+    assert "scripts\\windows\\validate-sources.ps1" in doc
+    assert "scripts\\windows\\run-daily-crawl.ps1" in doc
+    assert "scripts\\windows\\v2-acceptance-check.ps1" in doc
+    assert "send-daily-report" in doc
+    assert "最终结论" in doc
 
 
 def test_windows_local_acceptance_script_runs_required_steps():

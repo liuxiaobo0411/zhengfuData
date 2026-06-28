@@ -10,6 +10,7 @@ def test_readme_reports_current_cross_platform_acceptance_status():
     assert "V1 MVP 和 V2 轻量本地知识库 MVP 已完成" in readme
     assert "Ubuntu / Windows Python 3.11 / 3.12" in readme
     assert "macOS/Linux 脚本状态" in readme
+    assert "Windows 实机验收记录模板" in readme
 
 
 def test_v1_acceptance_record_has_latest_status_summary():
