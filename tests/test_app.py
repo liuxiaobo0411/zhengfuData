@@ -76,6 +76,7 @@ def test_login_and_dashboard_page_loads(tmp_path):
     assert "工作台" in dashboard_response.text
     assert "最近变化" in dashboard_response.text
     assert "/crawl-runs/run-daily" in dashboard_response.text
+    assert 'name="notify" value="on"' in dashboard_response.text
     assert "正式抓取模块接入后" not in dashboard_response.text
 
 
@@ -670,6 +671,7 @@ def test_web_daily_crawl_action_requires_login_and_passes_notify(tmp_path, monke
     assert crawl_runs.status_code == 200
     assert "执行每日抓取" in crawl_runs.text
     assert "发送日报" in crawl_runs.text
+    assert 'name="notify" checked' in crawl_runs.text
 
     response = client.post(
         "/crawl-runs/run-daily",

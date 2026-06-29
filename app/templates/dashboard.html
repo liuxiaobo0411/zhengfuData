@@ -16,6 +16,7 @@
         定时抓取{{ '运行中' if scheduler.running else '未启用' }}
       </span>
       <form class="inline-action-form" method="post" action="/crawl-runs/run-daily">
+        <input type="hidden" name="notify" value="on">
         <button type="submit">执行每日抓取</button>
       </form>
     </div>
